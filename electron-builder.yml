@@ -19,6 +19,7 @@ mac:
   target:
     - target: zip
       arch: [x64, arm64]
+  icon: build/icon.png # generates the bundled .icns (matches the runtime icon)
   category: public.app-category.productivity
   hardenedRuntime: true
   gatekeeperAssess: false
@@ -38,3 +39,4 @@ win:
   target:
     - target: portable
       arch: [x64, arm64]
+  icon: build/icon.png # generates the bundled .ico (matches the runtime icon)
