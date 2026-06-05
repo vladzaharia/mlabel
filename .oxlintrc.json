@@ -63,6 +63,12 @@
           }
         ]
       }
+    },
+    {
+      "files": ["src/core/adapters/**"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
     }
   ],
   "ignorePatterns": [
