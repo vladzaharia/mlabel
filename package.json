@@ -23,7 +23,7 @@
     "test:dom": "vitest run --project dom",
     "schema": "tsx scripts/emit-schema.ts",
     "icons": "tsx scripts/gen-icons.ts",
-    "build:mac": "electron-vite build && dotenv -e .env -- electron-builder --mac --universal",
+    "build:mac": "electron-vite build && dotenv -e .env -- electron-builder --mac",
     "build:win": "electron-vite build && electron-builder --win",
     "prepare": "lefthook install || true"
   },

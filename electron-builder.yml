@@ -15,11 +15,10 @@ asarUnpack:
   - "**/*.node"
 
 mac:
+  # Portable distribution: a bare, notarizable .app inside a zip (no dmg installer).
   target:
-    - target: dmg
-      arch: [universal]
-    - target: zip # required alongside dmg for a notarizable artifact
-      arch: [universal]
+    - target: zip
+      arch: [x64, arm64]
   category: public.app-category.productivity
   hardenedRuntime: true
   gatekeeperAssess: false
@@ -32,23 +31,10 @@ mac:
   # Signing uses the "Developer ID Application" identity from the Keychain.
   notarize: true
 
-dmg:
-  contents:
-    - x: 130
-      y: 220
-    - x: 410
-      y: 220
-      type: link
-      path: /Applications
-
 # Windows ships unsigned for v1 (users click through SmartScreen). Add
 # win.signtoolOptions / Azure Trusted Signing later without other changes.
 win:
+  # Portable distribution: a single self-contained .exe (no NSIS installer).
   target:
-    - target: nsis
+    - target: portable
       arch: [x64, arm64]
-
-nsis:
-  oneClick: false
-  perMachine: false
-  allowToChangeInstallationDirectory: true
