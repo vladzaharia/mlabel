@@ -1,0 +1,20 @@
+# Fast staged-only checks on commit; thorough checks before push.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: "*.{ts,tsx,js,jsx,json,jsonc,css}"
+      run: pnpm exec oxfmt {staged_files}
+      stage_fixed: true
+    - name: lint
+      glob: "*.{ts,tsx,js,jsx}"
+      run: pnpm exec oxlint --fix {staged_files}
+      stage_fixed: true
+
+pre-push:
+  parallel: false
+  jobs:
+    - name: typecheck
+      run: pnpm run typecheck
+    - name: test
+      run: pnpm exec vitest run

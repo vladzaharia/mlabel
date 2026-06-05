@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Dark mode is driven by a `.dark` class on <html>, toggled from the main
+   process nativeTheme via IPC (Tailwind v4 custom variant, not media query). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-progress: oklch(0.72 0.19 145); /* green completion fill */
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.14 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.55 0 0);
+  --border: oklch(0.92 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.14 0 0);
+  --chrome: oklch(0.97 0 0);
+  --accent: oklch(0.6 0.12 250);
+}
+
+.dark {
+  --background: oklch(0.17 0 0);
+  --foreground: oklch(0.96 0 0);
+  --muted: oklch(0.23 0 0);
+  --muted-foreground: oklch(0.65 0 0);
+  --border: oklch(0.28 0 0);
+  --card: oklch(0.2 0 0);
+  --card-foreground: oklch(0.96 0 0);
+  --chrome: oklch(0.2 0 0);
+  --accent: oklch(0.7 0.13 250);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-chrome: var(--chrome);
+  --color-accent: var(--accent);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+
+/* Frameless-window drag regions. The top app bar drags the window; interactive
+   children opt out with .no-drag. */
+.drag {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}

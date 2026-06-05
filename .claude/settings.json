@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(tsx:*)",
+      "Bash(vitest:*)",
+      "Bash(oxlint:*)",
+      "Bash(oxfmt:*)",
+      "Bash(lefthook:*)",
+      "Bash(electron-vite:*)",
+      "Bash(electron-builder:*)",
+      "Bash(tsc:*)",
+      "Bash(git:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(echo:*)",
+      "Bash(rm:*)",
+      "Bash(chmod:*)",
+      "Bash(find:*)",
+      "Bash(test:*)",
+      "Bash(true)",
+      "Read(//Users/vlad/Repos/data-labeler/**)",
+      "Edit(//Users/vlad/Repos/data-labeler/**)",
+      "Write(//Users/vlad/Repos/data-labeler/**)"
+    ],
+    "deny": ["Bash(git push --force:*)", "Bash(git push -f:*)"]
+  }
+}

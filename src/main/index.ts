@@ -1,0 +1,101 @@
+import { fileURLToPath } from "node:url";
+import { join, dirname } from "node:path";
+import { app, BrowserWindow, ipcMain, nativeTheme, session } from "electron";
+import { electronApp, is, optimizer } from "@electron-toolkit/utils";
+import { IPC_EVENT, IPC_INVOKE } from "@core/ipc";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const isMac = process.platform === "darwin";
+
+function titleBarOverlayColors(): { color: string; symbolColor: string; height: number } {
+  const dark = nativeTheme.shouldUseDarkColors;
+  return {
+    color: dark ? "#2d2d2d" : "#f7f7f7",
+    symbolColor: dark ? "#e8e8e8" : "#1c1c1c",
+    height: 44,
+  };
+}
+
+function createWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    width: 1100,
+    height: 800,
+    minWidth: 720,
+    minHeight: 560,
+    show: false,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#2c2c2c" : "#ffffff",
+    // Frameless chrome that blends with our custom top app bar.
+    ...(isMac
+      ? { titleBarStyle: "hiddenInset" as const, trafficLightPosition: { x: 16, y: 14 } }
+      : { titleBarStyle: "hidden" as const, titleBarOverlay: titleBarOverlayColors() }),
+    webPreferences: {
+      preload: join(__dirname, "../preload/index.mjs"),
+      contextIsolation: true,
+      sandbox: false, // ESM preload requires an unsandboxed preload
+      nodeIntegration: false,
+    },
+  });
+
+  win.on("ready-to-show", () => win.show());
+
+  if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+    void win.loadURL(process.env["ELECTRON_RENDERER_URL"]);
+  } else {
+    void win.loadFile(join(__dirname, "../renderer/index.html"));
+  }
+
+  return win;
+}
+
+/** Strict CSP for a zero-network local app; relaxed only for the Vite dev server. */
+function installCsp(): void {
+  const prod =
+    "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; script-src 'self'; connect-src 'self'";
+  const dev =
+    "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: http://localhost:*";
+  const policy = is.dev ? dev : prod;
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [policy],
+      },
+    });
+  });
+}
+
+function registerCoreIpc(): void {
+  ipcMain.handle(IPC_INVOKE.ping, () => "pong" as const);
+  ipcMain.handle(IPC_INVOKE.getTheme, () => nativeTheme.shouldUseDarkColors);
+}
+
+function broadcastTheme(): void {
+  const dark = nativeTheme.shouldUseDarkColors;
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!isMac) win.setTitleBarOverlay(titleBarOverlayColors());
+    win.webContents.send(IPC_EVENT.themeChanged, dark);
+  }
+}
+
+async function bootstrap(): Promise<void> {
+  await app.whenReady();
+  electronApp.setAppUserModelId("gg.vlad.mlabel");
+  installCsp();
+  registerCoreIpc();
+
+  app.on("browser-window-created", (_event, win) => optimizer.watchWindowShortcuts(win));
+  nativeTheme.on("updated", broadcastTheme);
+
+  createWindow();
+
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+}
+
+void bootstrap();
+
+app.on("window-all-closed", () => {
+  if (!isMac) app.quit();
+});

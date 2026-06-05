@@ -1,0 +1,76 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "jsx-a11y", "import", "promise", "unicorn"],
+  "categories": { "correctness": "error", "suspicious": "warn", "perf": "warn" },
+  "settings": {
+    "react": { "version": "19.0" }
+  },
+  "rules": {
+    "import/no-cycle": "error",
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": "off",
+    "unicorn/require-module-specifiers": "off",
+    "no-underscore-dangle": "off",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "@core/adapters/*/internal",
+              "@core/adapters/*/internal/*",
+              "**/adapters/*/internal/*"
+            ],
+            "message": "Adapter internals are private. Use the SourceAdapter/SinkAdapter interface and the opaque ProvenanceToken instead."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/main/**", "src/preload/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@core/adapters/*/internal",
+                  "@core/adapters/*/internal/*",
+                  "**/adapters/*/internal/*"
+                ],
+                "message": "Adapter internals are private to the adapter."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/renderer/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["electron", "@core/adapters/**", "**/main/**"],
+                "message": "The renderer is presentation-only: import from @core types or call window.api. No Electron, no adapter internals, no main-process modules."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "out/",
+    "dist/",
+    "release/",
+    "coverage/",
+    "**/*.generated.json",
+    "src/renderer/src/components/ui/**"
+  ]
+}
