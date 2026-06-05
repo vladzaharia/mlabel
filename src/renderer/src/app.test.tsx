@@ -1,7 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, cleanup } from "@testing-library/react";
-import type { IpcApi } from "@core";
+import userEvent from "@testing-library/user-event";
+import { loadConfig } from "@core/config";
+import type { AppConfig, IpcApi } from "@core";
 import { App } from "./app";
+
+function sampleConfig(): AppConfig {
+  const result = loadConfig(`{
+    "input": {
+      "fields": [{ "name": "id", "type": { "type": "text" } }],
+      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
+    },
+    "output": { "fields": [{ "name": "label", "control": "text" }] }
+  }`);
+  if (!result.ok) throw new Error("invalid sample config");
+  return result.config;
+}
 
 function mockApi(overrides: Partial<IpcApi> = {}): void {
   const base: IpcApi = {
@@ -44,5 +58,21 @@ describe("App startup flow", () => {
     });
     render(<App />);
     await waitFor(() => expect(screen.getByText("This config isn’t valid")).toBeInTheDocument());
+  });
+
+  it("lets you go back to switch configs from the input screen", async () => {
+    const user = userEvent.setup();
+    mockApi({
+      getStartupConfig: async () => ({
+        status: "loaded",
+        config: sampleConfig(),
+        path: "/x/c.jsonc",
+      }),
+    });
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Open data to label")).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: /config/i }));
+    expect(screen.getByText("Choose a configuration")).toBeInTheDocument();
   });
 });

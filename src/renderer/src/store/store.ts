@@ -64,6 +64,7 @@ interface AppActions {
 
   submitDone: () => Promise<{ ok: boolean; error?: string }>;
   backToLabeling: () => void;
+  backToConfig: () => void;
   resetInput: () => void;
 }
 
@@ -219,6 +220,21 @@ export const useStore = create<AppStore>((set, get) => ({
 
   backToLabeling() {
     set({ phase: "labeling" });
+  },
+
+  /** Return to the config picker to switch configs; clears any loaded input. */
+  backToConfig() {
+    set({
+      phase: "need-config",
+      inputPath: null,
+      records: [],
+      headerIssues: [],
+      labels: {},
+      index: 0,
+      exportResult: null,
+      pendingResume: null,
+      error: null,
+    });
   },
 
   resetInput() {
