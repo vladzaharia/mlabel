@@ -13,25 +13,39 @@ export interface UpdaterLike {
 
 const REPO = { owner: "vladzaharia", repo: "mlabel" } as const;
 
+function releaseDownloadBase(version: string): string {
+  const tag = version.startsWith("v") ? version : `v${version}`;
+  return `https://github.com/${REPO.owner}/${REPO.repo}/releases/download/${tag}`;
+}
+
 /** Direct download URL for the portable Windows asset of a released version. */
 export function portableAssetUrl(version: string, arch: string = process.arch): string {
-  const tag = version.startsWith("v") ? version : `v${version}`;
-  return `https://github.com/${REPO.owner}/${REPO.repo}/releases/download/${tag}/MLabel-${version}-${arch}-portable.exe`;
+  return `${releaseDownloadBase(version)}/MLabel-${version}-${arch}-portable.exe`;
+}
+
+/** Direct download URL for the macOS dmg installer of a released version. */
+export function dmgAssetUrl(version: string, arch: string = process.arch): string {
+  return `${releaseDownloadBase(version)}/MLabel-${version}-${arch}.dmg`;
 }
 
 /**
- * Translate `autoUpdater` events into `UpdateStatus` pushes. Installable builds
- * download automatically (so `update-available` becomes a `downloading` 0%);
- * portable builds can't self-install, so `update-available` becomes
- * `available-external` with a direct asset link.
+ * Translate `autoUpdater` events into `UpdateStatus` pushes. Builds that can
+ * self-install download automatically (so `update-available` becomes a
+ * `downloading` 0%); builds that can't (`external`: Windows portable, or a macOS
+ * app running outside /Applications) instead surface `available-external` with a
+ * direct asset link built by `assetUrl`.
  */
 export function wireUpdater(
   updater: UpdaterLike,
-  opts: { portable: boolean; send: (status: UpdateStatus) => void },
+  opts: {
+    external: boolean;
+    assetUrl: (version: string) => string;
+    send: (status: UpdateStatus) => void;
+  },
 ): void {
-  const { portable, send } = opts;
-  updater.autoDownload = !portable;
-  updater.autoInstallOnAppQuit = !portable;
+  const { external, assetUrl, send } = opts;
+  updater.autoDownload = !external;
+  updater.autoInstallOnAppQuit = !external;
 
   let version = "";
 
@@ -41,8 +55,8 @@ export function wireUpdater(
 
   updater.on("update-available", (info) => {
     version = versionOf(info);
-    if (portable) {
-      send({ kind: "available-external", version, url: portableAssetUrl(version) });
+    if (external) {
+      send({ kind: "available-external", version, url: assetUrl(version) });
     } else {
       send({ kind: "downloading", version, percent: 0 });
     }

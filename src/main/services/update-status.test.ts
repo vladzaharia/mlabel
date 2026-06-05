@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import { describe, expect, it } from "vitest";
 import type { UpdateStatus } from "@core";
-import { portableAssetUrl, wireUpdater, type UpdaterLike } from "./update-status";
+import { dmgAssetUrl, portableAssetUrl, wireUpdater, type UpdaterLike } from "./update-status";
 
 /** A fake autoUpdater: an EventEmitter with the mutable flags wireUpdater sets. */
 class FakeUpdater extends EventEmitter implements UpdaterLike {
@@ -9,10 +9,13 @@ class FakeUpdater extends EventEmitter implements UpdaterLike {
   autoInstallOnAppQuit = true;
 }
 
-function setup(portable: boolean): { updater: FakeUpdater; sent: UpdateStatus[] } {
+function setup(
+  external: boolean,
+  assetUrl: (version: string) => string = portableAssetUrl,
+): { updater: FakeUpdater; sent: UpdateStatus[] } {
   const updater = new FakeUpdater();
   const sent: UpdateStatus[] = [];
-  wireUpdater(updater, { portable, send: (s) => sent.push(s) });
+  wireUpdater(updater, { external, assetUrl, send: (s) => sent.push(s) });
   return { updater, sent };
 }
 
@@ -48,9 +51,9 @@ describe("wireUpdater (installable)", () => {
   });
 });
 
-describe("wireUpdater (portable)", () => {
-  it("disables autoDownload and links out to the portable asset", () => {
-    const { updater, sent } = setup(true);
+describe("wireUpdater (external / can't self-install)", () => {
+  it("disables autoDownload and links out to the given asset", () => {
+    const { updater, sent } = setup(true, (v) => dmgAssetUrl(v, "arm64"));
     expect(updater.autoDownload).toBe(false);
     expect(updater.autoInstallOnAppQuit).toBe(false);
     updater.emit("update-available", { version: "1.2.0" });
@@ -58,16 +61,22 @@ describe("wireUpdater (portable)", () => {
       {
         kind: "available-external",
         version: "1.2.0",
-        url: portableAssetUrl("1.2.0"),
+        url: dmgAssetUrl("1.2.0", "arm64"),
       },
     ]);
   });
 });
 
-describe("portableAssetUrl", () => {
-  it("builds a release-download URL with tag, version and arch", () => {
+describe("asset URLs", () => {
+  it("builds the portable Windows download URL with tag, version and arch", () => {
     expect(portableAssetUrl("1.2.0", "arm64")).toBe(
       "https://github.com/vladzaharia/mlabel/releases/download/v1.2.0/MLabel-1.2.0-arm64-portable.exe",
+    );
+  });
+
+  it("builds the macOS dmg download URL with tag, version and arch", () => {
+    expect(dmgAssetUrl("1.2.0", "arm64")).toBe(
+      "https://github.com/vladzaharia/mlabel/releases/download/v1.2.0/MLabel-1.2.0-arm64.dmg",
     );
   });
 });

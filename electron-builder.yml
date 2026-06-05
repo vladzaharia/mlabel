@@ -23,9 +23,14 @@ asarUnpack:
   - "**/*.node"
 
 mac:
-  # Portable distribution: a bare, notarizable .app inside a zip (no dmg installer).
+  # Ship both: a zip (REQUIRED for Squirrel.Mac auto-update; latest-mac.yml points
+  # at it) and a drag-to-/Applications dmg (the human download, and the link the
+  # app hands to users who can't self-update). Installing via the dmg avoids the
+  # Gatekeeper App Translocation that blocks in-place updates for quarantined zips.
   target:
     - target: zip
+      arch: [x64, arm64]
+    - target: dmg
       arch: [x64, arm64]
   icon: build/icon.png # generates the bundled .icns (matches the runtime icon)
   category: public.app-category.productivity
@@ -55,3 +60,9 @@ win:
 # Deterministic portable filename so the app can deep-link to the exact asset.
 portable:
   artifactName: ${productName}-${version}-${arch}-portable.${ext}
+
+# Deterministic dmg filename (always arch-tagged) so the app can deep-link the
+# exact installer when offering a manual-download fallback. The default layout
+# already includes the app icon + an Applications-folder symlink.
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}

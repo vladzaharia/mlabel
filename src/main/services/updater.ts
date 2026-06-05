@@ -3,11 +3,25 @@ import { app, BrowserWindow } from "electron";
 import electronUpdater from "electron-updater";
 import { IPC_EVENT } from "@core/ipc";
 import type { UpdateStatus } from "@core";
-import { wireUpdater, type UpdaterLike } from "./update-status";
+import { wireUpdater, dmgAssetUrl, portableAssetUrl, type UpdaterLike } from "./update-status";
+
+const isMac = process.platform === "darwin";
 
 /** electron-builder sets this only when running a portable Windows build. */
 function isPortable(): boolean {
   return Boolean(process.env["PORTABLE_EXECUTABLE_DIR"]);
+}
+
+/**
+ * Whether this install can replace itself in place. A Windows portable .exe never
+ * can; a macOS app running outside /Applications can't either — Gatekeeper runs a
+ * quarantined zip from a read-only translocated path, so Squirrel.Mac's in-place
+ * swap fails after download. Those cases fall back to a manual download link.
+ */
+function canSelfUpdate(): boolean {
+  if (isPortable()) return false;
+  if (isMac && !app.isInApplicationsFolder()) return false;
+  return true;
 }
 
 function broadcast(status: UpdateStatus): void {
@@ -30,7 +44,8 @@ export function startUpdates(): void {
   const { autoUpdater } = electronUpdater;
   autoUpdater.logger = console;
   wireUpdater(autoUpdater as unknown as UpdaterLike, {
-    portable: isPortable(),
+    external: !canSelfUpdate(),
+    assetUrl: isMac ? dmgAssetUrl : portableAssetUrl,
     send: broadcast,
   });
   void autoUpdater.checkForUpdates();

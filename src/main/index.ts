@@ -3,6 +3,7 @@ import { app, BrowserWindow, nativeImage, nativeTheme, session } from "electron"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { IPC_EVENT } from "@core/ipc";
 import { registerIpc } from "./ipc";
+import { offerRelocateToApplications } from "./services/app-location";
 // Bundled by electron-vite (?asset) so it's available at runtime in dev and in
 // the packaged asar — keeps the icon identical across platforms and builds.
 import appIcon from "../../build/icon.png?asset";
@@ -93,6 +94,11 @@ function broadcastTheme(): void {
 async function bootstrap(): Promise<void> {
   await app.whenReady();
   electronApp.setAppUserModelId("gg.vlad.mlabel");
+
+  // macOS: if launched from outside /Applications (e.g. a quarantined zip in
+  // Downloads), offer to relocate before doing anything else — a move relaunches
+  // the app, and it's what makes in-place auto-update possible.
+  if (offerRelocateToApplications()) return;
 
   // Apply the app icon at runtime on macOS (dock) so it's identical in dev and
   // every packaged build, independent of the bundle's .icns.
