@@ -1,17 +1,31 @@
+import { useMemo } from "react";
+import type { InputField } from "@core/config";
 import { useStore, selectCurrentRecord } from "../store/store";
+import { CategoryCard } from "./CategoryCard";
 
-/** Placeholder input content — replaced by category cards in Phase 5. */
 export function InputContent(): React.JSX.Element {
-  const record = useStore(selectCurrentRecord);
   const config = useStore((s) => s.config);
+  const record = useStore(selectCurrentRecord);
+
+  const fieldsByName = useMemo(() => {
+    const map = new Map<string, InputField>();
+    for (const field of config?.input.fields ?? []) map.set(field.name, field);
+    return map;
+  }, [config]);
+
+  if (!config || !record) return <div className="flex-1" />;
 
   return (
-    <div className="flex-1 overflow-auto p-5">
-      <div className="glass-card mx-auto max-w-3xl rounded-xl border border-border p-4">
-        <p className="text-muted-foreground mb-2 text-xs uppercase tracking-wide">
-          {config?.categories.length ?? 0} categories
-        </p>
-        <pre className="overflow-auto text-xs">{JSON.stringify(record?.inputValues, null, 2)}</pre>
+    <div className="flex-1 overflow-auto">
+      <div className="mx-auto flex max-w-4xl flex-col gap-4 p-5">
+        {config.categories.map((category) => (
+          <CategoryCard
+            key={category.id}
+            category={category}
+            fieldsByName={fieldsByName}
+            values={record.inputValues}
+          />
+        ))}
       </div>
     </div>
   );

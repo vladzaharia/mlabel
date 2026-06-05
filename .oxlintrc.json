@@ -8,6 +8,7 @@
   "rules": {
     "import/no-cycle": "error",
     "react/react-in-jsx-scope": "off",
+    "react/no-array-index-key": "off",
     "import/no-unassigned-import": "off",
     "unicorn/require-module-specifiers": "off",
     "no-underscore-dangle": "off",
