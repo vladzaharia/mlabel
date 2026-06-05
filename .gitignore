@@ -10,6 +10,10 @@ coverage/
 .env.*
 schema/*.generated.json
 
+# Generated labeling exports (MLabel writes these next to the input file)
+examples/*-output.*
+examples/*-remaining.*
+
 # A global gitignore excludes build/, but it holds packaging assets (icons,
 # entitlements) that must be committed for reproducible builds.
 !build/

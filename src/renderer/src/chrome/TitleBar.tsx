@@ -1,4 +1,4 @@
-import { Save } from "lucide-react";
+import { ChevronRight, Save } from "lucide-react";
 import { useStore, selectCompletedCount, selectCurrentRecord } from "../store/store";
 import { cn, isMac, isWindows } from "../lib/utils";
 import type { AppConfig, CoercedValue, RecordView } from "@core";
@@ -27,8 +27,10 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
   const config = useStore((s) => s.config);
   const inputPath = useStore((s) => s.inputPath);
   const record = useStore(selectCurrentRecord);
+  const index = useStore((s) => s.index);
   const total = useStore((s) => s.records.length);
   const completed = useStore(selectCompletedCount);
+  const next = useStore((s) => s.next);
   const labeling = useStore((s) => s.phase === "labeling");
 
   const fraction = total > 0 ? completed / total : 0;
@@ -47,6 +49,14 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
           <span className="no-drag px-2 text-xs tabular-nums text-muted-foreground">
             <span className="font-medium text-foreground">{completed}</span> / {total} labeled
           </span>
+          <button
+            type="button"
+            onClick={next}
+            disabled={index >= total - 1}
+            className="no-drag flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground shadow-sm transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
+          >
+            Next <ChevronRight size={13} />
+          </button>
           <button
             type="button"
             onClick={onDone}
