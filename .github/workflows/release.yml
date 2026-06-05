@@ -98,12 +98,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PLATFORM: ${{ matrix.platform }}
-          # macOS signing + notarization (ignored on the Windows runner).
+          # macOS signing + notarization. The signing cert (CSC_*) is an Apple
+          # Developer ID identity, so it must NOT leak to the Windows runner —
+          # electron-builder would feed it to SignTool and fail. Gate it to mac;
+          # Windows ships unsigned. APPLE_* are inert on Windows.
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_LINK: ${{ matrix.platform == 'mac' && secrets.CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && secrets.CSC_KEY_PASSWORD || '' }}
         run: pnpm "package:$PLATFORM" --config.extraMetadata.version="$VERSION"
 
   # All artifacts uploaded — flip the draft live (published immediately).
