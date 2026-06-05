@@ -96,14 +96,11 @@ async function bootstrap(): Promise<void> {
   nativeTheme.on("updated", broadcastTheme);
 
   createWindow();
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
 }
 
 void bootstrap();
 
+// Closing the window quits the app on every platform (including macOS).
 app.on("window-all-closed", () => {
-  if (!isMac) app.quit();
+  app.quit();
 });
