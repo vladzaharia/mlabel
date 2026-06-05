@@ -1,7 +1,6 @@
 import { HelpCircle } from "lucide-react";
 import type { Category, InputField } from "@core/config";
 import type { CoercedValue } from "@core";
-import { cn } from "../lib/utils";
 import { GridRow } from "./GridRow";
 
 export function CategoryCard({
@@ -29,12 +28,7 @@ export function CategoryCard({
         </div>
       )}
 
-      <div
-        className={cn(
-          "space-y-4 px-4 pb-4",
-          category.help ? "border-t border-border pt-4" : "pt-0",
-        )}
-      >
+      <div className="space-y-4 border-t border-border px-4 pb-4 pt-4">
         {category.rows.map((row, i) => (
           <GridRow key={i} row={row} fieldsByName={fieldsByName} values={values} />
         ))}

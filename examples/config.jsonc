@@ -157,6 +157,14 @@
         "labelPosition": "above",
       },
     ],
+    // Optional output layout: arrange fields into rows of side-by-side widgets.
+    // (Display-only; export column order still follows "fields" above.)
+    "layout": [
+      { "group": "Labels", "columns": 2, "fields": ["sentiment", "quality"] },
+      { "group": "Labels", "fields": ["needsReview"] },
+      { "group": "Scores", "columns": 2, "fields": ["rating", "confidence"] },
+      { "group": "Meta", "columns": 2, "fields": ["reviewedOn", "notes"] },
+    ],
   },
 
   // ---------------------------------------------------------------------------

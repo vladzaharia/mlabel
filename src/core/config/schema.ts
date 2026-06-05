@@ -111,6 +111,16 @@ export const Category = z.object({
 });
 export type Category = z.infer<typeof Category>;
 
+/** A row in the output form: output fields flow with flex-wrap to a column count. */
+export const OutputRow = z.object({
+  /** Optional labeled subsection heading shown above this row. */
+  group: z.string().optional(),
+  /** Minimum columns; drives each item's flex-basis (defaults to field count). */
+  columns: z.number().int().positive().optional(),
+  fields: z.array(Identifier).min(1),
+});
+export type OutputRow = z.infer<typeof OutputRow>;
+
 const AdapterRef = z.object({
   adapterId: z.string().min(1).default("csv"),
   /** Opaque, adapter-owned options (e.g. delimiter). The core never reads this. */
@@ -121,7 +131,12 @@ export const AppConfig = z
   .object({
     $schema: z.string().optional(),
     input: AdapterRef.extend({ fields: z.array(InputField).min(1) }),
-    output: AdapterRef.extend({ fields: z.array(OutputField).min(1) }),
+    output: AdapterRef.extend({
+      fields: z.array(OutputField).min(1),
+      /** Optional explicit layout (rows of side-by-side fields). Falls back to
+       *  one field per row, grouped by each field's `group`, when omitted. */
+      layout: z.array(OutputRow).optional(),
+    }),
     categories: z.array(Category).min(1),
     ui: z
       .object({
@@ -172,6 +187,21 @@ export const AppConfig = z
             });
           }
         });
+      });
+    });
+
+    // Every field referenced by the output layout must exist in the output schema.
+    const outputNames = new Set(cfg.output.fields.map((f) => f.name));
+    cfg.output.layout?.forEach((row, ri) => {
+      row.fields.forEach((name, fi) => {
+        if (!outputNames.has(name)) {
+          ctx.issues.push({
+            code: "custom",
+            input: cfg,
+            path: ["output", "layout", ri, "fields", fi],
+            message: `Output layout references unknown output field "${name}".`,
+          });
+        }
       });
     });
   });

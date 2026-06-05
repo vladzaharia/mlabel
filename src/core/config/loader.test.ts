@@ -97,4 +97,19 @@ describe("loadConfig", () => {
       ).toBe(true);
     }
   });
+
+  it("accepts an output layout and rejects unknown layout field references", () => {
+    const withLayout = VALID_JSONC.replace(
+      '"fields": [\n      { "name": "id", "control": "hidden" },',
+      '"layout": [{ "columns": 2, "fields": ["verdict", "notes"] }],\n    "fields": [\n      { "name": "id", "control": "hidden" },',
+    );
+    expect(loadConfig(withLayout).ok).toBe(true);
+
+    const badLayout = withLayout.replace('["verdict", "notes"]', '["verdict", "ghost"]');
+    const result = loadConfig(badLayout);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.some((i) => /unknown output field "ghost"/.test(i.message))).toBe(true);
+    }
+  });
 });
