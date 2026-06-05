@@ -6,6 +6,7 @@ export * from "./config";
 export * from "./coercion";
 export * from "./automapping";
 export * from "./completion";
+export * from "./session";
 // Adapter interface types only (no concrete adapters / no papaparse).
 export type {
   AdapterInput,
