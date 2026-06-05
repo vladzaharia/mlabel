@@ -30,7 +30,7 @@ export function OutputForm(): React.JSX.Element | null {
 
   return (
     <div className="glass shrink-0 border-t border-border">
-      <div className="mx-auto max-h-[42vh] w-full max-w-4xl space-y-5 overflow-auto p-5">
+      <div className="max-h-[28vh] w-full space-y-3 overflow-auto px-6 py-3">
         {grouped.map(([groupName, fields]) => (
           <div key={groupName} className="space-y-3">
             {groupName && (

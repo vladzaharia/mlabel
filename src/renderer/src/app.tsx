@@ -3,6 +3,7 @@ import { useStore } from "./store/store";
 import { LabelingView } from "./labeling/LabelingView";
 import { StartScreen } from "./flow/StartScreen";
 import { ConfigIssueScreen, InputIssueScreen } from "./flow/IssueScreen";
+import { DoneScreen } from "./flow/DoneScreen";
 import { Toaster, toast } from "./components/ui/sonner";
 
 export function App(): React.JSX.Element {
@@ -11,7 +12,7 @@ export function App(): React.JSX.Element {
   const bootstrap = useStore((s) => s.bootstrap);
   const setSystemDark = useStore((s) => s.setSystemDark);
   const loadInputPath = useStore((s) => s.loadInputPath);
-  const runExport = useStore((s) => s.runExport);
+  const submitDone = useStore((s) => s.submitDone);
 
   useEffect(() => {
     void bootstrap();
@@ -19,16 +20,8 @@ export function App(): React.JSX.Element {
   }, [bootstrap, setSystemDark]);
 
   async function handleDone(): Promise<void> {
-    const result = await runExport();
-    if (result.ok) {
-      toast.success(`Exported ${String(result.completeCount ?? 0)} record(s)`, {
-        description: result.remainingCount
-          ? `${String(result.remainingCount)} incomplete record(s) written to the remaining file.`
-          : "All records complete.",
-      });
-    } else {
-      toast.error("Export failed", { description: result.error });
-    }
+    const result = await submitDone();
+    if (!result.ok) toast.error("Export failed", { description: result.error });
   }
 
   function handleDrop(event: DragEvent): void {
@@ -50,6 +43,7 @@ export function App(): React.JSX.Element {
       {phase === "need-input" && <DraggableShell>{<StartScreen kind="input" />}</DraggableShell>}
       {phase === "input-invalid" && <DraggableShell>{<InputIssueScreen />}</DraggableShell>}
       {phase === "labeling" && <LabelingView onDone={() => void handleDone()} />}
+      {phase === "done" && <DraggableShell>{<DoneScreen />}</DraggableShell>}
       <Toaster />
     </div>
   );

@@ -1,16 +1,16 @@
 import { Toaster as Sonner } from "sonner";
+import { resolveDark, useStore } from "../../store/store";
 
-/** App-wide toast host. Styled to match the translucent theme. */
+/** App-wide toast host, theme-synced with clean rich colors. */
 export function Toaster(): React.JSX.Element {
+  const dark = useStore((s) => resolveDark(s.themeMode, s.systemDark));
   return (
     <Sonner
       position="bottom-right"
-      toastOptions={{
-        classNames: {
-          toast: "glass-popover !rounded-lg !border-border !text-popover-foreground !shadow-lg",
-          description: "!text-muted-foreground",
-        },
-      }}
+      theme={dark ? "dark" : "light"}
+      richColors
+      closeButton
+      toastOptions={{ classNames: { toast: "!rounded-lg !border" } }}
     />
   );
 }

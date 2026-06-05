@@ -11,10 +11,10 @@ export function BottomBar(): React.JSX.Element {
   const filename = inputPath?.split(/[/\\]/).pop() ?? "";
 
   return (
-    <footer className="drag glass flex h-11 shrink-0 items-center border-t border-border px-3">
+    <footer className="drag glass grid h-11 shrink-0 grid-cols-3 items-center border-t border-border px-3">
       <span className="text-muted-foreground truncate text-xs">{filename}</span>
 
-      <div className="ml-auto flex h-full items-center">
+      <div className="flex h-full items-center justify-center">
         <button
           type="button"
           onClick={prev}
@@ -37,6 +37,8 @@ export function BottomBar(): React.JSX.Element {
           <ChevronRight size={18} />
         </button>
       </div>
+
+      <div aria-hidden />
     </footer>
   );
 }

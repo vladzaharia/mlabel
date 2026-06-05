@@ -1,4 +1,4 @@
-import { Moon, Sun, SunMoon } from "lucide-react";
+import { Check, Moon, Sun, SunMoon } from "lucide-react";
 import { useStore, selectCompletedCount, selectCurrentRecord } from "../store/store";
 import { cn, isMac, isWindows } from "../lib/utils";
 import { Tooltip } from "../components/ui/tooltip";
@@ -68,9 +68,9 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
             <button
               type="button"
               onClick={onDone}
-              className="no-drag flex h-full items-center bg-accent/90 px-5 text-sm font-medium text-accent-foreground hover:bg-accent"
+              className="no-drag mr-0.5 flex items-center gap-1.5 rounded-md bg-progress px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
             >
-              Done
+              <Check size={15} /> Done
             </button>
           </>
         )}

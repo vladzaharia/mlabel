@@ -12,47 +12,47 @@
  * Hue ~255 (blue) is used across the neutral ramp for a tasteful blue-grey.
  */
 :root {
-  /* Translucent base layer over the window material. */
-  --background: oklch(0.96 0.012 255 / 0.7);
-  --foreground: oklch(0.22 0.03 260);
-  --muted: oklch(0.93 0.014 255 / 0.6);
-  --muted-foreground: oklch(0.48 0.03 260);
-  --border: oklch(0.45 0.03 260 / 0.16);
-  --card: oklch(0.99 0.01 255 / 0.62);
-  --card-foreground: oklch(0.22 0.03 260);
-  --chrome: oklch(0.95 0.014 255 / 0.55);
-  --popover: oklch(0.99 0.008 255 / 0.85);
-  --popover-foreground: oklch(0.22 0.03 260);
+  /* Translucent base layer over the window material (low alpha = more glass). */
+  --background: oklch(0.96 0.014 255 / 0.52);
+  --foreground: oklch(0.2 0.03 260);
+  --muted: oklch(0.93 0.016 255 / 0.45);
+  --muted-foreground: oklch(0.46 0.035 260);
+  --border: oklch(0.4 0.04 260 / 0.18);
+  --card: oklch(0.99 0.012 255 / 0.46);
+  --card-foreground: oklch(0.2 0.03 260);
+  --chrome: oklch(0.95 0.016 255 / 0.4);
+  --popover: oklch(0.99 0.01 255 / 0.78);
+  --popover-foreground: oklch(0.2 0.03 260);
 
   /* Bright, vibrant accents. */
-  --accent: oklch(0.6 0.2 262); /* electric blue/indigo */
+  --accent: oklch(0.58 0.29 264); /* vibrant electric blue */
   --accent-foreground: oklch(0.99 0.01 255);
-  --ring: oklch(0.6 0.2 262 / 0.55);
-  --progress: oklch(0.74 0.2 152); /* vivid green completion fill */
-  --danger: oklch(0.62 0.22 22); /* vibrant red */
-  --warning: oklch(0.78 0.16 75); /* vibrant amber */
-  --info: oklch(0.7 0.16 230); /* vivid cyan */
+  --ring: oklch(0.58 0.29 264 / 0.55);
+  --progress: oklch(0.72 0.24 150); /* vivid green completion fill */
+  --danger: oklch(0.6 0.25 25); /* vibrant red */
+  --warning: oklch(0.78 0.19 70); /* vibrant amber */
+  --info: oklch(0.68 0.21 235); /* vivid cyan */
 }
 
 .dark {
-  --background: oklch(0.22 0.028 260 / 0.62);
-  --foreground: oklch(0.94 0.014 255);
-  --muted: oklch(0.28 0.03 260 / 0.6);
-  --muted-foreground: oklch(0.68 0.025 258);
-  --border: oklch(0.85 0.03 258 / 0.14);
-  --card: oklch(0.27 0.03 262 / 0.55);
-  --card-foreground: oklch(0.94 0.014 255);
-  --chrome: oklch(0.24 0.03 262 / 0.5);
-  --popover: oklch(0.2 0.03 262 / 0.9);
-  --popover-foreground: oklch(0.94 0.014 255);
+  --background: oklch(0.21 0.03 262 / 0.46);
+  --foreground: oklch(0.95 0.014 255);
+  --muted: oklch(0.28 0.035 262 / 0.5);
+  --muted-foreground: oklch(0.7 0.03 258);
+  --border: oklch(0.9 0.03 258 / 0.16);
+  --card: oklch(0.27 0.035 262 / 0.42);
+  --card-foreground: oklch(0.95 0.014 255);
+  --chrome: oklch(0.23 0.035 262 / 0.38);
+  --popover: oklch(0.2 0.035 262 / 0.85);
+  --popover-foreground: oklch(0.95 0.014 255);
 
-  --accent: oklch(0.72 0.18 264); /* brighter indigo on dark */
-  --accent-foreground: oklch(0.16 0.03 262);
-  --ring: oklch(0.72 0.18 264 / 0.6);
-  --progress: oklch(0.78 0.2 152);
-  --danger: oklch(0.7 0.2 22);
-  --warning: oklch(0.82 0.16 78);
-  --info: oklch(0.76 0.15 228);
+  --accent: oklch(0.72 0.27 264); /* vibrant electric blue on dark */
+  --accent-foreground: oklch(0.15 0.03 262);
+  --ring: oklch(0.72 0.27 264 / 0.6);
+  --progress: oklch(0.79 0.24 150);
+  --danger: oklch(0.7 0.24 25);
+  --warning: oklch(0.83 0.19 72);
+  --info: oklch(0.76 0.21 235);
 }
 
 @theme inline {
@@ -91,30 +91,43 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Anything clickable gets a pointer cursor. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="radio"],
+[role="option"],
+[role="menuitem"],
+[role="tab"],
+summary,
+a[href],
+label:has(input) {
+  cursor: pointer;
+}
+
 /* Translucent base behind the app content (sits on the window material). */
 @utility app-base {
   background: var(--background);
 }
 
-/* Layered chrome (top/bottom bars): translucent + blur of content behind it. */
+/* Layered chrome (top/bottom bars): translucent + strong blur of content behind. */
 @utility glass {
   background: var(--chrome);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(34px) saturate(200%);
+  -webkit-backdrop-filter: blur(34px) saturate(200%);
 }
 
 /* Cards / panels floating over the scrolling content. */
 @utility glass-card {
   background: var(--card);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
 }
 
 /* Popovers / dialogs need a denser blur for legibility over busy content. */
 @utility glass-popover {
   background: var(--popover);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
 }
 
 /* Frameless-window drag regions. The top app bar drags the window; interactive

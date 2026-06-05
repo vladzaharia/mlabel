@@ -19,7 +19,8 @@ export type Phase =
   | "config-invalid"
   | "need-input"
   | "input-invalid"
-  | "labeling";
+  | "labeling"
+  | "done";
 export type ThemeMode = "system" | "light" | "dark";
 
 interface AppState {
@@ -41,6 +42,7 @@ interface AppState {
 
   index: number;
   labels: Record<number, LabelMap>;
+  exportResult: ExportResponse | null;
 }
 
 interface AppActions {
@@ -60,7 +62,8 @@ interface AppActions {
   prev: () => void;
   goTo: (index: number) => void;
 
-  runExport: () => Promise<ExportResponse>;
+  submitDone: () => Promise<{ ok: boolean; error?: string }>;
+  backToLabeling: () => void;
   resetInput: () => void;
 }
 
@@ -100,6 +103,7 @@ export const useStore = create<AppStore>((set, get) => ({
 
   index: 0,
   labels: {},
+  exportResult: null,
 
   async bootstrap() {
     const systemDark = await window.api.getTheme();
@@ -201,8 +205,20 @@ export const useStore = create<AppStore>((set, get) => ({
     set({ index: Math.max(0, Math.min(index, max)) });
   },
 
-  async runExport() {
-    return window.api.exportLabels({ labels: get().labels });
+  async submitDone() {
+    set({ busy: true });
+    const result = await window.api.exportLabels({ labels: get().labels });
+    set({ busy: false });
+    if (result.ok) {
+      set({ exportResult: result, phase: "done" });
+      void window.api.clearSession();
+      return { ok: true };
+    }
+    return { ok: false, error: result.error };
+  },
+
+  backToLabeling() {
+    set({ phase: "labeling" });
   },
 
   resetInput() {
@@ -212,6 +228,7 @@ export const useStore = create<AppStore>((set, get) => ({
       headerIssues: [],
       labels: {},
       index: 0,
+      exportResult: null,
       phase: "need-input",
     });
   },
