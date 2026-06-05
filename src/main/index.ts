@@ -1,23 +1,14 @@
 import { join } from "node:path";
-import { existsSync } from "node:fs";
 import { app, BrowserWindow, nativeImage, nativeTheme, session } from "electron";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { IPC_EVENT } from "@core/ipc";
 import { registerIpc } from "./ipc";
+// Bundled by electron-vite (?asset) so it's available at runtime in dev and in
+// the packaged asar — keeps the icon identical across platforms and builds.
+import appIcon from "../../build/icon.png?asset";
 
 const isMac = process.platform === "darwin";
 const isLinux = process.platform === "linux";
-
-/**
- * In dev, electron-vite runs the bare Electron binary so the app icon isn't
- * applied (the bundled .icns only exists in the packaged app). Point at the
- * source PNG so the dev dock/taskbar shows the real MLabel icon.
- */
-function devIconPath(): string | undefined {
-  if (!is.dev) return undefined;
-  const path = join(process.cwd(), "build/icon.png");
-  return existsSync(path) ? path : undefined;
-}
 
 function titleBarOverlayColors(): { color: string; symbolColor: string; height: number } {
   const dark = nativeTheme.shouldUseDarkColors;
@@ -35,7 +26,7 @@ function createWindow(): BrowserWindow {
     minWidth: 720,
     minHeight: 560,
     show: false,
-    icon: devIconPath(),
+    icon: appIcon,
     // Translucent chrome: a transparent window background lets the OS material
     // (macOS vibrancy / Windows acrylic) show through the renderer's alpha
     // surfaces. Linux falls back to an opaque background.
@@ -103,9 +94,9 @@ async function bootstrap(): Promise<void> {
   await app.whenReady();
   electronApp.setAppUserModelId("gg.vlad.mlabel");
 
-  // Dev-only: apply the real dock icon on macOS (packaged builds use the .icns).
-  const devIcon = devIconPath();
-  if (devIcon && app.dock) app.dock.setIcon(nativeImage.createFromPath(devIcon));
+  // Apply the app icon at runtime on macOS (dock) so it's identical in dev and
+  // every packaged build, independent of the bundle's .icns.
+  if (app.dock) app.dock.setIcon(nativeImage.createFromPath(appIcon));
 
   installCsp();
   registerIpc();
