@@ -1,6 +1,7 @@
 import { FileSpreadsheet, Settings2 } from "lucide-react";
 import { useStore } from "../store/store";
 import { Button } from "../components/ui/button";
+import { Logo } from "../components/Logo";
 
 export function StartScreen({ kind }: { kind: "config" | "input" }): React.JSX.Element {
   const busy = useStore((s) => s.busy);
@@ -11,7 +12,12 @@ export function StartScreen({ kind }: { kind: "config" | "input" }): React.JSX.E
   const Icon = isConfig ? Settings2 : FileSpreadsheet;
 
   return (
-    <div className="flex flex-1 items-center justify-center p-8">
+    <div className="flex flex-1 flex-col items-center justify-center gap-7 p-8">
+      <div className="flex items-center gap-2.5">
+        <Logo size={30} />
+        <span className="text-lg font-semibold tracking-tight">MLabel</span>
+      </div>
+
       <div className="glass-card flex max-w-md flex-col items-center gap-4 rounded-2xl border border-border p-10 text-center shadow-xl">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/15 text-accent">
           <Icon size={26} />
