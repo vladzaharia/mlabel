@@ -28,3 +28,4 @@ const api = {
 } satisfies IpcApi;
 
 contextBridge.exposeInMainWorld("api", api);
+contextBridge.exposeInMainWorld("platform", process.platform);

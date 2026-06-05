@@ -1,11 +1,8 @@
-import { fileURLToPath } from "node:url";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import { app, BrowserWindow, nativeTheme, session } from "electron";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { IPC_EVENT } from "@core/ipc";
 import { registerIpc } from "./ipc";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const isMac = process.platform === "darwin";
 const isLinux = process.platform === "linux";
@@ -46,7 +43,7 @@ function createWindow(): BrowserWindow {
           ...(isLinux ? {} : { backgroundMaterial: "acrylic" as const }),
         }),
     webPreferences: {
-      preload: join(__dirname, "../preload/index.mjs"),
+      preload: join(import.meta.dirname, "../preload/index.mjs"),
       contextIsolation: true,
       sandbox: false, // ESM preload requires an unsandboxed preload
       nodeIntegration: false,
@@ -58,7 +55,7 @@ function createWindow(): BrowserWindow {
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     void win.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {
-    void win.loadFile(join(__dirname, "../renderer/index.html"));
+    void win.loadFile(join(import.meta.dirname, "../renderer/index.html"));
   }
 
   return win;
