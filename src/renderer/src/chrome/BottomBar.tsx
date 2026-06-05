@@ -1,8 +1,7 @@
-import { ChevronLeft, ChevronRight, Moon, Sun, SunMoon } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useStore } from "../store/store";
-import { Tooltip } from "../components/ui/tooltip";
-
-const themeIcon = { system: SunMoon, light: Sun, dark: Moon } as const;
+import { ModeToggle } from "./ModeToggle";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export function BottomBar(): React.JSX.Element {
   const inputPath = useStore((s) => s.inputPath);
@@ -10,11 +9,8 @@ export function BottomBar(): React.JSX.Element {
   const total = useStore((s) => s.records.length);
   const next = useStore((s) => s.next);
   const prev = useStore((s) => s.prev);
-  const themeMode = useStore((s) => s.themeMode);
-  const cycleTheme = useStore((s) => s.cycleTheme);
 
   const filename = inputPath?.split(/[/\\]/).pop() ?? "";
-  const ThemeIcon = themeIcon[themeMode];
 
   return (
     <footer className="drag glass grid h-11 shrink-0 grid-cols-3 items-center border-t border-border px-3">
@@ -44,17 +40,9 @@ export function BottomBar(): React.JSX.Element {
         </button>
       </div>
 
-      <div className="flex h-full items-center justify-end">
-        <Tooltip content={`Theme: ${themeMode}`}>
-          <button
-            type="button"
-            onClick={cycleTheme}
-            aria-label="Toggle theme"
-            className="no-drag flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <ThemeIcon size={15} />
-          </button>
-        </Tooltip>
+      <div className="flex h-full items-center justify-end gap-1">
+        <ThemeSwitcher />
+        <ModeToggle />
       </div>
     </footer>
   );

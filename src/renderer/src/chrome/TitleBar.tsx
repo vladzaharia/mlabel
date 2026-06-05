@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Save } from "lucide-react";
 import { useStore, selectCompletedCount, selectCurrentRecord } from "../store/store";
 import { cn, isMac, isWindows } from "../lib/utils";
 import type { AppConfig, CoercedValue, RecordView } from "@core";
@@ -43,16 +43,16 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
       <span className="truncate text-sm font-medium">{titleText(config, record, inputPath)}</span>
 
       {labeling && (
-        <div className="ml-auto flex h-full items-center gap-1">
+        <div className="ml-auto flex h-full items-center gap-3">
           <span className="no-drag px-2 text-xs tabular-nums text-muted-foreground">
             <span className="font-medium text-foreground">{completed}</span> / {total} labeled
           </span>
           <button
             type="button"
             onClick={onDone}
-            className="no-drag mr-0.5 flex items-center gap-1.5 rounded-md bg-progress px-3.5 py-1.5 text-sm font-medium text-progress-foreground shadow-sm transition-opacity hover:opacity-90"
+            className="no-drag mr-0.5 flex items-center gap-1 rounded-md bg-progress px-2.5 py-1 text-xs font-medium text-progress-foreground shadow-sm transition-opacity hover:opacity-90"
           >
-            <Check size={15} /> Done
+            <Save size={13} /> Save
           </button>
         </div>
       )}

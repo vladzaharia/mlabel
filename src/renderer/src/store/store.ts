@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { evaluateRecord } from "@core";
+import { evaluateRecord, sessionHasChanges } from "@core";
 import type {
   AppConfig,
   CoercedValue,
@@ -22,9 +22,19 @@ export type Phase =
   | "labeling"
   | "done";
 export type ThemeMode = "system" | "light" | "dark";
+export type ColorTheme = "cobalt" | "parchment" | "fjord" | "vespers";
+
+/** User-facing color themes; `swatch` is the light accent shown in the picker. */
+export const COLOR_THEMES: { id: ColorTheme; name: string; swatch: string }[] = [
+  { id: "cobalt", name: "Cobalt Cathedral", swatch: "oklch(0.55 0.2 265)" },
+  { id: "parchment", name: "Parchment Parlour", swatch: "oklch(0.57 0.09 130)" },
+  { id: "fjord", name: "Frostbound Fjord", swatch: "oklch(0.55 0.15 235)" },
+  { id: "vespers", name: "Velvet Vespers", swatch: "oklch(0.53 0.2 300)" },
+];
 
 interface AppState {
   themeMode: ThemeMode;
+  colorTheme: ColorTheme;
   systemDark: boolean;
 
   phase: Phase;
@@ -49,6 +59,7 @@ interface AppActions {
   bootstrap: () => Promise<void>;
   setSystemDark: (dark: boolean) => void;
   cycleTheme: () => void;
+  setColorTheme: (theme: ColorTheme) => void;
 
   pickConfig: () => Promise<void>;
   pickInput: () => Promise<void>;
@@ -71,10 +82,16 @@ interface AppActions {
 export type AppStore = AppState & AppActions;
 
 const THEME_KEY = "mlabel.theme";
+const COLOR_THEME_KEY = "mlabel.colortheme";
 
 function readThemeMode(): ThemeMode {
   const saved = globalThis.localStorage?.getItem(THEME_KEY);
   return saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
+}
+
+function readColorTheme(): ColorTheme {
+  const saved = globalThis.localStorage?.getItem(COLOR_THEME_KEY);
+  return COLOR_THEMES.some((t) => t.id === saved) ? (saved as ColorTheme) : "cobalt";
 }
 
 export function resolveDark(mode: ThemeMode, systemDark: boolean): boolean {
@@ -85,8 +102,13 @@ function applyThemeClass(dark: boolean): void {
   globalThis.document?.documentElement.classList.toggle("dark", dark);
 }
 
+function applyColorTheme(theme: ColorTheme): void {
+  if (globalThis.document) globalThis.document.documentElement.dataset.theme = theme;
+}
+
 export const useStore = create<AppStore>((set, get) => ({
   themeMode: readThemeMode(),
+  colorTheme: readColorTheme(),
   systemDark: true,
 
   phase: "boot",
@@ -107,6 +129,7 @@ export const useStore = create<AppStore>((set, get) => ({
   exportResult: null,
 
   async bootstrap() {
+    applyColorTheme(get().colorTheme);
     const systemDark = await window.api.getTheme();
     set({ systemDark });
     applyThemeClass(resolveDark(get().themeMode, systemDark));
@@ -136,6 +159,12 @@ export const useStore = create<AppStore>((set, get) => ({
     set({ themeMode: nextMode });
     globalThis.localStorage?.setItem(THEME_KEY, nextMode);
     applyThemeClass(resolveDark(nextMode, get().systemDark));
+  },
+
+  setColorTheme(theme) {
+    set({ colorTheme: theme });
+    globalThis.localStorage?.setItem(COLOR_THEME_KEY, theme);
+    applyColorTheme(theme);
   },
 
   async pickConfig() {
@@ -270,12 +299,15 @@ function applyInputResponse(set: SetFn, response: InputLoadResponse): void {
   const records = response.records ?? [];
   const labels: Record<number, LabelMap> = {};
   for (const record of records) labels[record.index] = { ...record.labelValues };
+  // Only offer to resume when the saved session holds real progress; otherwise
+  // there is nothing to restore, so start fresh without prompting.
+  const resume = response.resume ?? null;
   set({
     busy: false,
     inputPath: response.path ?? null,
     records,
     headerIssues: response.headerIssues ?? [],
-    pendingResume: response.resume ?? null,
+    pendingResume: resume && sessionHasChanges(resume, records) ? resume : null,
     labels,
     index: 0,
     error: null,

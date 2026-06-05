@@ -3,6 +3,7 @@ out/
 dist/
 release/
 coverage/
+.superpowers/
 *.log
 .DS_Store
 .env

@@ -6,55 +6,226 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Theme: cool dark blue-grey (slate) base with bright, vibrant accents.
- * Surfaces are translucent so the OS window material (macOS vibrancy /
- * Windows acrylic) shows through; layered elements add CSS backdrop blur.
- * Hue ~255 (blue) is used across the neutral ramp for a tasteful blue-grey.
+ * Color themes. Four named systems, each a deliberate light + dark pairing,
+ * selected by a `data-theme` attribute on <html>; the `.dark` class selects mode.
+ *
+ * ONE SCAFFOLD, FOUR HUES: every theme reuses the same lightness + alpha
+ * elevation ramp (background → muted → card → chrome → popover; opacity rises
+ * with height) so the glass/vibrancy behaviour holds without re-tuning. Only the
+ * hue and chroma change per theme.
+ *
+ * Light and dark are deliberate, NOT inversions:
+ *   • Light surfaces carry HIGH alpha so they read as clean planes over the OS
+ *     window material (macOS vibrancy / Windows acrylic) instead of a muddy wash,
+ *     and the accent is DEEPER/denser to hold presence on near-white.
+ *   • Dark surfaces are rich (never dead), and the accent is LIGHTER/luminous.
+ * Neutrals are subtly tinted toward each theme's temperature — never flat grey.
+ * Semantics keep their universal hues (green/amber/red/blue) nudged toward the
+ * theme; accents stay clear of warning (~75) and error (~25).
+ *
+ *   cobalt    — Cobalt Cathedral   (cool neutral 258 · indigo 265) — DEFAULT
+ *   parchment — Parchment Parlour  (sage-tinted paper 98 · sage 130)
+ *   fjord     — Frostbound Fjord   (cool neutral 235 · azure 235 · cyan info)
+ *   vespers   — Velvet Vespers     (violet 300)
+ *
+ * `:root` / `.dark` carry Cobalt as the fallback for first paint before JS sets
+ * the data-theme attribute.
  */
-:root {
-  /* Translucent base layer over the window material (low alpha = more glass). */
-  --background: oklch(0.96 0.014 255 / 0.52);
-  --foreground: oklch(0.2 0.03 260);
-  --muted: oklch(0.93 0.016 255 / 0.45);
-  --muted-foreground: oklch(0.46 0.035 260);
-  --border: oklch(0.4 0.04 260 / 0.18);
-  --card: oklch(0.99 0.012 255 / 0.46);
-  --card-foreground: oklch(0.2 0.03 260);
-  --chrome: oklch(0.95 0.016 255 / 0.4);
-  --popover: oklch(0.99 0.01 255 / 0.78);
-  --popover-foreground: oklch(0.2 0.03 260);
-
-  /* Bright, vibrant accents. */
-  --accent: oklch(0.58 0.29 264); /* vibrant electric blue */
-  --accent-foreground: oklch(0.99 0.01 255);
-  --ring: oklch(0.58 0.29 264 / 0.55);
-  --progress: oklch(0.72 0.24 150); /* vivid green completion fill */
-  --progress-foreground: oklch(0.24 0.07 150); /* dark text on bright green */
-  --danger: oklch(0.6 0.25 25); /* vibrant red */
-  --warning: oklch(0.78 0.19 70); /* vibrant amber */
-  --info: oklch(0.68 0.21 235); /* vivid cyan */
+:root,
+[data-theme="cobalt"] {
+  --background: oklch(0.985 0.004 258 / 0.8);
+  --foreground: oklch(0.24 0.026 262);
+  --muted: oklch(0.955 0.006 258 / 0.7);
+  --muted-foreground: oklch(0.5 0.024 260);
+  --border: oklch(0.45 0.03 262 / 0.14);
+  --card: oklch(0.995 0.003 258 / 0.72);
+  --card-foreground: oklch(0.24 0.026 262);
+  --chrome: oklch(0.97 0.005 258 / 0.62);
+  --popover: oklch(0.995 0.003 258 / 0.92);
+  --popover-foreground: oklch(0.24 0.026 262);
+  --accent: oklch(0.55 0.2 265);
+  --accent-foreground: oklch(0.99 0.008 258);
+  --ring: oklch(0.55 0.2 265 / 0.45);
+  --progress: oklch(0.7 0.16 155);
+  --progress-foreground: oklch(0.27 0.06 155);
+  --danger: oklch(0.58 0.2 25);
+  --danger-foreground: oklch(0.99 0.01 25);
+  --warning: oklch(0.75 0.15 75);
+  --warning-foreground: oklch(0.28 0.05 75);
+  --info: oklch(0.62 0.16 235);
+  --info-foreground: oklch(0.99 0.01 235);
 }
 
-.dark {
-  --background: oklch(0.21 0.03 262 / 0.46);
-  --foreground: oklch(0.95 0.014 255);
-  --muted: oklch(0.28 0.035 262 / 0.5);
-  --muted-foreground: oklch(0.7 0.03 258);
-  --border: oklch(0.9 0.03 258 / 0.16);
-  --card: oklch(0.27 0.035 262 / 0.42);
-  --card-foreground: oklch(0.95 0.014 255);
-  --chrome: oklch(0.23 0.035 262 / 0.38);
-  --popover: oklch(0.2 0.035 262 / 0.85);
-  --popover-foreground: oklch(0.95 0.014 255);
+.dark,
+.dark[data-theme="cobalt"] {
+  --background: oklch(0.2 0.022 264 / 0.55);
+  --foreground: oklch(0.93 0.012 258);
+  --muted: oklch(0.27 0.026 264 / 0.55);
+  --muted-foreground: oklch(0.68 0.024 258);
+  --border: oklch(0.88 0.02 258 / 0.14);
+  --card: oklch(0.255 0.026 264 / 0.52);
+  --card-foreground: oklch(0.93 0.012 258);
+  --chrome: oklch(0.225 0.024 264 / 0.5);
+  --popover: oklch(0.19 0.026 264 / 0.9);
+  --popover-foreground: oklch(0.93 0.012 258);
+  --accent: oklch(0.7 0.18 266);
+  --accent-foreground: oklch(0.16 0.028 264);
+  --ring: oklch(0.7 0.18 266 / 0.55);
+  --progress: oklch(0.76 0.16 155);
+  --progress-foreground: oklch(0.2 0.05 155);
+  --danger: oklch(0.68 0.18 25);
+  --danger-foreground: oklch(0.16 0.03 25);
+  --warning: oklch(0.8 0.15 78);
+  --warning-foreground: oklch(0.2 0.04 78);
+  --info: oklch(0.72 0.16 235);
+  --info-foreground: oklch(0.16 0.03 235);
+}
 
-  --accent: oklch(0.72 0.27 264); /* vibrant electric blue on dark */
-  --accent-foreground: oklch(0.15 0.03 262);
-  --ring: oklch(0.72 0.27 264 / 0.6);
-  --progress: oklch(0.79 0.24 150);
-  --progress-foreground: oklch(0.2 0.06 150); /* dark text on bright green */
-  --danger: oklch(0.7 0.24 25);
-  --warning: oklch(0.83 0.19 72);
-  --info: oklch(0.76 0.21 235);
+/* Parchment Parlour — soft sage-tinted paper, dusty sage accent. */
+[data-theme="parchment"] {
+  --background: oklch(0.975 0.014 98 / 0.8);
+  --foreground: oklch(0.27 0.02 90);
+  --muted: oklch(0.95 0.018 96 / 0.7);
+  --muted-foreground: oklch(0.5 0.022 95);
+  --border: oklch(0.45 0.04 95 / 0.16);
+  --card: oklch(0.99 0.01 100 / 0.72);
+  --card-foreground: oklch(0.27 0.02 90);
+  --chrome: oklch(0.965 0.015 97 / 0.62);
+  --popover: oklch(0.99 0.01 100 / 0.92);
+  --popover-foreground: oklch(0.27 0.02 90);
+  --accent: oklch(0.57 0.09 130);
+  --accent-foreground: oklch(0.99 0.01 110);
+  --ring: oklch(0.57 0.09 130 / 0.5);
+  --progress: oklch(0.6 0.14 150);
+  --progress-foreground: oklch(0.3 0.07 150);
+  --danger: oklch(0.57 0.19 28);
+  --danger-foreground: oklch(0.99 0.01 80);
+  --warning: oklch(0.72 0.14 70);
+  --warning-foreground: oklch(0.28 0.05 70);
+  --info: oklch(0.55 0.15 245);
+  --info-foreground: oklch(0.99 0.01 245);
+}
+
+.dark[data-theme="parchment"] {
+  --background: oklch(0.23 0.016 110 / 0.55);
+  --foreground: oklch(0.93 0.014 100);
+  --muted: oklch(0.285 0.018 110 / 0.55);
+  --muted-foreground: oklch(0.7 0.018 100);
+  --border: oklch(0.9 0.02 100 / 0.14);
+  --card: oklch(0.275 0.018 110 / 0.52);
+  --card-foreground: oklch(0.93 0.014 100);
+  --chrome: oklch(0.25 0.016 110 / 0.5);
+  --popover: oklch(0.21 0.018 110 / 0.9);
+  --popover-foreground: oklch(0.93 0.014 100);
+  --accent: oklch(0.8 0.1 132);
+  --accent-foreground: oklch(0.2 0.04 130);
+  --ring: oklch(0.8 0.1 132 / 0.55);
+  --progress: oklch(0.78 0.14 150);
+  --progress-foreground: oklch(0.2 0.05 150);
+  --danger: oklch(0.68 0.17 28);
+  --danger-foreground: oklch(0.18 0.03 28);
+  --warning: oklch(0.83 0.14 75);
+  --warning-foreground: oklch(0.2 0.04 75);
+  --info: oklch(0.72 0.15 245);
+  --info-foreground: oklch(0.16 0.03 245);
+}
+
+/* Frostbound Fjord — glacial cool neutral, azure accent, cyan info. */
+[data-theme="fjord"] {
+  --background: oklch(0.985 0.006 230 / 0.8);
+  --foreground: oklch(0.24 0.022 235);
+  --muted: oklch(0.955 0.008 232 / 0.7);
+  --muted-foreground: oklch(0.5 0.02 233);
+  --border: oklch(0.45 0.03 235 / 0.14);
+  --card: oklch(0.995 0.004 230 / 0.72);
+  --card-foreground: oklch(0.24 0.022 235);
+  --chrome: oklch(0.97 0.006 232 / 0.62);
+  --popover: oklch(0.995 0.004 230 / 0.92);
+  --popover-foreground: oklch(0.24 0.022 235);
+  --accent: oklch(0.55 0.15 235);
+  --accent-foreground: oklch(0.99 0.008 230);
+  --ring: oklch(0.55 0.15 235 / 0.45);
+  --progress: oklch(0.62 0.14 165);
+  --progress-foreground: oklch(0.3 0.07 165);
+  --danger: oklch(0.58 0.19 25);
+  --danger-foreground: oklch(0.99 0.01 25);
+  --warning: oklch(0.72 0.13 80);
+  --warning-foreground: oklch(0.28 0.05 80);
+  --info: oklch(0.6 0.13 210);
+  --info-foreground: oklch(0.99 0.01 210);
+}
+
+.dark[data-theme="fjord"] {
+  --background: oklch(0.2 0.022 240 / 0.55);
+  --foreground: oklch(0.93 0.012 230);
+  --muted: oklch(0.27 0.026 240 / 0.55);
+  --muted-foreground: oklch(0.68 0.02 233);
+  --border: oklch(0.88 0.02 230 / 0.14);
+  --card: oklch(0.255 0.026 240 / 0.52);
+  --card-foreground: oklch(0.93 0.012 230);
+  --chrome: oklch(0.225 0.024 240 / 0.5);
+  --popover: oklch(0.19 0.026 240 / 0.9);
+  --popover-foreground: oklch(0.93 0.012 230);
+  --accent: oklch(0.72 0.14 235);
+  --accent-foreground: oklch(0.16 0.02 240);
+  --ring: oklch(0.72 0.14 235 / 0.55);
+  --progress: oklch(0.8 0.14 165);
+  --progress-foreground: oklch(0.2 0.05 165);
+  --danger: oklch(0.68 0.18 25);
+  --danger-foreground: oklch(0.16 0.03 25);
+  --warning: oklch(0.83 0.13 80);
+  --warning-foreground: oklch(0.2 0.04 80);
+  --info: oklch(0.76 0.13 210);
+  --info-foreground: oklch(0.16 0.03 210);
+}
+
+/* Velvet Vespers — violet dusk; moody and regal. */
+[data-theme="vespers"] {
+  --background: oklch(0.985 0.006 300 / 0.8);
+  --foreground: oklch(0.25 0.024 300);
+  --muted: oklch(0.955 0.008 300 / 0.7);
+  --muted-foreground: oklch(0.5 0.022 300);
+  --border: oklch(0.45 0.03 300 / 0.14);
+  --card: oklch(0.995 0.004 305 / 0.72);
+  --card-foreground: oklch(0.25 0.024 300);
+  --chrome: oklch(0.97 0.006 300 / 0.62);
+  --popover: oklch(0.995 0.004 305 / 0.92);
+  --popover-foreground: oklch(0.25 0.024 300);
+  --accent: oklch(0.53 0.2 300);
+  --accent-foreground: oklch(0.99 0.008 305);
+  --ring: oklch(0.53 0.2 300 / 0.45);
+  --progress: oklch(0.62 0.14 158);
+  --progress-foreground: oklch(0.3 0.07 158);
+  --danger: oklch(0.58 0.2 22);
+  --danger-foreground: oklch(0.99 0.01 22);
+  --warning: oklch(0.72 0.13 75);
+  --warning-foreground: oklch(0.28 0.05 75);
+  --info: oklch(0.56 0.16 270);
+  --info-foreground: oklch(0.99 0.01 270);
+}
+
+.dark[data-theme="vespers"] {
+  --background: oklch(0.2 0.028 300 / 0.55);
+  --foreground: oklch(0.93 0.014 300);
+  --muted: oklch(0.27 0.03 300 / 0.55);
+  --muted-foreground: oklch(0.68 0.022 300);
+  --border: oklch(0.88 0.02 300 / 0.14);
+  --card: oklch(0.255 0.03 300 / 0.52);
+  --card-foreground: oklch(0.93 0.014 300);
+  --chrome: oklch(0.225 0.028 300 / 0.5);
+  --popover: oklch(0.19 0.03 300 / 0.9);
+  --popover-foreground: oklch(0.93 0.014 300);
+  --accent: oklch(0.72 0.18 300);
+  --accent-foreground: oklch(0.16 0.03 300);
+  --ring: oklch(0.72 0.18 300 / 0.55);
+  --progress: oklch(0.8 0.14 158);
+  --progress-foreground: oklch(0.2 0.05 158);
+  --danger: oklch(0.68 0.18 22);
+  --danger-foreground: oklch(0.16 0.03 22);
+  --warning: oklch(0.83 0.13 78);
+  --warning-foreground: oklch(0.2 0.04 78);
+  --info: oklch(0.74 0.16 270);
+  --info-foreground: oklch(0.16 0.03 270);
 }
 
 @theme inline {
@@ -74,8 +245,11 @@
   --color-progress: var(--progress);
   --color-progress-foreground: var(--progress-foreground);
   --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
   --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
 }
 
 html,
@@ -107,9 +281,12 @@ label:has(input) {
   cursor: pointer;
 }
 
-/* Translucent base behind the app content (sits on the window material). */
+/* Translucent base behind the app content (sits on the window material). A
+   soft blur turns it into a calm surface instead of a sharp see-through wash. */
 @utility app-base {
   background: var(--background);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 /* Layered chrome (top/bottom bars): translucent + strong blur of content behind. */

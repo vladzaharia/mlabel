@@ -45,7 +45,7 @@ describe("App startup flow", () => {
   it("shows the config picker when no config is found", async () => {
     mockApi({ getStartupConfig: async () => ({ status: "none" }) });
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Choose a configuration")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Configure MLabel")).toBeInTheDocument());
   });
 
   it("shows config issues when the startup config is invalid", async () => {
@@ -73,6 +73,6 @@ describe("App startup flow", () => {
     await waitFor(() => expect(screen.getByText("Open data to label")).toBeInTheDocument());
 
     await user.click(screen.getByRole("button", { name: /config/i }));
-    expect(screen.getByText("Choose a configuration")).toBeInTheDocument();
+    expect(screen.getByText("Configure MLabel")).toBeInTheDocument();
   });
 });

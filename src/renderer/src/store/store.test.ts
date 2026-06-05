@@ -1,8 +1,15 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfig } from "@core/config";
 import type { AppConfig, RecordView } from "@core";
 import type { LabelMap } from "@core";
-import { resolveDark, selectCompletedCount, useStore, type AppStore } from "./store";
+import {
+  COLOR_THEMES,
+  resolveDark,
+  selectCompletedCount,
+  useStore,
+  type AppStore,
+  type ColorTheme,
+} from "./store";
 
 const config = loadAppConfig();
 
@@ -78,5 +85,30 @@ describe("store: completion count", () => {
     expect(selectCompletedCount(useStore.getState())).toBe(1);
     useStore.getState().setLabel(1, "verdict", "bad");
     expect(selectCompletedCount(useStore.getState())).toBe(2);
+  });
+});
+
+describe("store: color theme", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    delete document.documentElement.dataset.theme;
+    useStore.setState({ colorTheme: "cobalt" });
+  });
+  afterEach(() => {
+    localStorage.clear();
+    delete document.documentElement.dataset.theme;
+  });
+
+  it("lists the four named themes with cobalt first", () => {
+    expect(COLOR_THEMES.map((t) => t.id)).toEqual(["cobalt", "parchment", "fjord", "vespers"]);
+  });
+
+  it("setColorTheme updates state, persists, and sets the data-theme attribute", () => {
+    for (const theme of COLOR_THEMES.map((t) => t.id) as ColorTheme[]) {
+      useStore.getState().setColorTheme(theme);
+      expect(useStore.getState().colorTheme).toBe(theme);
+      expect(localStorage.getItem("mlabel.colortheme")).toBe(theme);
+      expect(document.documentElement.dataset.theme).toBe(theme);
+    }
   });
 });
