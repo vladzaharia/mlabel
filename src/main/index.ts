@@ -7,6 +7,7 @@ import { IPC_EVENT, IPC_INVOKE } from "@core/ipc";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const isMac = process.platform === "darwin";
+const isLinux = process.platform === "linux";
 
 function titleBarOverlayColors(): { color: string; symbolColor: string; height: number } {
   const dark = nativeTheme.shouldUseDarkColors;
@@ -24,11 +25,25 @@ function createWindow(): BrowserWindow {
     minWidth: 720,
     minHeight: 560,
     show: false,
-    backgroundColor: nativeTheme.shouldUseDarkColors ? "#2c2c2c" : "#ffffff",
+    // Translucent chrome: a transparent window background lets the OS material
+    // (macOS vibrancy / Windows acrylic) show through the renderer's alpha
+    // surfaces. Linux falls back to an opaque background.
+    backgroundColor:
+      isMac || !isLinux ? "#00000000" : nativeTheme.shouldUseDarkColors ? "#2c2c2c" : "#ffffff",
     // Frameless chrome that blends with our custom top app bar.
     ...(isMac
-      ? { titleBarStyle: "hiddenInset" as const, trafficLightPosition: { x: 16, y: 14 } }
-      : { titleBarStyle: "hidden" as const, titleBarOverlay: titleBarOverlayColors() }),
+      ? {
+          titleBarStyle: "hiddenInset" as const,
+          trafficLightPosition: { x: 16, y: 14 },
+          // Subtle, Zed-style window blur of whatever sits behind the window.
+          vibrancy: "under-window" as const,
+          visualEffectState: "active" as const,
+        }
+      : {
+          titleBarStyle: "hidden" as const,
+          titleBarOverlay: titleBarOverlayColors(),
+          ...(isLinux ? {} : { backgroundMaterial: "acrylic" as const }),
+        }),
     webPreferences: {
       preload: join(__dirname, "../preload/index.mjs"),
       contextIsolation: true,

@@ -22,7 +22,7 @@
     "test:node": "vitest run --project node",
     "test:dom": "vitest run --project dom",
     "schema": "tsx scripts/emit-schema.ts",
-    "build:mac": "electron-vite build && electron-builder --mac --universal",
+    "build:mac": "electron-vite build && dotenv -e .env -- electron-builder --mac --universal",
     "build:win": "electron-vite build && electron-builder --win",
     "prepare": "lefthook install || true"
   },
@@ -52,6 +52,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
+    "dotenv-cli": "11.0.0",
     "electron": "42.3.3",
     "electron-builder": "26.8.1",
     "electron-vite": "5.0.0",

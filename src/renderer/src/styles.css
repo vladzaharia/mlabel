@@ -5,32 +5,54 @@
    process nativeTheme via IPC (Tailwind v4 custom variant, not media query). */
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
-  --color-progress: oklch(0.72 0.19 145); /* green completion fill */
-}
-
+/*
+ * Theme: cool dark blue-grey (slate) base with bright, vibrant accents.
+ * Surfaces are translucent so the OS window material (macOS vibrancy /
+ * Windows acrylic) shows through; layered elements add CSS backdrop blur.
+ * Hue ~255 (blue) is used across the neutral ramp for a tasteful blue-grey.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.14 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.55 0 0);
-  --border: oklch(0.92 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.14 0 0);
-  --chrome: oklch(0.97 0 0);
-  --accent: oklch(0.6 0.12 250);
+  /* Translucent base layer over the window material. */
+  --background: oklch(0.96 0.012 255 / 0.7);
+  --foreground: oklch(0.22 0.03 260);
+  --muted: oklch(0.93 0.014 255 / 0.6);
+  --muted-foreground: oklch(0.48 0.03 260);
+  --border: oklch(0.45 0.03 260 / 0.16);
+  --card: oklch(0.99 0.01 255 / 0.62);
+  --card-foreground: oklch(0.22 0.03 260);
+  --chrome: oklch(0.95 0.014 255 / 0.55);
+  --popover: oklch(0.99 0.008 255 / 0.85);
+  --popover-foreground: oklch(0.22 0.03 260);
+
+  /* Bright, vibrant accents. */
+  --accent: oklch(0.6 0.2 262); /* electric blue/indigo */
+  --accent-foreground: oklch(0.99 0.01 255);
+  --ring: oklch(0.6 0.2 262 / 0.55);
+  --progress: oklch(0.74 0.2 152); /* vivid green completion fill */
+  --danger: oklch(0.62 0.22 22); /* vibrant red */
+  --warning: oklch(0.78 0.16 75); /* vibrant amber */
+  --info: oklch(0.7 0.16 230); /* vivid cyan */
 }
 
 .dark {
-  --background: oklch(0.17 0 0);
-  --foreground: oklch(0.96 0 0);
-  --muted: oklch(0.23 0 0);
-  --muted-foreground: oklch(0.65 0 0);
-  --border: oklch(0.28 0 0);
-  --card: oklch(0.2 0 0);
-  --card-foreground: oklch(0.96 0 0);
-  --chrome: oklch(0.2 0 0);
-  --accent: oklch(0.7 0.13 250);
+  --background: oklch(0.22 0.028 260 / 0.62);
+  --foreground: oklch(0.94 0.014 255);
+  --muted: oklch(0.28 0.03 260 / 0.6);
+  --muted-foreground: oklch(0.68 0.025 258);
+  --border: oklch(0.85 0.03 258 / 0.14);
+  --card: oklch(0.27 0.03 262 / 0.55);
+  --card-foreground: oklch(0.94 0.014 255);
+  --chrome: oklch(0.24 0.03 262 / 0.5);
+  --popover: oklch(0.2 0.03 262 / 0.9);
+  --popover-foreground: oklch(0.94 0.014 255);
+
+  --accent: oklch(0.72 0.18 264); /* brighter indigo on dark */
+  --accent-foreground: oklch(0.16 0.03 262);
+  --ring: oklch(0.72 0.18 264 / 0.6);
+  --progress: oklch(0.78 0.2 152);
+  --danger: oklch(0.7 0.2 22);
+  --warning: oklch(0.82 0.16 78);
+  --info: oklch(0.76 0.15 228);
 }
 
 @theme inline {
@@ -42,7 +64,15 @@
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-chrome: var(--chrome);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-ring: var(--ring);
+  --color-progress: var(--progress);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
 }
 
 html,
@@ -53,17 +83,45 @@ body,
 }
 
 body {
-  background: var(--background);
+  /* Transparent so the OS window vibrancy/acrylic shows through. */
+  background: transparent;
   color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Translucent base behind the app content (sits on the window material). */
+@utility app-base {
+  background: var(--background);
+}
+
+/* Layered chrome (top/bottom bars): translucent + blur of content behind it. */
+@utility glass {
+  background: var(--chrome);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* Cards / panels floating over the scrolling content. */
+@utility glass-card {
+  background: var(--card);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+}
+
+/* Popovers / dialogs need a denser blur for legibility over busy content. */
+@utility glass-popover {
+  background: var(--popover);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
 }
 
 /* Frameless-window drag regions. The top app bar drags the window; interactive
    children opt out with .no-drag. */
-.drag {
+@utility drag {
   -webkit-app-region: drag;
 }
-.no-drag {
+@utility no-drag {
   -webkit-app-region: no-drag;
 }

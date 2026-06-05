@@ -1,0 +1,361 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "adapterId": {
+          "default": "csv",
+          "type": "string",
+          "minLength": 1
+        },
+        "adapterConfig": {},
+        "fields": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.\\- ]+$"
+              },
+              "type": {
+                "$ref": "#/definitions/__schema0"
+              },
+              "displayName": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "help": {
+                "type": "string"
+              },
+              "labelPosition": {
+                "default": "left",
+                "type": "string",
+                "enum": ["left", "above"]
+              },
+              "textSize": {
+                "default": "md",
+                "type": "string",
+                "enum": ["sm", "md", "lg"]
+              },
+              "title": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": ["name", "type"]
+          }
+        }
+      },
+      "required": ["fields"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "adapterId": {
+          "default": "csv",
+          "type": "string",
+          "minLength": 1
+        },
+        "adapterConfig": {},
+        "fields": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.\\- ]+$"
+              },
+              "control": {
+                "type": "string",
+                "enum": [
+                  "text",
+                  "textarea",
+                  "number",
+                  "checkbox",
+                  "date",
+                  "radio",
+                  "select",
+                  "slider",
+                  "hidden"
+                ]
+              },
+              "displayName": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "help": {
+                "type": "string"
+              },
+              "labelPosition": {
+                "default": "left",
+                "type": "string",
+                "enum": ["left", "above"]
+              },
+              "textSize": {
+                "default": "md",
+                "type": "string",
+                "enum": ["sm", "md", "lg"]
+              },
+              "required": {
+                "default": true,
+                "type": "boolean"
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["value"]
+                }
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "step": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "minLength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "maxLength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "regex": {
+                "type": "string"
+              },
+              "group": {
+                "type": "string"
+              }
+            },
+            "required": ["name", "control"]
+          }
+        }
+      },
+      "required": ["fields"]
+    },
+    "categories": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.\\- ]+$"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "help": {
+            "type": "string"
+          },
+          "rows": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "columns": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "fields": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^[A-Za-z0-9_.\\- ]+$"
+                  }
+                }
+              },
+              "required": ["fields"]
+            }
+          }
+        },
+        "required": ["id", "displayName", "rows"]
+      }
+    },
+    "ui": {
+      "type": "object",
+      "properties": {
+        "appTitle": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": ["input", "output", "categories"],
+  "definitions": {
+    "__schema0": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "text"
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "number"
+            },
+            "format": {
+              "type": "string",
+              "enum": ["integer", "float"]
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "bool"
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "date"
+            }
+          },
+          "required": ["type"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "enum"
+            },
+            "options": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "type": "string"
+                  }
+                },
+                "required": ["value"]
+              }
+            }
+          },
+          "required": ["type", "options"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "object"
+            },
+            "fields": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "displayName": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "$ref": "#/definitions/__schema0"
+                  }
+                },
+                "required": ["name", "type"]
+              }
+            }
+          },
+          "required": ["type", "fields"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "array"
+            },
+            "items": {
+              "$ref": "#/definitions/__schema0"
+            }
+          },
+          "required": ["type", "items"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "map"
+            },
+            "keyType": {
+              "type": "string",
+              "enum": ["text", "number"]
+            },
+            "valueType": {
+              "$ref": "#/definitions/__schema0"
+            }
+          },
+          "required": ["type", "keyType", "valueType"]
+        }
+      ]
+    }
+  }
+}
