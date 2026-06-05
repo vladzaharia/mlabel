@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Lint, format, typecheck and test are mutually independent (vitest runs on
+  # source, not on the build output), so they fan out in parallel.
+  check:
+    name: ${{ matrix.check.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - { name: lint, run: pnpm lint }
+          - { name: format, run: pnpm format:check }
+          - { name: typecheck, run: pnpm typecheck }
+          - { name: test, run: pnpm test }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Run ${{ matrix.check.name }}
+        env:
+          CHECK_CMD: ${{ matrix.check.run }}
+        run: $CHECK_CMD
+
+  # Validate that the Electron bundle compiles (independent of the checks above).
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm build

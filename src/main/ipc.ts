@@ -1,8 +1,9 @@
-import { ipcMain, nativeTheme } from "electron";
+import { ipcMain, nativeTheme, shell } from "electron";
 import { IPC_INVOKE, type ExportRequest, type SessionData } from "@core";
 import { getStartupConfig, pickConfig } from "./services/config-service";
 import { exportLabels, loadInputFromPath, pickInput } from "./services/coordinator";
 import { clearSession, getRecent, saveSession } from "./services/session-store";
+import { installUpdate } from "./services/updater";
 
 /** Register every request-response IPC handler. One handler per IpcApi method. */
 export function registerIpc(): void {
@@ -23,4 +24,7 @@ export function registerIpc(): void {
   );
 
   ipcMain.handle(IPC_INVOKE.getRecent, () => getRecent());
+
+  ipcMain.handle(IPC_INVOKE.installUpdate, () => installUpdate());
+  ipcMain.handle(IPC_INVOKE.openExternal, (_event, url: string) => shell.openExternal(url));
 }

@@ -5,8 +5,9 @@ import { LabelingView } from "./labeling/LabelingView";
 import { StartScreen } from "./flow/StartScreen";
 import { ConfigIssueScreen, InputIssueScreen } from "./flow/IssueScreen";
 import { DoneScreen } from "./flow/DoneScreen";
+import { UpdateIndicator } from "./chrome/UpdateIndicator";
 import { Toaster, toast } from "./components/ui/sonner";
-import { cn, isMac } from "./lib/utils";
+import { cn, isMac, isWindows } from "./lib/utils";
 
 export function App(): React.JSX.Element {
   const phase = useStore((s) => s.phase);
@@ -16,11 +17,17 @@ export function App(): React.JSX.Element {
   const loadInputPath = useStore((s) => s.loadInputPath);
   const submitDone = useStore((s) => s.submitDone);
   const backToConfig = useStore((s) => s.backToConfig);
+  const setUpdateStatus = useStore((s) => s.setUpdateStatus);
 
   useEffect(() => {
     void bootstrap();
-    return window.api.onThemeChange(setSystemDark);
-  }, [bootstrap, setSystemDark]);
+    const offTheme = window.api.onThemeChange(setSystemDark);
+    const offUpdate = window.api.onUpdateStatus(setUpdateStatus);
+    return () => {
+      offTheme();
+      offUpdate();
+    };
+  }, [bootstrap, setSystemDark, setUpdateStatus]);
 
   async function handleDone(): Promise<void> {
     const result = await submitDone();
@@ -75,7 +82,12 @@ function DraggableShell({
 }): React.JSX.Element {
   return (
     <>
-      <div className={cn("drag flex h-11 shrink-0 items-center", isMac() ? "pl-20" : "pl-2")}>
+      <div
+        className={cn(
+          "drag flex h-11 shrink-0 items-center",
+          isMac() ? "pl-24 pr-2" : isWindows() ? "pl-5 pr-36" : "pl-5 pr-3",
+        )}
+      >
         {onBack && (
           <button
             type="button"
@@ -85,6 +97,9 @@ function DraggableShell({
             <ChevronLeft size={15} /> Config
           </button>
         )}
+        <div className="no-drag ml-auto">
+          <UpdateIndicator />
+        </div>
       </div>
       {children}
     </>

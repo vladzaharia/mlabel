@@ -6,6 +6,7 @@ import { loadConfig } from "@core/config";
 import type { ConfigLoadResponse } from "@core";
 import { appState } from "../state";
 import { getRecent } from "./session-store";
+import { startUpdates } from "./updater";
 
 const CONFIG_NAMES = ["config.jsonc", "mlabel.config.jsonc", "mlabel.jsonc"];
 
@@ -45,6 +46,9 @@ async function loadConfigFile(path: string): Promise<ConfigLoadResponse> {
   const result = loadConfig(text);
   if (!result.ok) return { status: "invalid", path, issues: result.issues };
   appState.setConfig(result.config, path);
+  // The config is the single gate for all network activity: only start update
+  // checks once a loaded config permits them.
+  if (result.config.network.updateChecks !== false) startUpdates();
   return { status: "loaded", config: result.config, path };
 }
 

@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
-import { IPC_EVENT, IPC_INVOKE, type IpcApi, type ThemeListener } from "@core/ipc";
-import type { ExportRequest, SessionData } from "@core";
+import {
+  IPC_EVENT,
+  IPC_INVOKE,
+  type IpcApi,
+  type ThemeListener,
+  type UpdateStatusListener,
+} from "@core/ipc";
+import type { ExportRequest, SessionData, UpdateStatus } from "@core";
 
 const api = {
   ping: () => ipcRenderer.invoke(IPC_INVOKE.ping),
@@ -11,6 +17,15 @@ const api = {
     ipcRenderer.on(IPC_EVENT.themeChanged, handler);
     return () => ipcRenderer.removeListener(IPC_EVENT.themeChanged, handler);
   },
+
+  onUpdateStatus: (listener: UpdateStatusListener) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: UpdateStatus): void =>
+      listener(status);
+    ipcRenderer.on(IPC_EVENT.updateStatus, handler);
+    return () => ipcRenderer.removeListener(IPC_EVENT.updateStatus, handler);
+  },
+  installUpdate: () => ipcRenderer.invoke(IPC_INVOKE.installUpdate),
+  openExternal: (url: string) => ipcRenderer.invoke(IPC_INVOKE.openExternal, url),
 
   getStartupConfig: () => ipcRenderer.invoke(IPC_INVOKE.getStartupConfig),
   pickConfig: () => ipcRenderer.invoke(IPC_INVOKE.pickConfig),

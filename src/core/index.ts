@@ -29,5 +29,6 @@ export type {
   RecentPaths,
   RecordView,
   SessionData,
+  UpdateStatus,
 } from "./types/view";
 export * from "./ipc";

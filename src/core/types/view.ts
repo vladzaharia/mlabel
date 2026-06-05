@@ -58,3 +58,16 @@ export interface RecentPaths {
   config?: string;
   input?: string;
 }
+
+/**
+ * Auto-update progress, pushed from main → renderer. `available-external` is the
+ * portable-build case: it can't self-install, so it carries a direct download URL
+ * for the matching release asset instead of installing in place.
+ */
+export type UpdateStatus =
+  | { kind: "checking" }
+  | { kind: "up-to-date" }
+  | { kind: "downloading"; version: string; percent: number }
+  | { kind: "downloaded"; version: string }
+  | { kind: "available-external"; version: string; url: string }
+  | { kind: "error"; message?: string };

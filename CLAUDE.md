@@ -7,8 +7,12 @@ driven by a single `.jsonc` config file — no schemas or formats are hard-coded
 
 ## Golden rules
 
-1. **Zero network at runtime.** No `fetch`, no telemetry, no remote calls anywhere
-   in main/preload/renderer. The CSP forbids it; keep it that way.
+1. **Zero unsolicited network.** No `fetch`, no telemetry, no remote calls in
+   main/preload/renderer — with **one** exception: the GitHub-Releases update check.
+   It runs only in the **main** process (`src/main/services/updater.ts`), is gated by
+   `network.updateChecks` in the loaded config (`false` ⇒ zero network), and starts
+   only after a permitting config loads. The renderer CSP stays `connect-src 'self'`;
+   keep it that way (update traffic is Node-side, never the renderer).
 2. **The core is format-agnostic.** `src/core/` must never depend on Electron or on
    any adapter's internals. CSV is just the first adapter. Adding a new source/sink
    format must require **no changes** to `src/core/` (except registering the adapter),
@@ -29,7 +33,9 @@ driven by a single `.jsonc` config file — no schemas or formats are hard-coded
 src/core/      System-agnostic. types, Zod config schema, coercion, auto-mapping,
                completion, adapter interfaces + registry, CSV adapter, IpcApi.
 src/main/      Electron main (Node ESM): window, CSP, nativeTheme, config-service,
-               coordinator (parse→coerce→auto-map→export), session-store, IPC handlers.
+               coordinator (parse→coerce→auto-map→export), session-store, updater
+               (electron-updater; pure event→status mapping in update-status.ts),
+               IPC handlers.
 src/preload/   contextBridge exposing `window.api` (typed via IpcApi).
 src/renderer/  React 19 UI: chrome bars, category cards, recursive input formatters,
                RHF output form, Zustand store. Imports from @core only.
@@ -51,7 +57,8 @@ and `*-remaining.*` (byte-faithful unlabeled/incomplete records).
 | Test (all)       | `pnpm test` · node only: `pnpm test:node` · dom only: `pnpm test:dom` |
 | Emit JSON Schema | `pnpm schema`                                                         |
 | Build app        | `pnpm build`                                                          |
-| Package mac/win  | `pnpm build:mac` / `pnpm build:win`                                   |
+| Package mac/win  | `pnpm build:mac` / `pnpm build:win` (local: build + package)          |
+| Publish (CI)     | `pnpm package:mac` / `pnpm package:win` (package prebuilt `out/`)     |
 
 ## Conventions
 
@@ -78,5 +85,9 @@ and `*-remaining.*` (byte-faithful unlabeled/incomplete records).
 - `base:"./"` (relative) is required so renderer assets load under `file://` in the
   packaged app; prefer imported assets over `public/`.
 - pnpm needs `node-linker=hoisted` (in `.npmrc`) for electron-builder.
+- `electron-updater` must stay **external** (listed in `electron.vite.config.ts`
+  `nodeExternals`) and in `package.json` `dependencies` so it ships in the asar —
+  bundling it breaks updates. Updates need a packaged build (`app.isPackaged`); they
+  no-op in dev.
 - oxfmt is beta and the sole formatter: if it ever blocks a commit, bypass once with
   `--no-verify` and fix — never silently disable the hook.

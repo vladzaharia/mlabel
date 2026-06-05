@@ -9,6 +9,7 @@ import type {
   LabelMap,
   RecordView,
   SessionData,
+  UpdateStatus,
   ValidationIssue,
 } from "@core";
 import { debounce } from "../lib/utils";
@@ -53,11 +54,15 @@ interface AppState {
   index: number;
   labels: Record<number, LabelMap>;
   exportResult: ExportResponse | null;
+
+  /** Latest auto-update status pushed from main; `null` until the first event. */
+  updateStatus: UpdateStatus | null;
 }
 
 interface AppActions {
   bootstrap: () => Promise<void>;
   setSystemDark: (dark: boolean) => void;
+  setUpdateStatus: (status: UpdateStatus) => void;
   cycleTheme: () => void;
   setColorTheme: (theme: ColorTheme) => void;
 
@@ -128,6 +133,8 @@ export const useStore = create<AppStore>((set, get) => ({
   labels: {},
   exportResult: null,
 
+  updateStatus: null,
+
   async bootstrap() {
     applyColorTheme(get().colorTheme);
     const systemDark = await window.api.getTheme();
@@ -151,6 +158,10 @@ export const useStore = create<AppStore>((set, get) => ({
   setSystemDark(dark) {
     set({ systemDark: dark });
     applyThemeClass(resolveDark(get().themeMode, dark));
+  },
+
+  setUpdateStatus(status) {
+    set({ updateStatus: status });
   },
 
   cycleTheme() {

@@ -137,6 +137,12 @@ export const AppConfig = z
         appTitle: z.string().optional(),
       })
       .optional(),
+    /**
+     * Network policy. The app is local-first; the only network it ever performs
+     * is the GitHub-Releases update check. Set `updateChecks: false` to forbid
+     * all network calls. Absent or `true` ⇒ update checks run.
+     */
+    network: z.object({ updateChecks: z.boolean().default(true) }).default({ updateChecks: true }),
   })
   .check((ctx) => {
     const cfg = ctx.value;

@@ -1,0 +1,120 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  # Gate: same checks as CI, fanned out. Runs in parallel with `build`.
+  verify:
+    name: verify (${{ matrix.check.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - { name: lint, run: pnpm lint }
+          - { name: format, run: pnpm format:check }
+          - { name: typecheck, run: pnpm typecheck }
+          - { name: test, run: pnpm test }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Run ${{ matrix.check.name }}
+        env:
+          CHECK_CMD: ${{ matrix.check.run }}
+        run: $CHECK_CMD
+
+  # Build the platform-agnostic bundle ONCE; both packaging jobs reuse it.
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: out
+          path: out/
+          retention-days: 1
+
+  # Pre-create the release as a draft so the two packaging runners upload into a
+  # single, already-existing release (no create-race), then `publish` un-drafts it.
+  draft:
+    name: draft release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create draft release if missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --draft --generate-notes --title "$TAG"
+          fi
+
+  # Package per-OS from the prebuilt out/ (no electron-vite rebuild). electron-builder
+  # signs/notarizes on macOS and uploads installers + latest*.yml to the draft.
+  package:
+    name: package (${{ matrix.platform }})
+    needs: [verify, build, draft]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: windows-latest
+            platform: win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
+        with:
+          name: out
+          path: out/
+      - name: Derive version from tag
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      - name: Write Apple API key (macOS)
+        if: matrix.platform == 'mac'
+        shell: bash
+        env:
+          APPLE_API_KEY_B64: ${{ secrets.APPLE_API_KEY_B64 }}
+        run: |
+          mkdir -p "$HOME/private_keys"
+          printf '%s' "$APPLE_API_KEY_B64" | base64 --decode > "$HOME/private_keys/AuthKey.p8"
+          echo "APPLE_API_KEY=$HOME/private_keys/AuthKey.p8" >> "$GITHUB_ENV"
+      - name: Package & publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLATFORM: ${{ matrix.platform }}
+          # macOS signing + notarization (ignored on the Windows runner).
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: pnpm "package:$PLATFORM" --config.extraMetadata.version="$VERSION"
+
+  # All artifacts uploaded — flip the draft live (published immediately).
+  publish:
+    name: publish release
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: gh release edit "$TAG" --draft=false

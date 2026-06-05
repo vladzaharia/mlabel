@@ -3,7 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "description": "MLabel — configurable local data-labeling desktop app",
-  "author": "vlad",
+  "homepage": "https://github.com/vladzaharia/mlabel#readme",
+  "bugs": {
+    "url": "https://github.com/vladzaharia/mlabel/issues"
+  },
+  "license": "MIT",
+  "author": "Vlad Zaharia",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vladzaharia/mlabel.git"
+  },
   "type": "module",
   "main": "./out/main/index.mjs",
   "scripts": {
@@ -25,9 +34,12 @@
     "icons": "tsx scripts/gen-icons.ts",
     "build:mac": "electron-vite build && dotenv -e .env -- electron-builder --mac",
     "build:win": "electron-vite build && electron-builder --win",
+    "package:mac": "electron-builder --mac --publish always",
+    "package:win": "electron-builder --win --publish always",
     "prepare": "lefthook install || true"
   },
   "dependencies": {
+    "electron-updater": "6.8.3",
     "jsonc-parser": "3.3.1",
     "papaparse": "5.5.3",
     "zod": "4.4.3"

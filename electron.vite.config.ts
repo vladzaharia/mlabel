@@ -14,7 +14,15 @@ const coreAlias = { "@core": resolve("src/core") };
 // its preset's RegExp-based external list is dropped under Rolldown, so we list them
 // explicitly as plain strings here. The @electron-toolkit/* helpers are intentionally
 // bundled; only their internal `electron` import needs to stay external.
-const nodeExternals = ["electron", ...builtinModules, ...builtinModules.map((m) => `node:${m}`)];
+// electron-updater (and its deps) must stay external: it relies on dynamic
+// requires and a packaged app-update.yml, so bundling it breaks updates. It ships
+// in the asar via package.json "dependencies".
+const nodeExternals = [
+  "electron",
+  "electron-updater",
+  ...builtinModules,
+  ...builtinModules.map((m) => `node:${m}`),
+];
 
 export default defineConfig({
   main: {

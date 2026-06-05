@@ -5,6 +5,7 @@ import type {
   InputLoadResponse,
   RecentPaths,
   SessionData,
+  UpdateStatus,
 } from "./types/view";
 
 /**
@@ -19,6 +20,7 @@ import type {
  */
 
 export type ThemeListener = (isDark: boolean) => void;
+export type UpdateStatusListener = (status: UpdateStatus) => void;
 
 export interface IpcApi {
   /** Liveness check used by the renderer on boot. */
@@ -27,6 +29,14 @@ export interface IpcApi {
   // --- Theme ---
   getTheme: () => Promise<boolean>;
   onThemeChange: (listener: ThemeListener) => () => void;
+
+  // --- Auto-update ---
+  /** Subscribe to update-status pushes from the main-process updater. */
+  onUpdateStatus: (listener: UpdateStatusListener) => () => void;
+  /** Quit and install a downloaded update (installable builds only). */
+  installUpdate: () => Promise<void>;
+  /** Open a URL in the user's default browser (e.g. a portable release asset). */
+  openExternal: (url: string) => Promise<void>;
 
   // --- Config ---
   /** Auto-discover a config adjacent to the executable (or recent), if any. */
@@ -65,9 +75,12 @@ export const IPC_INVOKE = {
   clearSession: "session:clear",
   exportLabels: "export:run",
   getRecent: "recent:get",
+  installUpdate: "update:install",
+  openExternal: "shell:open-external",
 } as const;
 
 /** Channel names for main -> renderer push events. */
 export const IPC_EVENT = {
   themeChanged: "theme:changed",
+  updateStatus: "update:status",
 } as const;

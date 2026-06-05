@@ -264,6 +264,18 @@
           "type": "string"
         }
       }
+    },
+    "network": {
+      "default": {
+        "updateChecks": true
+      },
+      "type": "object",
+      "properties": {
+        "updateChecks": {
+          "default": true,
+          "type": "boolean"
+        }
+      }
     }
   },
   "required": ["input", "output"],
