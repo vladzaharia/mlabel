@@ -18,7 +18,7 @@ export function InputContent(): React.JSX.Element {
   return (
     <div className="flex-1 overflow-auto">
       <div className="mx-auto flex max-w-4xl flex-col gap-4 p-5">
-        {config.categories.map((category) => (
+        {config.input.categories.map((category) => (
           <CategoryCard
             key={category.id}
             category={category}

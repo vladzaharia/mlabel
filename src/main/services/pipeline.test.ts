@@ -10,7 +10,8 @@ const CONFIG_TEXT = `{
       { "name": "id", "type": { "type": "text" }, "title": true },
       { "name": "text", "type": { "type": "text" } },
       { "name": "score", "type": { "type": "number" } }
-    ]
+    ],
+    "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id", "text", "score"] }] }]
   },
   "output": {
     "fields": [
@@ -18,8 +19,7 @@ const CONFIG_TEXT = `{
       { "name": "verdict", "control": "radio", "options": [{ "value": "good" }, { "value": "bad" }] },
       { "name": "note", "control": "text", "required": false }
     ]
-  },
-  "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id", "text", "score"] }] }]
+  }
 }`;
 
 function loadValidConfig(): AppConfig {

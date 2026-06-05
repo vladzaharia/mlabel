@@ -8,14 +8,16 @@ const config = loadAppConfig();
 
 function loadAppConfig(): AppConfig {
   const result = loadConfig(`{
-    "input": { "fields": [{ "name": "id", "type": { "type": "text" } }] },
+    "input": {
+      "fields": [{ "name": "id", "type": { "type": "text" } }],
+      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
+    },
     "output": {
       "fields": [
         { "name": "id", "control": "hidden" },
         { "name": "verdict", "control": "radio", "options": [{ "value": "good" }, { "value": "bad" }] }
       ]
-    },
-    "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
+    }
   }`);
   if (!result.ok) throw new Error("invalid test config");
   return result.config;

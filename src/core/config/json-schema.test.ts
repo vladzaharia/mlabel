@@ -14,6 +14,5 @@ describe("buildConfigJsonSchema", () => {
     expect(schema.properties).toBeDefined();
     expect(schema.properties).toHaveProperty("input");
     expect(schema.properties).toHaveProperty("output");
-    expect(schema.properties).toHaveProperty("categories");
   });
 });

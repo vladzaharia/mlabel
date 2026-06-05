@@ -8,15 +8,17 @@ import { OutputForm } from "./OutputForm";
 
 function buildConfig(): AppConfig {
   const result = loadConfig(`{
-    "input": { "fields": [{ "name": "id", "type": { "type": "text" } }] },
+    "input": {
+      "fields": [{ "name": "id", "type": { "type": "text" } }],
+      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
+    },
     "output": {
       "fields": [
         { "name": "id", "control": "hidden" },
         { "name": "verdict", "control": "radio", "options": [{ "value": "good", "displayName": "Good" }, { "value": "bad", "displayName": "Bad" }] },
         { "name": "score", "control": "number", "min": 0, "max": 10, "required": false }
       ]
-    },
-    "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
+    }
   }`);
   if (!result.ok) throw new Error("invalid config");
   return result.config;

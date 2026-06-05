@@ -24,6 +24,13 @@ const VALID_JSONC = `{
         },
       },
     ],
+    "categories": [
+      {
+        "id": "main",
+        "displayName": "Main",
+        "rows": [{ "fields": ["id", "score"] }, { "columns": 2, "fields": ["tags", "checks"] }],
+      },
+    ],
   },
   "output": {
     "fields": [
@@ -36,13 +43,6 @@ const VALID_JSONC = `{
       { "name": "notes", "control": "textarea", "required": false },
     ],
   },
-  "categories": [
-    {
-      "id": "main",
-      "displayName": "Main",
-      "rows": [{ "fields": ["id", "score"] }, { "columns": 2, "fields": ["tags", "checks"] }],
-    },
-  ],
 }`;
 
 describe("loadConfig", () => {
@@ -98,15 +98,15 @@ describe("loadConfig", () => {
     }
   });
 
-  it("accepts an output layout and rejects unknown layout field references", () => {
-    const withLayout = VALID_JSONC.replace(
-      '"fields": [\n      { "name": "id", "control": "hidden" },',
-      '"layout": [{ "columns": 2, "fields": ["verdict", "notes"] }],\n    "fields": [\n      { "name": "id", "control": "hidden" },',
+  it("accepts output categories and rejects unknown output category field references", () => {
+    const withCats = VALID_JSONC.replace(
+      '{ "name": "notes", "control": "textarea", "required": false },\n    ],\n  },',
+      '{ "name": "notes", "control": "textarea", "required": false },\n    ],\n    "categories": [{ "id": "out", "displayName": "Out", "rows": [{ "columns": 2, "fields": ["verdict", "notes"] }] }],\n  },',
     );
-    expect(loadConfig(withLayout).ok).toBe(true);
+    expect(loadConfig(withCats).ok).toBe(true);
 
-    const badLayout = withLayout.replace('["verdict", "notes"]', '["verdict", "ghost"]');
-    const result = loadConfig(badLayout);
+    const bad = withCats.replace('["verdict", "notes"]', '["verdict", "ghost"]');
+    const result = loadConfig(bad);
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.issues.some((i) => /unknown output field "ghost"/.test(i.message))).toBe(true);

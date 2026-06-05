@@ -37,7 +37,7 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
     <header
       className={cn(
         "drag glass relative flex h-11 shrink-0 items-center border-b border-border",
-        isMac() ? "pl-32 pr-2" : isWindows() ? "pl-6 pr-36" : "pl-6 pr-3",
+        isMac() ? "pl-24 pr-2" : isWindows() ? "pl-5 pr-36" : "pl-5 pr-3",
       )}
     >
       <span className="truncate text-sm font-medium">{titleText(config, record, inputPath)}</span>

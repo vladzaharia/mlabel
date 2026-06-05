@@ -61,8 +61,6 @@ export const OutputField = z
     minLength: z.number().int().nonnegative().optional(),
     maxLength: z.number().int().nonnegative().optional(),
     regex: z.string().optional(),
-    /** Optional labeled subsection within the flat output form. */
-    group: z.string().optional(),
   })
   .check((ctx) => {
     const f = ctx.value;
@@ -101,7 +99,11 @@ export const GridRow = z.object({
 });
 export type GridRow = z.infer<typeof GridRow>;
 
-/** A category card grouping input fields under a heading. */
+/**
+ * A category card grouping fields under a heading. Used identically for input
+ * (read-only value cards) and output (interactive widget cards) — the two sides
+ * share this one configuration shape.
+ */
 export const Category = z.object({
   id: Identifier,
   displayName: z.string().min(1),
@@ -110,16 +112,6 @@ export const Category = z.object({
   rows: z.array(GridRow).min(1),
 });
 export type Category = z.infer<typeof Category>;
-
-/** A row in the output form: output fields flow with flex-wrap to a column count. */
-export const OutputRow = z.object({
-  /** Optional labeled subsection heading shown above this row. */
-  group: z.string().optional(),
-  /** Minimum columns; drives each item's flex-basis (defaults to field count). */
-  columns: z.number().int().positive().optional(),
-  fields: z.array(Identifier).min(1),
-});
-export type OutputRow = z.infer<typeof OutputRow>;
 
 const AdapterRef = z.object({
   adapterId: z.string().min(1).default("csv"),
@@ -130,14 +122,16 @@ const AdapterRef = z.object({
 export const AppConfig = z
   .object({
     $schema: z.string().optional(),
-    input: AdapterRef.extend({ fields: z.array(InputField).min(1) }),
+    input: AdapterRef.extend({
+      fields: z.array(InputField).min(1),
+      categories: z.array(Category).min(1),
+    }),
     output: AdapterRef.extend({
       fields: z.array(OutputField).min(1),
-      /** Optional explicit layout (rows of side-by-side fields). Falls back to
-       *  one field per row, grouped by each field's `group`, when omitted. */
-      layout: z.array(OutputRow).optional(),
+      /** Optional category cards. When omitted, every visible output field is
+       *  shown in a single implicit card, one per row. */
+      categories: z.array(Category).optional(),
     }),
-    categories: z.array(Category).min(1),
     ui: z
       .object({
         appTitle: z.string().optional(),
@@ -174,39 +168,43 @@ export const AppConfig = z
       });
     }
 
-    // Every field referenced by a category must exist in the input schema.
-    cfg.categories.forEach((cat, ci) => {
-      cat.rows.forEach((row, ri) => {
-        row.fields.forEach((name, fi) => {
-          if (!inputNames.has(name)) {
-            ctx.issues.push({
-              code: "custom",
-              input: cfg,
-              path: ["categories", ci, "rows", ri, "fields", fi],
-              message: `Category "${cat.id}" references unknown input field "${name}".`,
-            });
-          }
-        });
-      });
-    });
-
-    // Every field referenced by the output layout must exist in the output schema.
     const outputNames = new Set(cfg.output.fields.map((f) => f.name));
-    cfg.output.layout?.forEach((row, ri) => {
+    validateCategoryRefs(ctx, cfg.input.categories, inputNames, ["input", "categories"], "input");
+    if (cfg.output.categories) {
+      validateCategoryRefs(
+        ctx,
+        cfg.output.categories,
+        outputNames,
+        ["output", "categories"],
+        "output",
+      );
+    }
+  });
+
+export type AppConfig = z.infer<typeof AppConfig>;
+
+function validateCategoryRefs(
+  ctx: { value: unknown; issues: z.core.$ZodRawIssue[] },
+  categories: Category[],
+  known: ReadonlySet<string>,
+  basePath: (string | number)[],
+  side: string,
+): void {
+  categories.forEach((cat, ci) => {
+    cat.rows.forEach((row, ri) => {
       row.fields.forEach((name, fi) => {
-        if (!outputNames.has(name)) {
+        if (!known.has(name)) {
           ctx.issues.push({
             code: "custom",
-            input: cfg,
-            path: ["output", "layout", ri, "fields", fi],
-            message: `Output layout references unknown output field "${name}".`,
+            input: ctx.value,
+            path: [...basePath, ci, "rows", ri, "fields", fi],
+            message: `Category "${cat.id}" references unknown ${side} field "${name}".`,
           });
         }
       });
     });
   });
-
-export type AppConfig = z.infer<typeof AppConfig>;
+}
 
 function assertUnique(
   ctx: { value: unknown; issues: z.core.$ZodRawIssue[] },

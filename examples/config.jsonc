@@ -3,8 +3,12 @@
   // autocomplete + validation while editing.
   "$schema": "../schema/mlabel.schema.json",
 
+  // Input and output share the same configuration style: each has `fields`
+  // (the schema) and `categories` (cards of flex-wrap rows). Input cards show
+  // values read-only; output cards show editable widgets.
+
   // ---------------------------------------------------------------------------
-  // INPUT SCHEMA — what is read from the source file and shown read-only.
+  // INPUT — what is read from the source file and shown read-only.
   // ---------------------------------------------------------------------------
   "input": {
     "adapterId": "csv",
@@ -79,22 +83,48 @@
         },
       },
     ],
+    "categories": [
+      {
+        "id": "sample",
+        "displayName": "Sample",
+        "description": "The prompt/response pair under review.",
+        "rows": [
+          { "fields": ["prompt"] },
+          { "fields": ["response"] },
+          { "columns": 3, "fields": ["model", "created", "score"] },
+        ],
+      },
+      {
+        "id": "signals",
+        "displayName": "Automated signals",
+        "description": "Pre-computed metadata for this sample.",
+        "help": "These are produced upstream and are provided to inform your labels.",
+        "rows": [
+          { "columns": 2, "fields": ["flagged", "tags"] },
+          { "fields": ["tokenCounts"] },
+          { "fields": ["checks"] },
+        ],
+      },
+      {
+        "id": "priors",
+        "displayName": "Prior annotations",
+        "rows": [{ "fields": ["annotators"] }],
+      },
+    ],
   },
 
   // ---------------------------------------------------------------------------
-  // OUTPUT SCHEMA — what the labeler captures (or is auto-copied).
+  // OUTPUT — what the labeler captures (or is auto-copied).
   // ---------------------------------------------------------------------------
   "output": {
     "adapterId": "csv",
     "fields": [
       // Auto-copied from the same-named input column (no widget shown).
       { "name": "id", "control": "hidden" },
-
       {
         "name": "sentiment",
         "displayName": "Sentiment",
         "control": "radio",
-        "group": "Labels",
         "options": [
           { "value": "positive", "displayName": "Positive" },
           { "value": "neutral", "displayName": "Neutral" },
@@ -105,7 +135,6 @@
         "name": "quality",
         "displayName": "Quality",
         "control": "select",
-        "group": "Labels",
         "options": [
           { "value": "high", "displayName": "High" },
           { "value": "medium", "displayName": "Medium" },
@@ -116,15 +145,12 @@
         "name": "needsReview",
         "displayName": "Needs human review",
         "control": "checkbox",
-        "group": "Labels",
         "required": false,
       },
-
       {
         "name": "rating",
         "displayName": "Overall rating",
         "control": "slider",
-        "group": "Scores",
         "min": 1,
         "max": 5,
         "step": 1,
@@ -133,69 +159,45 @@
         "name": "confidence",
         "displayName": "Your confidence",
         "control": "number",
-        "group": "Scores",
         "required": false,
         "min": 0,
         "max": 1,
         "step": 0.1,
       },
-
       {
         "name": "reviewedOn",
         "displayName": "Reviewed on",
         "control": "date",
-        "group": "Meta",
         "required": false,
       },
       {
         "name": "notes",
         "displayName": "Notes",
         "control": "textarea",
-        "group": "Meta",
         "required": false,
         "maxLength": 500,
         "labelPosition": "above",
       },
     ],
-    // Optional output layout: arrange fields into rows of side-by-side widgets.
-    // (Display-only; export column order still follows "fields" above.)
-    "layout": [
-      { "group": "Labels", "columns": 2, "fields": ["sentiment", "quality"] },
-      { "group": "Labels", "fields": ["needsReview"] },
-      { "group": "Scores", "columns": 2, "fields": ["rating", "confidence"] },
-      { "group": "Meta", "columns": 2, "fields": ["reviewedOn", "notes"] },
+    "categories": [
+      {
+        "id": "labels",
+        "displayName": "Labels",
+        "rows": [
+          { "columns": 2, "fields": ["sentiment", "quality"] },
+          { "fields": ["needsReview"] },
+        ],
+      },
+      {
+        "id": "scores",
+        "displayName": "Scores",
+        "rows": [{ "columns": 2, "fields": ["rating", "confidence"] }],
+      },
+      {
+        "id": "meta",
+        "displayName": "Review",
+        "rows": [{ "columns": 2, "fields": ["reviewedOn", "notes"] }],
+      },
     ],
   },
-
-  // ---------------------------------------------------------------------------
-  // CATEGORIES — input fields grouped into cards with flex-wrap rows.
-  // ---------------------------------------------------------------------------
-  "categories": [
-    {
-      "id": "sample",
-      "displayName": "Sample",
-      "description": "The prompt/response pair under review.",
-      "rows": [
-        { "fields": ["prompt"] },
-        { "fields": ["response"] },
-        { "columns": 3, "fields": ["model", "created", "score"] },
-      ],
-    },
-    {
-      "id": "signals",
-      "displayName": "Automated signals",
-      "description": "Pre-computed metadata for this sample.",
-      "help": "These are produced upstream and are provided to inform your labels.",
-      "rows": [
-        { "columns": 2, "fields": ["flagged", "tags"] },
-        { "fields": ["tokenCounts"] },
-        { "fields": ["checks"] },
-      ],
-    },
-    {
-      "id": "priors",
-      "displayName": "Prior annotations",
-      "rows": [{ "fields": ["annotators"] }],
-    },
-  ],
 }
