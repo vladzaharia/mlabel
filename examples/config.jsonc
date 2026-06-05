@@ -1,0 +1,193 @@
+{
+  // MLabel sample config. Point your editor at the generated JSON Schema for
+  // autocomplete + validation while editing.
+  "$schema": "../schema/mlabel.schema.json",
+
+  // ---------------------------------------------------------------------------
+  // INPUT SCHEMA — what is read from the source file and shown read-only.
+  // ---------------------------------------------------------------------------
+  "input": {
+    "adapterId": "csv",
+    "fields": [
+      { "name": "id", "type": { "type": "text" } },
+      {
+        "name": "prompt",
+        "displayName": "Prompt",
+        "type": { "type": "text" },
+        "title": true, // this value becomes the top app-bar title
+        "labelPosition": "above",
+        "textSize": "lg",
+      },
+      {
+        "name": "response",
+        "displayName": "Model response",
+        "type": { "type": "text" },
+        "labelPosition": "above",
+      },
+      { "name": "model", "displayName": "Model", "type": { "type": "text" } },
+      { "name": "created", "displayName": "Created", "type": { "type": "date" } },
+      {
+        "name": "score",
+        "displayName": "Model score",
+        "type": { "type": "number", "format": "float" },
+        "help": "The model's self-reported confidence (0–1).",
+      },
+      { "name": "flagged", "displayName": "Auto-flagged", "type": { "type": "bool" } },
+      {
+        "name": "tags",
+        "displayName": "Tags",
+        "type": { "type": "array", "items": { "type": "text" } },
+      },
+      {
+        "name": "tokenCounts",
+        "displayName": "Token counts",
+        "type": { "type": "map", "keyType": "text", "valueType": { "type": "number" } },
+      },
+      {
+        "name": "checks",
+        "displayName": "Safety checks",
+        "labelPosition": "above",
+        "type": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "fields": [
+              { "name": "name", "displayName": "Check", "type": { "type": "text" } },
+              { "name": "passed", "displayName": "Passed", "type": { "type": "bool" } },
+            ],
+          },
+        },
+      },
+      {
+        "name": "annotators",
+        "displayName": "Prior annotations",
+        "labelPosition": "above",
+        "type": {
+          "type": "map",
+          "keyType": "text",
+          "valueType": {
+            "type": "object",
+            "fields": [
+              { "name": "role", "displayName": "Role", "type": { "type": "text" } },
+              {
+                "name": "confidence",
+                "displayName": "Confidence",
+                "type": { "type": "number", "format": "float" },
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // OUTPUT SCHEMA — what the labeler captures (or is auto-copied).
+  // ---------------------------------------------------------------------------
+  "output": {
+    "adapterId": "csv",
+    "fields": [
+      // Auto-copied from the same-named input column (no widget shown).
+      { "name": "id", "control": "hidden" },
+
+      {
+        "name": "sentiment",
+        "displayName": "Sentiment",
+        "control": "radio",
+        "group": "Labels",
+        "options": [
+          { "value": "positive", "displayName": "Positive" },
+          { "value": "neutral", "displayName": "Neutral" },
+          { "value": "negative", "displayName": "Negative" },
+        ],
+      },
+      {
+        "name": "quality",
+        "displayName": "Quality",
+        "control": "select",
+        "group": "Labels",
+        "options": [
+          { "value": "high", "displayName": "High" },
+          { "value": "medium", "displayName": "Medium" },
+          { "value": "low", "displayName": "Low" },
+        ],
+      },
+      {
+        "name": "needsReview",
+        "displayName": "Needs human review",
+        "control": "checkbox",
+        "group": "Labels",
+        "required": false,
+      },
+
+      {
+        "name": "rating",
+        "displayName": "Overall rating",
+        "control": "slider",
+        "group": "Scores",
+        "min": 1,
+        "max": 5,
+        "step": 1,
+      },
+      {
+        "name": "confidence",
+        "displayName": "Your confidence",
+        "control": "number",
+        "group": "Scores",
+        "required": false,
+        "min": 0,
+        "max": 1,
+        "step": 0.1,
+      },
+
+      {
+        "name": "reviewedOn",
+        "displayName": "Reviewed on",
+        "control": "date",
+        "group": "Meta",
+        "required": false,
+      },
+      {
+        "name": "notes",
+        "displayName": "Notes",
+        "control": "textarea",
+        "group": "Meta",
+        "required": false,
+        "maxLength": 500,
+        "labelPosition": "above",
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // CATEGORIES — input fields grouped into cards with flex-wrap rows.
+  // ---------------------------------------------------------------------------
+  "categories": [
+    {
+      "id": "sample",
+      "displayName": "Sample",
+      "description": "The prompt/response pair under review.",
+      "rows": [
+        { "fields": ["prompt"] },
+        { "fields": ["response"] },
+        { "columns": 3, "fields": ["model", "created", "score"] },
+      ],
+    },
+    {
+      "id": "signals",
+      "displayName": "Automated signals",
+      "description": "Pre-computed metadata for this sample.",
+      "help": "These are produced upstream and are provided to inform your labels.",
+      "rows": [
+        { "columns": 2, "fields": ["flagged", "tags"] },
+        { "fields": ["tokenCounts"] },
+        { "fields": ["checks"] },
+      ],
+    },
+    {
+      "id": "priors",
+      "displayName": "Prior annotations",
+      "rows": [{ "fields": ["annotators"] }],
+    },
+  ],
+}

@@ -1,0 +1,4 @@
+id,prompt,response,model,created,score,flagged,tags,tokenCounts,checks,annotators
+s1,What is the capital of France?,Paris.,gpt-x,2026-05-01,0.92,false,"[""geo"",""easy""]","{""prompt"":7,""response"":1}","[{""name"":""toxicity"",""passed"":true},{""name"":""pii"",""passed"":true}]","{""alice"":{""role"":""lead"",""confidence"":0.9}}"
+s2,Summarize the article.,The article discusses climate policy.,gpt-y,2026-05-02,0.40,true,"[""summary""]","{""prompt"":4,""response"":6}","[{""name"":""toxicity"",""passed"":true}]","{""bob"":{""role"":""reviewer"",""confidence"":0.6}}"
+s3,"Translate ""hello"" to Spanish",Hola,gpt-x,2026-05-03,0.77,false,"[""translation"",""easy""]","{""prompt"":5,""response"":1}",[],{}
