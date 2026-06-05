@@ -19,4 +19,14 @@ export type {
 export type { CoercedValue } from "./types/values";
 export type { ProvenanceToken, RawFieldValue, RawRecord, SourceDocument } from "./types/source";
 export type { CompletionStatus, LabeledRecord } from "./types/labeling";
+export type {
+  ConfigLoadResponse,
+  ExportRequest,
+  ExportResponse,
+  InputLoadResponse,
+  LabelMap,
+  RecentPaths,
+  RecordView,
+  SessionData,
+} from "./types/view";
 export * from "./ipc";

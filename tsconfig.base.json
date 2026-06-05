@@ -15,7 +15,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "paths": {
+      "@core": ["./src/core/index.ts"],
       "@core/*": ["./src/core/*"],
+      "@": ["./src/renderer/src"],
       "@/*": ["./src/renderer/src/*"]
     }
   }

@@ -1,8 +1,9 @@
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
-import { app, BrowserWindow, ipcMain, nativeTheme, session } from "electron";
+import { app, BrowserWindow, nativeTheme, session } from "electron";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
-import { IPC_EVENT, IPC_INVOKE } from "@core/ipc";
+import { IPC_EVENT } from "@core/ipc";
+import { registerIpc } from "./ipc";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -80,11 +81,6 @@ function installCsp(): void {
   });
 }
 
-function registerCoreIpc(): void {
-  ipcMain.handle(IPC_INVOKE.ping, () => "pong" as const);
-  ipcMain.handle(IPC_INVOKE.getTheme, () => nativeTheme.shouldUseDarkColors);
-}
-
 function broadcastTheme(): void {
   const dark = nativeTheme.shouldUseDarkColors;
   for (const win of BrowserWindow.getAllWindows()) {
@@ -97,7 +93,7 @@ async function bootstrap(): Promise<void> {
   await app.whenReady();
   electronApp.setAppUserModelId("gg.vlad.mlabel");
   installCsp();
-  registerCoreIpc();
+  registerIpc();
 
   app.on("browser-window-created", (_event, win) => optimizer.watchWindowShortcuts(win));
   nativeTheme.on("updated", broadcastTheme);
