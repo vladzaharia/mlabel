@@ -7,6 +7,7 @@ import {
   type SessionData,
   type SplitRequest,
 } from "@core";
+import { updateMenuContext } from "./menu";
 import { getStartupConfig, pickConfig } from "./services/config-service";
 import {
   exportLabels,
@@ -69,4 +70,11 @@ export function registerIpc(): void {
     }
     shell.showItemInFolder(path);
   });
+
+  ipcMain.handle(
+    IPC_INVOKE.setMenuContext,
+    (_event, ctx: { configLoaded: boolean; mode: "label" | "prepare" }) => {
+      updateMenuContext({ configLoaded: ctx.configLoaded, mode: ctx.mode });
+    },
+  );
 }

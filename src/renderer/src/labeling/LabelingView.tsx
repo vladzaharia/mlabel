@@ -62,13 +62,13 @@ export function LabelingView({ onDone }: { onDone: () => void }): React.JSX.Elem
   const records = useStore((s) => s.records);
   const exportError = useStore((s) => s.exportError);
   const clearExportError = useStore((s) => s.clearExportError);
-  const backToModeSelect = useStore((s) => s.backToModeSelect);
+  const backToInput = useStore((s) => s.backToInput);
 
   if (records.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
         <p className="text-muted-foreground text-sm">No records to label in this file.</p>
-        <Button variant="outline" onClick={backToModeSelect}>
+        <Button variant="outline" onClick={backToInput}>
           Choose another file
         </Button>
       </div>

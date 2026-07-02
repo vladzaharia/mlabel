@@ -3,6 +3,7 @@ import {
   IPC_EVENT,
   IPC_INVOKE,
   type IpcApi,
+  type SetModeListener,
   type ThemeListener,
   type UpdateStatusListener,
 } from "@core/ipc";
@@ -31,6 +32,14 @@ const api = {
     ipcRenderer.on(IPC_EVENT.updateStatus, handler);
     return () => ipcRenderer.removeListener(IPC_EVENT.updateStatus, handler);
   },
+  onSetMode: (listener: SetModeListener) => {
+    const handler = (_event: Electron.IpcRendererEvent, mode: "label" | "prepare"): void =>
+      listener(mode);
+    ipcRenderer.on(IPC_EVENT.setMode, handler);
+    return () => ipcRenderer.removeListener(IPC_EVENT.setMode, handler);
+  },
+  setMenuContext: (ctx: { configLoaded: boolean; mode: "label" | "prepare" }) =>
+    ipcRenderer.invoke(IPC_INVOKE.setMenuContext, ctx),
   installUpdate: () => ipcRenderer.invoke(IPC_INVOKE.installUpdate),
   checkForUpdates: () => ipcRenderer.invoke(IPC_INVOKE.checkForUpdates),
   openExternal: (url: string) => ipcRenderer.invoke(IPC_INVOKE.openExternal, url),

@@ -32,6 +32,19 @@ function broadcast(status: UpdateStatus): void {
 
 let started = false;
 
+/** Called after the updater arms so the menu can enable "Check for Updates…". */
+let _onArmed: (() => void) | null = null;
+
+/** Register a callback to be invoked when the updater arms. */
+export function onUpdatesArmed(cb: () => void): void {
+  _onArmed = cb;
+}
+
+/** Whether the updater has been armed (i.e. a packaged build with network permitted). */
+export function isUpdatesArmed(): boolean {
+  return started;
+}
+
 /**
  * Arm the auto-updater and run a first check. No-op in dev (updates need a
  * packaged app) and idempotent, so repeated config loads don't re-arm it.
@@ -49,6 +62,7 @@ export function startUpdates(): void {
     send: broadcast,
   });
   void autoUpdater.checkForUpdates();
+  _onArmed?.();
 }
 
 /** Quit and install a downloaded update (installable builds only). */

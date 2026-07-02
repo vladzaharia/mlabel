@@ -28,6 +28,7 @@ import type {
 
 export type ThemeListener = (isDark: boolean) => void;
 export type UpdateStatusListener = (status: UpdateStatus) => void;
+export type SetModeListener = (mode: "label" | "prepare") => void;
 
 export interface IpcApi {
   /** Liveness check used by the renderer on boot. */
@@ -40,6 +41,10 @@ export interface IpcApi {
   // --- Auto-update ---
   /** Subscribe to update-status pushes from the main-process updater. */
   onUpdateStatus: (listener: UpdateStatusListener) => () => void;
+  /** Subscribe to mode-switch commands pushed from the native application menu. */
+  onSetMode: (listener: SetModeListener) => () => void;
+  /** Notify main of the renderer's current menu context (so menu stays in sync). */
+  setMenuContext: (ctx: { configLoaded: boolean; mode: "label" | "prepare" }) => Promise<void>;
   /** Quit and install a downloaded update (installable builds only). */
   installUpdate: () => Promise<void>;
   /** Open a URL in the user's default browser (e.g. a portable release asset). */
@@ -119,10 +124,12 @@ export const IPC_INVOKE = {
   pickJoinFiles: "prepare:join-pick",
   analyzeJoinFiles: "prepare:join-analyze",
   runJoin: "prepare:join-run",
+  setMenuContext: "menu:context",
 } as const;
 
 /** Channel names for main -> renderer push events. */
 export const IPC_EVENT = {
   themeChanged: "theme:changed",
   updateStatus: "update:status",
+  setMode: "menu:set-mode",
 } as const;

@@ -346,6 +346,7 @@ describe("store: pendingResumeStale", () => {
         loadInput: loadInputMock,
         clearSession: clearSessionMock,
         saveSession: saveSessionMockStale,
+        setMenuContext: async () => {},
       },
       configurable: true,
       writable: true,
@@ -421,9 +422,9 @@ describe("store: pendingResumeStale", () => {
     expect(useStore.getState().pendingResume).toBeNull();
   });
 
-  it("backToModeSelect resets pendingResumeStale", () => {
+  it("backToInput resets pendingResumeStale", () => {
     useStore.setState({ pendingResume: staleResume, pendingResumeStale: true, phase: "labeling" });
-    useStore.getState().backToModeSelect();
+    useStore.getState().backToInput();
     expect(useStore.getState().pendingResumeStale).toBe(false);
   });
 
@@ -467,5 +468,70 @@ describe("store: deferResume", () => {
     useStore.getState().dismissResume();
     expect(useStore.getState().pendingResume).toBeNull();
     expect(clearSessionMock).toHaveBeenCalledOnce();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setMode — menu-driven mode switching
+// ---------------------------------------------------------------------------
+describe("store: setMode", () => {
+  const setMenuContextMock = vi.fn<IpcApi["setMenuContext"]>().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    setMenuContextMock.mockClear();
+    useAnnouncer.setState({ polite: { message: "", seq: 0 }, assertive: { message: "", seq: 0 } });
+    Object.defineProperty(window, "api", {
+      value: { setMenuContext: setMenuContextMock },
+      configurable: true,
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    useStore.setState({ phase: "boot", config: null, records: [] });
+  });
+
+  it("is a no-op when no config is loaded", () => {
+    useStore.setState({ phase: "need-config", config: null, records: [] });
+    useStore.getState().setMode("prepare");
+    expect(useStore.getState().phase).toBe("need-config");
+    expect(setMenuContextMock).not.toHaveBeenCalled();
+  });
+
+  it("setMode('prepare') transitions to 'prepare' phase when config is loaded", () => {
+    useStore.setState({ phase: "need-input", config, records: [] });
+    useStore.getState().setMode("prepare");
+    expect(useStore.getState().phase).toBe("prepare");
+    expect(setMenuContextMock).toHaveBeenCalledWith({ configLoaded: true, mode: "prepare" });
+  });
+
+  it("setMode('label') transitions to 'need-input' when no records loaded", () => {
+    useStore.setState({ phase: "prepare", config, records: [] });
+    useStore.getState().setMode("label");
+    expect(useStore.getState().phase).toBe("need-input");
+    expect(setMenuContextMock).toHaveBeenCalledWith({ configLoaded: true, mode: "label" });
+  });
+
+  it("setMode('label') transitions to 'labeling' when records are loaded", () => {
+    useStore.setState({
+      phase: "prepare",
+      config,
+      records: [{ index: 0, inputValues: {}, labelValues: {}, coercionErrors: [] }],
+    });
+    useStore.getState().setMode("label");
+    expect(useStore.getState().phase).toBe("labeling");
+    expect(setMenuContextMock).toHaveBeenCalledWith({ configLoaded: true, mode: "label" });
+  });
+
+  it("setMode('prepare') announces 'Prepare mode'", () => {
+    useStore.setState({ phase: "need-input", config, records: [] });
+    useStore.getState().setMode("prepare");
+    expect(useAnnouncer.getState().polite.message).toBe("Prepare mode");
+  });
+
+  it("setMode('label') announces 'Labeling mode'", () => {
+    useStore.setState({ phase: "prepare", config, records: [] });
+    useStore.getState().setMode("label");
+    expect(useAnnouncer.getState().polite.message).toBe("Labeling mode");
   });
 });

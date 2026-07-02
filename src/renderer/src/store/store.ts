@@ -19,7 +19,6 @@ export type Phase =
   | "boot"
   | "need-config"
   | "config-invalid"
-  | "select-mode"
   | "need-input"
   | "input-invalid"
   | "labeling"
@@ -79,9 +78,18 @@ interface AppActions {
   pickInput: () => Promise<void>;
   loadInputPath: (path: string) => Promise<void>;
 
-  chooseLabeling: () => void;
-  choosePrepare: () => void;
-  backToModeSelect: () => void;
+  /**
+   * Switch between label/prepare modes in response to a native menu command.
+   * No-op when no config is loaded. Also used internally by menu-exclusive
+   * mode switching (the old ModeSelectScreen is gone).
+   */
+  setMode: (mode: "label" | "prepare") => void;
+
+  /**
+   * Return to the input picker (clears loaded input + labels).
+   * Replaces the old backToModeSelect — there is no mode-select screen any more.
+   */
+  backToInput: () => void;
 
   applyResume: () => void;
   dismissResume: () => void;
@@ -158,7 +166,8 @@ export const useStore = create<AppStore>((set, get) => ({
 
     const response = await window.api.getStartupConfig();
     if (response.status === "loaded") {
-      set({ config: response.config, configPath: response.path, phase: "select-mode" });
+      set({ config: response.config, configPath: response.path, phase: "need-input" });
+      void window.api.setMenuContext({ configLoaded: true, mode: "label" });
     } else if (response.status === "invalid") {
       set({
         configIssues: response.issues,
@@ -201,9 +210,10 @@ export const useStore = create<AppStore>((set, get) => ({
         config: response.config,
         configPath: response.path,
         configIssues: [],
-        phase: "select-mode",
+        phase: "need-input",
         busy: false,
       });
+      void window.api.setMenuContext({ configLoaded: true, mode: "label" });
     } else if (response.status === "invalid") {
       set({
         configIssues: response.issues,
@@ -216,18 +226,24 @@ export const useStore = create<AppStore>((set, get) => ({
     }
   },
 
-  chooseLabeling() {
-    set({ phase: "need-input" });
+  setMode(mode) {
+    const { config, records } = get();
+    if (!config) return;
+    if (mode === "prepare") {
+      set({ phase: "prepare" });
+      announce("Prepare mode", "polite");
+    } else {
+      // Label mode: go to labeling if records loaded, else input picker.
+      set({ phase: records.length > 0 ? "labeling" : "need-input" });
+      announce("Labeling mode", "polite");
+    }
+    void window.api.setMenuContext({ configLoaded: true, mode });
   },
 
-  choosePrepare() {
-    set({ phase: "prepare" });
-  },
-
-  /** Return to the mode choice; clears any loaded input (labels are autosaved). */
-  backToModeSelect() {
+  /** Return to the input picker; clears any loaded input (labels are autosaved). */
+  backToInput() {
     set({
-      phase: "select-mode",
+      phase: "need-input",
       inputPath: null,
       records: [],
       headerIssues: [],
@@ -238,6 +254,7 @@ export const useStore = create<AppStore>((set, get) => ({
       pendingResumeStale: false,
       error: null,
     });
+    void window.api.setMenuContext({ configLoaded: true, mode: "label" });
   },
 
   async pickInput() {
@@ -320,6 +337,9 @@ export const useStore = create<AppStore>((set, get) => ({
     usePrepareStore.getState().reset();
     set({
       phase: "need-config",
+      config: null,
+      configPath: null,
+      configIssues: [],
       inputPath: null,
       records: [],
       headerIssues: [],
@@ -330,6 +350,7 @@ export const useStore = create<AppStore>((set, get) => ({
       pendingResumeStale: false,
       error: null,
     });
+    void window.api.setMenuContext({ configLoaded: false, mode: "label" });
   },
 }));
 

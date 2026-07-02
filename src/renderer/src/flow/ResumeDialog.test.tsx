@@ -10,6 +10,8 @@ function mockApi(overrides: Partial<IpcApi> = {}): IpcApi {
     getTheme: async () => true,
     onThemeChange: () => () => {},
     onUpdateStatus: () => () => {},
+    onSetMode: () => () => {},
+    setMenuContext: async () => {},
     installUpdate: async () => {},
     checkForUpdates: async () => {},
     openExternal: async () => {},

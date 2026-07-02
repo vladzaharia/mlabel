@@ -25,6 +25,8 @@ function mockApi(overrides: Partial<IpcApi> = {}): void {
     getTheme: async () => true,
     onThemeChange: () => () => {},
     onUpdateStatus: () => () => {},
+    onSetMode: () => () => {},
+    setMenuContext: async () => {},
     installUpdate: async () => {},
     checkForUpdates: async () => {},
     openExternal: async () => {},
@@ -77,7 +79,7 @@ describe("App startup flow", () => {
     await waitFor(() => expect(screen.getByText("This config isn’t valid")).toBeInTheDocument());
   });
 
-  it("offers Label and Prepare after a config loads", async () => {
+  it("shows the input picker directly after a config loads (no mode-select screen)", async () => {
     mockApi({
       getStartupConfig: async () => ({
         status: "loaded",
@@ -86,12 +88,13 @@ describe("App startup flow", () => {
       }),
     });
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Label data")).toBeInTheDocument());
-    expect(screen.getByText("Prepare data")).toBeInTheDocument();
-    expect(screen.getByText(/1 input column · 1 output field/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Open data to label")).toBeInTheDocument());
+    // Mode select screen must NOT appear.
+    expect(screen.queryByText("Label data")).not.toBeInTheDocument();
+    expect(screen.queryByText("Prepare data")).not.toBeInTheDocument();
   });
 
-  it("navigates mode select → labeling input → back → prepare → back → config", async () => {
+  it("navigates need-input → Config back button → need-config", async () => {
     const user = userEvent.setup();
     mockApi({
       getStartupConfig: async () => ({
@@ -101,18 +104,31 @@ describe("App startup flow", () => {
       }),
     });
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Label data")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Open data to label")).toBeInTheDocument());
 
-    await user.click(screen.getByRole("button", { name: /label data/i }));
-    expect(screen.getByText("Open data to label")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /back/i }));
-    await user.click(screen.getByRole("button", { name: /prepare data/i }));
-    expect(screen.getByText("Split an input file")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /back/i }));
     await user.click(screen.getByRole("button", { name: /config/i }));
     expect(screen.getByText("Configure MLabel")).toBeInTheDocument();
+  });
+
+  it("onSetMode event switches from need-input to prepare phase", async () => {
+    const listeners: Array<(mode: "label" | "prepare") => void> = [];
+    mockApi({
+      getStartupConfig: async () => ({
+        status: "loaded",
+        config: sampleConfig(),
+        path: "/x/c.jsonc",
+      }),
+      onSetMode: (cb) => {
+        listeners.push(cb);
+        return () => {};
+      },
+    });
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Open data to label")).toBeInTheDocument());
+
+    // Simulate menu pushing "prepare" mode.
+    listeners[0]?.("prepare");
+    await waitFor(() => expect(screen.getByText("Split an input file")).toBeInTheDocument());
   });
 
   it("announces the phase in the live region after startup resolves", async () => {
@@ -144,7 +160,7 @@ describe("App startup flow", () => {
     expect(document.activeElement).toBe(heading);
   });
 
-  it("focuses the mode select h1 after a config loads", async () => {
+  it("focuses the StartScreen h1 after a config loads (need-input)", async () => {
     mockApi({
       getStartupConfig: async () => ({
         status: "loaded",
@@ -153,9 +169,8 @@ describe("App startup flow", () => {
       }),
     });
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Label data")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Open data to label")).toBeInTheDocument());
     const heading = screen.getByRole("heading", { level: 1 });
-    // The ModeSelectScreen h1 is the config title (defaults to "MLabel").
     expect(document.activeElement).toBe(heading);
   });
 });

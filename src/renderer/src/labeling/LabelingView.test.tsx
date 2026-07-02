@@ -35,6 +35,8 @@ function mockApi(): void {
     getTheme: async () => false,
     onThemeChange: () => () => {},
     onUpdateStatus: () => () => {},
+    onSetMode: () => () => {},
+    setMenuContext: async () => {},
     installUpdate: async () => {},
     checkForUpdates: async () => {},
     openExternal: async () => {},
@@ -259,12 +261,12 @@ describe("LabelingView: empty-records state", () => {
     expect(screen.getByText(/No records to label in this file/)).toBeInTheDocument();
   });
 
-  it("renders a 'Choose another file' button that calls backToModeSelect", () => {
-    const backToModeSelect = vi.fn();
-    useStore.setState({ backToModeSelect });
+  it("renders a 'Choose another file' button that calls backToInput", () => {
+    const backToInput = vi.fn();
+    useStore.setState({ backToInput });
     render(<LabelingView onDone={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "Choose another file" }));
-    expect(backToModeSelect).toHaveBeenCalledOnce();
+    expect(backToInput).toHaveBeenCalledOnce();
   });
 
   it("does not render the TitleBar or BottomBar in empty state", () => {

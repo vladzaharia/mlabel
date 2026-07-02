@@ -7,7 +7,6 @@ import { LabelingView } from "./labeling/LabelingView";
 import { StartScreen } from "./flow/StartScreen";
 import { ConfigIssueScreen, InputIssueScreen } from "./flow/IssueScreen";
 import { DoneScreen } from "./flow/DoneScreen";
-import { ModeSelectScreen } from "./flow/ModeSelectScreen";
 import { PrepareView } from "./prepare/PrepareView";
 import { UpdateIndicator } from "./chrome/UpdateIndicator";
 import { Button } from "./components/ui/button";
@@ -26,8 +25,6 @@ function phaseAnnouncement(
       return { message: "Choose a config file", politeness: "polite" };
     case "config-invalid":
       return { message: "Config invalid", politeness: "assertive" };
-    case "select-mode":
-      return { message: "Choose mode", politeness: "polite" };
     case "need-input":
       return { message: "Choose data to label", politeness: "polite" };
     case "input-invalid":
@@ -51,16 +48,20 @@ export function App(): React.JSX.Element {
   const loadInputPath = useStore((s) => s.loadInputPath);
   const submitDone = useStore((s) => s.submitDone);
   const backToConfig = useStore((s) => s.backToConfig);
-  const backToModeSelect = useStore((s) => s.backToModeSelect);
+  const backToInput = useStore((s) => s.backToInput);
   const setUpdateStatus = useStore((s) => s.setUpdateStatus);
 
   useEffect(() => {
     void bootstrap();
     const offTheme = window.api.onThemeChange(setSystemDark);
     const offUpdate = window.api.onUpdateStatus(setUpdateStatus);
+    const offSetMode = window.api.onSetMode((mode) => {
+      useStore.getState().setMode(mode);
+    });
     return () => {
       offTheme();
       offUpdate();
+      offSetMode();
     };
   }, [bootstrap, setSystemDark, setUpdateStatus]);
 
@@ -108,22 +109,15 @@ export function App(): React.JSX.Element {
           </main>
         </DraggableShell>
       )}
-      {phase === "select-mode" && (
-        <DraggableShell onBack={backToConfig} backLabel="Config">
-          <main className="flex flex-1 flex-col">
-            <ModeSelectScreen />
-          </main>
-        </DraggableShell>
-      )}
       {phase === "need-input" && (
-        <DraggableShell onBack={backToModeSelect} backLabel="Back">
+        <DraggableShell onBack={backToConfig} backLabel="Config">
           <main className="flex flex-1 flex-col">
             <StartScreen kind="input" />
           </main>
         </DraggableShell>
       )}
       {phase === "input-invalid" && (
-        <DraggableShell onBack={backToModeSelect} backLabel="Back">
+        <DraggableShell onBack={backToInput} backLabel="Back">
           <main className="flex flex-1 flex-col">
             <InputIssueScreen />
           </main>
@@ -131,7 +125,7 @@ export function App(): React.JSX.Element {
       )}
       {phase === "labeling" && <LabelingView onDone={() => void handleDone()} />}
       {phase === "prepare" && (
-        <DraggableShell onBack={backToModeSelect} backLabel="Back">
+        <DraggableShell>
           <main className="flex flex-1 flex-col">
             <PrepareView />
           </main>

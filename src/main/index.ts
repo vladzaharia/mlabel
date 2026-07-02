@@ -3,10 +3,12 @@ import { app, BrowserWindow, nativeImage, nativeTheme, session } from "electron"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { IPC_EVENT } from "@core/ipc";
 import { registerIpc } from "./ipc";
+import { installAppMenu, updateMenuContext } from "./menu";
 import { createQuitFlushHandler } from "./quit-flush";
 import { offerRelocateToApplications } from "./services/app-location";
 import { installNetworkGuard } from "./services/network-guard";
 import { flushSession } from "./services/session-store";
+import { checkForUpdatesManually, onUpdatesArmed } from "./services/updater";
 // Bundled by electron-vite (?asset) so it's available at runtime in dev and in
 // the packaged asar — keeps the icon identical across platforms and builds.
 import appIcon from "../../build/icon.png?asset";
@@ -114,7 +116,22 @@ async function bootstrap(): Promise<void> {
   app.on("browser-window-created", (_event, win) => optimizer.watchWindowShortcuts(win));
   nativeTheme.on("updated", broadcastTheme);
 
-  createWindow();
+  const win = createWindow();
+
+  // Install the native application menu.  The mode-switch handler pushes the
+  // new mode to the renderer via IPC_EVENT.setMode; the renderer store handles
+  // the phase transition.
+  installAppMenu(process.platform, is.dev, {
+    onSetMode: (mode) => {
+      win.webContents.send(IPC_EVENT.setMode, mode);
+    },
+    onCheckForUpdates: checkForUpdatesManually,
+  });
+
+  // When the updater arms, re-enable the "Check for Updates…" menu item.
+  onUpdatesArmed(() => {
+    updateMenuContext({ updatesArmed: true });
+  });
 }
 
 // Must run before bootstrap() — all userData writes are deferred until then.
