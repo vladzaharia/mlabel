@@ -1,5 +1,5 @@
 import type { AppConfig } from "@core/config";
-import type { CoercedValue, SourceDocument } from "@core";
+import type { CoercedValue, SourceDocument, SourceFingerprint } from "@core";
 
 /** Heavy, main-process-only session state (kept out of the renderer). */
 export interface LoadedInput {
@@ -7,6 +7,8 @@ export interface LoadedInput {
   document: SourceDocument;
   /** Coerced input values per record index. */
   inputValues: Map<number, Record<string, CoercedValue>>;
+  /** Content fingerprint captured at load time; used to detect stale resumes. */
+  fingerprint: SourceFingerprint;
 }
 
 interface MainState {

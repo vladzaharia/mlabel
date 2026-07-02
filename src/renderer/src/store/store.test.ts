@@ -320,6 +320,121 @@ describe("store: exportError and submitDone announcements", () => {
 });
 
 // ---------------------------------------------------------------------------
+// pendingResumeStale — applyInputResponse propagation + reset sites
+// ---------------------------------------------------------------------------
+describe("store: pendingResumeStale", () => {
+  const loadInputMock = vi.fn<IpcApi["loadInput"]>();
+  const clearSessionMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+  const saveSessionMockStale = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+
+  const staleResume = {
+    configPath: "/cfg.jsonc",
+    inputPath: "/in.csv",
+    index: 1,
+    labels: { 0: { verdict: "good" } },
+  };
+  const staleRecords: RecordView[] = [
+    { index: 0, inputValues: { id: "1" }, labelValues: { id: "1" }, coercionErrors: [] },
+  ];
+
+  beforeEach(() => {
+    loadInputMock.mockClear();
+    clearSessionMock.mockClear();
+    saveSessionMockStale.mockClear();
+    Object.defineProperty(window, "api", {
+      value: {
+        loadInput: loadInputMock,
+        clearSession: clearSessionMock,
+        saveSession: saveSessionMockStale,
+      },
+      configurable: true,
+      writable: true,
+    });
+    useStore.setState({
+      phase: "need-input",
+      config,
+      records: [],
+      error: null,
+      busy: false,
+      pendingResume: null,
+      pendingResumeStale: false,
+    });
+  });
+
+  afterEach(() => {
+    useStore.setState({ phase: "boot" });
+  });
+
+  it("applyInputResponse sets pendingResumeStale=true when response has resumeStale:true", async () => {
+    loadInputMock.mockResolvedValue({
+      ok: true,
+      path: "/in.csv",
+      records: staleRecords,
+      headerIssues: [],
+      resume: staleResume,
+      resumeStale: true,
+    });
+
+    await useStore.getState().loadInputPath("/in.csv");
+
+    expect(useStore.getState().pendingResumeStale).toBe(true);
+    expect(useStore.getState().pendingResume).toEqual(staleResume);
+  });
+
+  it("applyInputResponse sets pendingResumeStale=false when response has resumeStale:false", async () => {
+    loadInputMock.mockResolvedValue({
+      ok: true,
+      path: "/in.csv",
+      records: staleRecords,
+      headerIssues: [],
+      resume: staleResume,
+      resumeStale: false,
+    });
+
+    await useStore.getState().loadInputPath("/in.csv");
+
+    expect(useStore.getState().pendingResumeStale).toBe(false);
+  });
+
+  it("applyResume resets pendingResumeStale", () => {
+    useStore.setState({
+      pendingResume: staleResume,
+      pendingResumeStale: true,
+      records: staleRecords,
+    });
+    useStore.getState().applyResume();
+    expect(useStore.getState().pendingResumeStale).toBe(false);
+    expect(useStore.getState().pendingResume).toBeNull();
+  });
+
+  it("dismissResume resets pendingResumeStale", () => {
+    useStore.setState({ pendingResume: staleResume, pendingResumeStale: true });
+    useStore.getState().dismissResume();
+    expect(useStore.getState().pendingResumeStale).toBe(false);
+    expect(useStore.getState().pendingResume).toBeNull();
+  });
+
+  it("deferResume resets pendingResumeStale", () => {
+    useStore.setState({ pendingResume: staleResume, pendingResumeStale: true });
+    useStore.getState().deferResume();
+    expect(useStore.getState().pendingResumeStale).toBe(false);
+    expect(useStore.getState().pendingResume).toBeNull();
+  });
+
+  it("backToModeSelect resets pendingResumeStale", () => {
+    useStore.setState({ pendingResume: staleResume, pendingResumeStale: true, phase: "labeling" });
+    useStore.getState().backToModeSelect();
+    expect(useStore.getState().pendingResumeStale).toBe(false);
+  });
+
+  it("backToConfig resets pendingResumeStale", () => {
+    useStore.setState({ pendingResume: staleResume, pendingResumeStale: true, phase: "labeling" });
+    useStore.getState().backToConfig();
+    expect(useStore.getState().pendingResumeStale).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // deferResume — Esc/overlay-close semantics
 // ---------------------------------------------------------------------------
 describe("store: deferResume", () => {

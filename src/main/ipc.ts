@@ -8,7 +8,12 @@ import {
   type SplitRequest,
 } from "@core";
 import { getStartupConfig, pickConfig } from "./services/config-service";
-import { exportLabels, loadInputFromPath, pickInput } from "./services/coordinator";
+import {
+  exportLabels,
+  loadInputFromPath,
+  pickInput,
+  saveSessionStamped,
+} from "./services/coordinator";
 import {
   analyzeJoinFiles,
   analyzeSplitFile,
@@ -17,7 +22,7 @@ import {
   runJoin,
   runSplit,
 } from "./services/prepare-service";
-import { clearSession, getRecent, saveSession } from "./services/session-store";
+import { clearSession, getRecent } from "./services/session-store";
 import { isAllowedExternalUrl } from "./services/network-policy";
 import { installUpdate } from "./services/updater";
 
@@ -32,7 +37,7 @@ export function registerIpc(): void {
   ipcMain.handle(IPC_INVOKE.pickInput, () => pickInput());
   ipcMain.handle(IPC_INVOKE.loadInput, (_event, path: string) => loadInputFromPath(path));
 
-  ipcMain.handle(IPC_INVOKE.saveSession, (_event, data: SessionData) => saveSession(data));
+  ipcMain.handle(IPC_INVOKE.saveSession, (_event, data: SessionData) => saveSessionStamped(data));
   ipcMain.handle(IPC_INVOKE.clearSession, () => clearSession());
 
   ipcMain.handle(IPC_INVOKE.exportLabels, (_event, request: ExportRequest) =>

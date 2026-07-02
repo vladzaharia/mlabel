@@ -53,6 +53,11 @@ interface AppState {
   records: RecordView[];
   headerIssues: ValidationIssue[];
   pendingResume: SessionData | null;
+  /**
+   * True when the pending resume's source fingerprint does not match the current
+   * file (stale session). Renderer shows a warning and inverts button emphasis.
+   */
+  pendingResumeStale: boolean;
 
   index: number;
   labels: Record<number, LabelMap>;
@@ -136,6 +141,7 @@ export const useStore = create<AppStore>((set, get) => ({
   records: [],
   headerIssues: [],
   pendingResume: null,
+  pendingResumeStale: false,
 
   index: 0,
   labels: {},
@@ -229,6 +235,7 @@ export const useStore = create<AppStore>((set, get) => ({
       index: 0,
       exportResult: null,
       pendingResume: null,
+      pendingResumeStale: false,
       error: null,
     });
   },
@@ -250,17 +257,18 @@ export const useStore = create<AppStore>((set, get) => ({
       labels: resume.labels,
       index: Math.min(resume.index, Math.max(0, get().records.length - 1)),
       pendingResume: null,
+      pendingResumeStale: false,
     });
   },
 
   dismissResume() {
-    set({ pendingResume: null });
+    set({ pendingResume: null, pendingResumeStale: false });
     void window.api.clearSession();
   },
 
   /** Clear the resume prompt without deleting the saved session — "not now" semantics. */
   deferResume() {
-    set({ pendingResume: null });
+    set({ pendingResume: null, pendingResumeStale: false });
   },
 
   clearExportError() {
@@ -318,6 +326,7 @@ export const useStore = create<AppStore>((set, get) => ({
       index: 0,
       exportResult: null,
       pendingResume: null,
+      pendingResumeStale: false,
       error: null,
     });
   },
@@ -356,12 +365,14 @@ function applyInputResponse(set: SetFn, response: InputLoadResponse): void {
   // Only offer to resume when the saved session holds real progress; otherwise
   // there is nothing to restore, so start fresh without prompting.
   const resume = response.resume ?? null;
+  const pendingResume = resume && sessionHasChanges(resume, records) ? resume : null;
   set({
     busy: false,
     inputPath: response.path ?? null,
     records,
     headerIssues: response.headerIssues ?? [],
-    pendingResume: resume && sessionHasChanges(resume, records) ? resume : null,
+    pendingResume,
+    pendingResumeStale: pendingResume !== null ? (response.resumeStale ?? false) : false,
     labels,
     index: 0,
     error: null,

@@ -16,12 +16,25 @@ export interface RecordView {
   coercionErrors: { field: string; message: string }[];
 }
 
+/**
+ * A content-addressed snapshot of the source file at the time a session was
+ * stamped. `mtimeMs` is stored for diagnostics only — it is NOT compared when
+ * checking staleness; two byte-identical re-downloads must not read as stale.
+ */
+export interface SourceFingerprint {
+  size: number;
+  mtimeMs: number;
+  sha256: string;
+}
+
 /** Persisted labeling session (autosave / resume), keyed by config+input path. */
 export interface SessionData {
   configPath: string;
   inputPath: string;
   index: number;
   labels: Record<number, LabelMap>;
+  /** Content fingerprint of the source file when this session was last saved. */
+  source?: SourceFingerprint;
 }
 
 export type ConfigLoadResponse =
@@ -38,6 +51,12 @@ export interface InputLoadResponse {
   headerIssues?: ValidationIssue[];
   /** A matching saved session the renderer may offer to resume. */
   resume?: SessionData | null;
+  /**
+   * True when a saved session exists but its source fingerprint does not match
+   * the current file. Absent (undefined) when there is no resume candidate or
+   * the saved session pre-dates fingerprinting (legacy).
+   */
+  resumeStale?: boolean;
   error?: string;
 }
 

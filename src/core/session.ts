@@ -1,5 +1,15 @@
 import type { CoercedValue } from "./types/values";
-import type { LabelMap, RecordView, SessionData } from "./types/view";
+import type { LabelMap, RecordView, SessionData, SourceFingerprint } from "./types/view";
+
+/**
+ * Whether two source fingerprints represent the same file content.
+ *
+ * Compares `size` and `sha256` only. `mtimeMs` is deliberately excluded:
+ * a byte-identical re-download must not be treated as stale.
+ */
+export function fingerprintsEqual(a: SourceFingerprint, b: SourceFingerprint): boolean {
+  return a.size === b.size && a.sha256 === b.sha256;
+}
 
 /**
  * Whether a persisted session holds real labeling progress, i.e. differs from

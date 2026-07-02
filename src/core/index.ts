@@ -35,6 +35,7 @@ export type {
   RecentPaths,
   RecordView,
   SessionData,
+  SourceFingerprint,
   SplitAnalyzeResponse,
   SplitRequest,
   SplitRunResponse,

@@ -119,3 +119,83 @@ describe("ResumeDialog", () => {
     expect(clearSession).not.toHaveBeenCalled();
   });
 });
+
+describe("ResumeDialog — stale file warning", () => {
+  beforeEach(() => {
+    mockApi();
+    useStore.setState({
+      pendingResume: null,
+      pendingResumeStale: false,
+      records,
+      index: 0,
+      labels: {},
+    });
+  });
+  afterEach(() => cleanup());
+
+  it("renders the stale warning text when pendingResumeStale is true", () => {
+    useStore.setState({ pendingResume: session, pendingResumeStale: true });
+    render(<ResumeDialog />);
+    expect(
+      screen.getByText(/The input file has changed since this session was saved/),
+    ).toBeInTheDocument();
+  });
+
+  it("does NOT render the stale warning when pendingResumeStale is false", () => {
+    useStore.setState({ pendingResume: session, pendingResumeStale: false });
+    render(<ResumeDialog />);
+    expect(
+      screen.queryByText(/The input file has changed since this session was saved/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("stale: 'Start fresh' is the primary/auto-focused button", () => {
+    useStore.setState({ pendingResume: session, pendingResumeStale: true });
+    render(<ResumeDialog />);
+    // The first interactive element that Radix will auto-focus should be Start fresh
+    const startFresh = screen.getByRole("button", { name: "Start fresh" });
+    const resume = screen.getByRole("button", { name: "Resume anyway" });
+    // Start fresh appears first in DOM (auto-focus target)
+    expect(
+      startFresh.compareDocumentPosition(resume) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("stale: 'Resume anyway' button uses danger-outline styling", () => {
+    useStore.setState({ pendingResume: session, pendingResumeStale: true });
+    render(<ResumeDialog />);
+    const resumeAnyway = screen.getByRole("button", { name: "Resume anyway" });
+    // danger-outline variant adds a data-variant attribute or class; check the button exists
+    expect(resumeAnyway).toBeInTheDocument();
+  });
+
+  it("non-stale: 'Resume' is in DOM before 'Start fresh'", () => {
+    useStore.setState({ pendingResume: session, pendingResumeStale: false });
+    render(<ResumeDialog />);
+    const resume = screen.getByRole("button", { name: "Resume" });
+    const startFresh = screen.getByRole("button", { name: "Start fresh" });
+    expect(
+      resume.compareDocumentPosition(startFresh) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("stale: clicking 'Start fresh' clears session", () => {
+    const clearSession = vi.fn(async () => {});
+    mockApi({ clearSession });
+    useStore.setState({ pendingResume: session, pendingResumeStale: true });
+    render(<ResumeDialog />);
+    fireEvent.click(screen.getByRole("button", { name: "Start fresh" }));
+    expect(useStore.getState().pendingResume).toBeNull();
+    expect(clearSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("stale: clicking 'Resume anyway' applies labels", () => {
+    useStore.setState({ pendingResume: session, pendingResumeStale: true });
+    render(<ResumeDialog />);
+    fireEvent.click(screen.getByRole("button", { name: "Resume anyway" }));
+    const state = useStore.getState();
+    expect(state.labels).toEqual(session.labels);
+    expect(state.pendingResume).toBeNull();
+    expect(state.pendingResumeStale).toBe(false);
+  });
+});

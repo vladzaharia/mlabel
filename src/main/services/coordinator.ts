@@ -1,11 +1,19 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
 import { dialog } from "electron";
-import type { AppConfig, ExportRequest, ExportResponse, InputLoadResponse } from "@core";
+import type {
+  AppConfig,
+  ExportRequest,
+  ExportResponse,
+  InputLoadResponse,
+  SessionData,
+} from "@core";
+import { fingerprintsEqual } from "@core";
 import { createDefaultRegistry } from "@core/adapters";
 import { appState, type LoadedInput } from "../state";
-import { loadSessionFor, setRecent } from "./session-store";
+import { loadSessionFor, saveSession, setRecent } from "./session-store";
 import { buildExport, buildRecordViews } from "./pipeline";
+import { fingerprintOf } from "./fingerprint";
 
 const registry = createDefaultRegistry();
 
@@ -15,12 +23,19 @@ export async function loadInputFromPath(path: string): Promise<InputLoadResponse
   if (!config || !configPath)
     return { ok: false, error: "Load a config before opening input data." };
 
-  let text: string;
+  let buf: Buffer;
+  let fileStat: { size: number; mtimeMs: number };
   try {
-    text = await readFile(path, "utf8");
+    [buf, fileStat] = await Promise.all([
+      readFile(path),
+      stat(path).then((s) => ({ size: s.size, mtimeMs: s.mtimeMs })),
+    ]);
   } catch {
     return { ok: false, error: `Could not read input file: ${path}` };
   }
+
+  const text = buf.toString("utf8");
+  const fingerprint = fingerprintOf(buf, fileStat);
 
   const adapter =
     registry.sourceForExtension(extname(path)) ?? registry.source(config.input.adapterId);
@@ -32,21 +47,41 @@ export async function loadInputFromPath(path: string): Promise<InputLoadResponse
   );
 
   const { records, inputValues } = buildRecordViews(config, document);
-  const input: LoadedInput = { inputPath: path, document, inputValues };
+  const input: LoadedInput = { inputPath: path, document, inputValues, fingerprint };
   appState.setInput(input);
   await setRecent({ config: configPath, input: path });
 
   const blockingErrors = issues.filter((i) => i.severity === "error");
   const resume = await loadSessionFor(configPath, path);
+
+  // Detect staleness: only when the saved session has a fingerprint stamped on it.
+  // Legacy sessions without `source` are treated as unverified (not stale).
+  const resumeStale =
+    resume?.source !== undefined ? !fingerprintsEqual(resume.source, fingerprint) : undefined;
+
   return {
     ok: blockingErrors.length === 0,
     path,
     records,
     headerIssues: issues,
     resume,
+    resumeStale,
     error:
       blockingErrors.length > 0 ? "The input file does not match the input schema." : undefined,
   };
+}
+
+/**
+ * Save a labeling session stamped with the current input file's fingerprint.
+ * This is the authoritative save path — the fingerprint is injected here in
+ * main so the renderer stays ignorant of file system details.
+ *
+ * Fire-and-forget (same contract as saveSession in session-store).
+ */
+export function saveSessionStamped(data: SessionData): void {
+  const input = appState.input;
+  const source = input && input.inputPath === data.inputPath ? input.fingerprint : undefined;
+  saveSession({ ...data, source });
 }
 
 export async function pickInput(): Promise<InputLoadResponse> {
