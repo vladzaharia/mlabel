@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { loadConfig } from "@core/config";
 import type { AppConfig, IpcApi } from "@core";
 import { App } from "./app";
+import { useAnnouncer } from "./a11y/announcer";
+import { useStore } from "./store/store";
 
 function sampleConfig(): AppConfig {
   const result = loadConfig(`{
@@ -48,6 +50,10 @@ function mockApi(overrides: Partial<IpcApi> = {}): void {
 describe("App startup flow", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // Reset both the app store phase and the announcer between tests so
+    // singleton Zustand state from prior renders doesn't bleed through.
+    useStore.setState({ phase: "boot" });
+    useAnnouncer.setState({ polite: { message: "", seq: 0 }, assertive: { message: "", seq: 0 } });
   });
   afterEach(() => cleanup());
 
@@ -105,5 +111,49 @@ describe("App startup flow", () => {
     await user.click(screen.getByRole("button", { name: /back/i }));
     await user.click(screen.getByRole("button", { name: /config/i }));
     expect(screen.getByText("Configure MLabel")).toBeInTheDocument();
+  });
+
+  it("announces the phase in the live region after startup resolves", async () => {
+    mockApi({ getStartupConfig: async () => ({ status: "none" }) });
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Configure MLabel")).toBeInTheDocument());
+    // The polite live region (<output>) should carry the phase announcement.
+    expect(screen.getByRole("status")).toHaveTextContent("Choose a config file");
+  });
+
+  it("announces assertively when the startup config is invalid", async () => {
+    mockApi({
+      getStartupConfig: async () => ({
+        status: "invalid",
+        path: "/x/config.jsonc",
+        issues: [{ message: "broken", path: "input" }],
+      }),
+    });
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument());
+    expect(screen.getByRole("alert")).toHaveTextContent("Config invalid");
+  });
+
+  it("focuses the screen h1 after startup resolves", async () => {
+    mockApi({ getStartupConfig: async () => ({ status: "none" }) });
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Configure MLabel")).toBeInTheDocument());
+    const heading = screen.getByRole("heading", { level: 1, name: "Configure MLabel" });
+    expect(document.activeElement).toBe(heading);
+  });
+
+  it("focuses the mode select h1 after a config loads", async () => {
+    mockApi({
+      getStartupConfig: async () => ({
+        status: "loaded",
+        config: sampleConfig(),
+        path: "/x/c.jsonc",
+      }),
+    });
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Label data")).toBeInTheDocument());
+    const heading = screen.getByRole("heading", { level: 1 });
+    // The ModeSelectScreen h1 is the config title (defaults to "MLabel").
+    expect(document.activeElement).toBe(heading);
   });
 });

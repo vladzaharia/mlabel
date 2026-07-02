@@ -3,6 +3,7 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { useStore } from "../store/store";
 import { Button } from "../components/ui/button";
 import { IssueList } from "../components/IssueList";
+import { useHeadingFocus } from "../a11y/useHeadingFocus";
 
 /** Shared chrome for the "something is wrong with this file" screens. */
 function IssueShell({
@@ -20,12 +21,15 @@ function IssueShell({
   onAction: () => void;
   busy: boolean;
 }): React.JSX.Element {
+  const headingRef = useHeadingFocus();
   return (
     <div className="flex flex-1 items-center justify-center p-8">
       <div className="glass-card flex w-full max-w-xl flex-col gap-4 rounded-2xl border border-border p-8 shadow-xl">
         <div className="flex items-center gap-3 text-danger">
           <AlertTriangle size={20} />
-          <h1 className="text-base font-semibold">{title}</h1>
+          <h1 ref={headingRef} tabIndex={-1} className="text-base font-semibold outline-none">
+            {title}
+          </h1>
         </div>
         {subtitle && <p className="text-muted-foreground -mt-2 truncate text-xs">{subtitle}</p>}
         {children}

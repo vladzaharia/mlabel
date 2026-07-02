@@ -4,12 +4,14 @@ import { useStore } from "../store/store";
 import { Logo } from "../components/Logo";
 import { ThemeSwitcher } from "../chrome/ThemeSwitcher";
 import { ModeToggle } from "../chrome/ModeToggle";
+import { useHeadingFocus } from "../a11y/useHeadingFocus";
 
 /** After a config loads: choose between labeling data and preparing files. */
 export function ModeSelectScreen(): React.JSX.Element {
   const config = useStore((s) => s.config);
   const chooseLabeling = useStore((s) => s.chooseLabeling);
   const choosePrepare = useStore((s) => s.choosePrepare);
+  const headingRef = useHeadingFocus();
 
   const title = config?.ui?.appTitle ?? "MLabel";
   const inputCount = config?.input.fields.length ?? 0;
@@ -24,7 +26,9 @@ export function ModeSelectScreen(): React.JSX.Element {
 
       <div className="glass-card flex w-full max-w-2xl flex-col gap-5 rounded-2xl border border-border p-8 shadow-xl">
         <div className="text-center">
-          <h1 className="text-lg font-semibold">{title}</h1>
+          <h1 ref={headingRef} tabIndex={-1} className="text-lg font-semibold outline-none">
+            {title}
+          </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             {inputCount} input column{inputCount === 1 ? "" : "s"} · {outputCount} output field
             {outputCount === 1 ? "" : "s"}

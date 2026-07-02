@@ -318,3 +318,98 @@ label:has(input) {
 @utility no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* ── Accessibility: reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Accessibility: reduced transparency ──
+ * Strategy: override the four surface custom properties that carry alpha < 1
+ * to their fully-opaque oklch equivalents. We do this once per theme block
+ * by re-declaring only the semi-transparent vars — this is smaller than
+ * duplicating the entire palette and doesn't require color-mix() support.
+ * backdrop-filter is also suppressed since blur on an opaque surface is moot.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  [data-theme="cobalt"] {
+    --background: oklch(0.985 0.004 258);
+    --muted: oklch(0.955 0.006 258);
+    --card: oklch(0.995 0.003 258);
+    --chrome: oklch(0.97 0.005 258);
+    --popover: oklch(0.995 0.003 258);
+  }
+
+  .dark,
+  .dark[data-theme="cobalt"] {
+    --background: oklch(0.2 0.022 264);
+    --muted: oklch(0.27 0.026 264);
+    --card: oklch(0.255 0.026 264);
+    --chrome: oklch(0.225 0.024 264);
+    --popover: oklch(0.19 0.026 264);
+  }
+
+  [data-theme="parchment"] {
+    --background: oklch(0.975 0.014 98);
+    --muted: oklch(0.95 0.018 96);
+    --card: oklch(0.99 0.01 100);
+    --chrome: oklch(0.965 0.015 97);
+    --popover: oklch(0.99 0.01 100);
+  }
+
+  .dark[data-theme="parchment"] {
+    --background: oklch(0.23 0.016 110);
+    --muted: oklch(0.285 0.018 110);
+    --card: oklch(0.275 0.018 110);
+    --chrome: oklch(0.25 0.016 110);
+    --popover: oklch(0.21 0.018 110);
+  }
+
+  [data-theme="fjord"] {
+    --background: oklch(0.985 0.006 230);
+    --muted: oklch(0.955 0.008 232);
+    --card: oklch(0.995 0.004 230);
+    --chrome: oklch(0.97 0.006 232);
+    --popover: oklch(0.995 0.004 230);
+  }
+
+  .dark[data-theme="fjord"] {
+    --background: oklch(0.2 0.022 240);
+    --muted: oklch(0.27 0.026 240);
+    --card: oklch(0.255 0.026 240);
+    --chrome: oklch(0.225 0.024 240);
+    --popover: oklch(0.19 0.026 240);
+  }
+
+  [data-theme="vespers"] {
+    --background: oklch(0.985 0.006 300);
+    --muted: oklch(0.955 0.008 300);
+    --card: oklch(0.995 0.004 305);
+    --chrome: oklch(0.97 0.006 300);
+    --popover: oklch(0.995 0.004 305);
+  }
+
+  .dark[data-theme="vespers"] {
+    --background: oklch(0.2 0.028 300);
+    --muted: oklch(0.27 0.03 300);
+    --card: oklch(0.255 0.03 300);
+    --chrome: oklch(0.225 0.028 300);
+    --popover: oklch(0.19 0.03 300);
+  }
+
+  /* Suppress blur effects — no visual benefit on opaque surfaces. */
+  .app-base,
+  .glass,
+  .glass-card,
+  .glass-popover {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}

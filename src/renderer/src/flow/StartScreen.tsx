@@ -4,11 +4,13 @@ import { Button } from "../components/ui/button";
 import { Logo } from "../components/Logo";
 import { ThemeSwitcher } from "../chrome/ThemeSwitcher";
 import { ModeToggle } from "../chrome/ModeToggle";
+import { useHeadingFocus } from "../a11y/useHeadingFocus";
 
 export function StartScreen({ kind }: { kind: "config" | "input" }): React.JSX.Element {
   const busy = useStore((s) => s.busy);
   const pickConfig = useStore((s) => s.pickConfig);
   const pickInput = useStore((s) => s.pickInput);
+  const headingRef = useHeadingFocus();
 
   const isConfig = kind === "config";
   const Icon = isConfig ? Settings2 : FileSpreadsheet;
@@ -26,7 +28,7 @@ export function StartScreen({ kind }: { kind: "config" | "input" }): React.JSX.E
           <Icon size={26} />
         </div>
         <div>
-          <h1 className="text-lg font-semibold">
+          <h1 ref={headingRef} tabIndex={-1} className="text-lg font-semibold outline-none">
             {isConfig ? "Configure MLabel" : "Open data to label"}
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">

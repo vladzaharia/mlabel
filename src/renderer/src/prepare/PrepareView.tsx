@@ -3,6 +3,7 @@ import { usePrepareStore, type PrepareTab } from "../store/prepare-store";
 import { Button } from "../components/ui/button";
 import { SplitPanel } from "./SplitPanel";
 import { JoinPanel } from "./JoinPanel";
+import { useHeadingFocus } from "../a11y/useHeadingFocus";
 
 const TABS: { id: PrepareTab; label: string }[] = [
   { id: "split", label: "Split input" },
@@ -15,6 +16,7 @@ export function PrepareView(): React.JSX.Element {
   const config = useStore((s) => s.config);
   const tab = usePrepareStore((s) => s.tab);
   const setTab = usePrepareStore((s) => s.setTab);
+  const headingRef = useHeadingFocus();
 
   const inputColumns = config?.input.fields.map((f) => f.name).join(", ") ?? "";
   const outputColumns = config?.output.fields.map((f) => f.name).join(", ") ?? "";
@@ -23,7 +25,9 @@ export function PrepareView(): React.JSX.Element {
     <div className="flex-1 overflow-auto">
       <div className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
         <header>
-          <h1 className="text-lg font-semibold">Prepare data</h1>
+          <h1 ref={headingRef} tabIndex={-1} className="text-lg font-semibold outline-none">
+            Prepare data
+          </h1>
           <p className="text-muted-foreground mt-1 truncate text-xs" title={inputColumns}>
             Input schema: {inputColumns}
           </p>

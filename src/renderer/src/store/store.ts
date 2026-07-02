@@ -13,6 +13,7 @@ import type {
   ValidationIssue,
 } from "@core";
 import { usePrepareStore } from "./prepare-store";
+import { announce } from "../a11y/announcer";
 
 export type Phase =
   | "boot"
@@ -273,6 +274,8 @@ export const useStore = create<AppStore>((set, get) => ({
     const result = await window.api.exportLabels({ labels: get().labels });
     set({ busy: false });
     if (result.ok) {
+      const n = result.completeCount ?? 0;
+      announce(`Export complete, ${String(n)} record${n === 1 ? "" : "s"} exported`, "assertive");
       // phase: "done" must be set BEFORE clearSession() is called. Electron
       // does not order messages across separate IPC channels, so the autosave
       // subscriber (which bails when phase !== "labeling") could otherwise race
@@ -281,6 +284,7 @@ export const useStore = create<AppStore>((set, get) => ({
       await window.api.clearSession();
       return { ok: true };
     }
+    announce(`Export failed: ${result.error ?? "unknown error"}`, "assertive");
     return { ok: false, error: result.error };
   },
 

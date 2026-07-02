@@ -1,6 +1,7 @@
 import { useEffect, type DragEvent, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useStore } from "./store/store";
+import type { Phase } from "./store/store";
 import { usePrepareStore } from "./store/prepare-store";
 import { LabelingView } from "./labeling/LabelingView";
 import { StartScreen } from "./flow/StartScreen";
@@ -12,6 +13,33 @@ import { UpdateIndicator } from "./chrome/UpdateIndicator";
 import { Button } from "./components/ui/button";
 import { Toaster, toast } from "./components/ui/sonner";
 import { chromePadding, cn } from "./lib/utils";
+import { LiveAnnouncer } from "./a11y/LiveAnnouncer";
+import { announce } from "./a11y/announcer";
+
+function phaseAnnouncement(
+  phase: Phase,
+): { message: string; politeness: "polite" | "assertive" } | null {
+  switch (phase) {
+    case "boot":
+      return null;
+    case "need-config":
+      return { message: "Choose a config file", politeness: "polite" };
+    case "config-invalid":
+      return { message: "Config invalid", politeness: "assertive" };
+    case "select-mode":
+      return { message: "Choose mode", politeness: "polite" };
+    case "need-input":
+      return { message: "Choose data to label", politeness: "polite" };
+    case "input-invalid":
+      return { message: "Input invalid", politeness: "assertive" };
+    case "labeling":
+      return { message: "Labeling", politeness: "polite" };
+    case "prepare":
+      return { message: "Prepare data", politeness: "polite" };
+    case "done":
+      return { message: "Export complete", politeness: "polite" };
+  }
+}
 
 export function App(): React.JSX.Element {
   const phase = useStore((s) => s.phase);
@@ -33,6 +61,11 @@ export function App(): React.JSX.Element {
       offUpdate();
     };
   }, [bootstrap, setSystemDark, setUpdateStatus]);
+
+  useEffect(() => {
+    const announcement = phaseAnnouncement(phase);
+    if (announcement) announce(announcement.message, announcement.politeness);
+  }, [phase]);
 
   async function handleDone(): Promise<void> {
     const result = await submitDone();
@@ -58,30 +91,57 @@ export function App(): React.JSX.Element {
       onDrop={handleDrop}
     >
       {phase === "boot" && <BootSplash />}
-      {phase === "need-config" && <DraggableShell>{<StartScreen kind="config" />}</DraggableShell>}
-      {phase === "config-invalid" && <DraggableShell>{<ConfigIssueScreen />}</DraggableShell>}
+      {phase === "need-config" && (
+        <DraggableShell>
+          <main className="flex flex-1 flex-col">
+            <StartScreen kind="config" />
+          </main>
+        </DraggableShell>
+      )}
+      {phase === "config-invalid" && (
+        <DraggableShell>
+          <main className="flex flex-1 flex-col">
+            <ConfigIssueScreen />
+          </main>
+        </DraggableShell>
+      )}
       {phase === "select-mode" && (
         <DraggableShell onBack={backToConfig} backLabel="Config">
-          {<ModeSelectScreen />}
+          <main className="flex flex-1 flex-col">
+            <ModeSelectScreen />
+          </main>
         </DraggableShell>
       )}
       {phase === "need-input" && (
         <DraggableShell onBack={backToModeSelect} backLabel="Back">
-          {<StartScreen kind="input" />}
+          <main className="flex flex-1 flex-col">
+            <StartScreen kind="input" />
+          </main>
         </DraggableShell>
       )}
       {phase === "input-invalid" && (
         <DraggableShell onBack={backToModeSelect} backLabel="Back">
-          {<InputIssueScreen />}
+          <main className="flex flex-1 flex-col">
+            <InputIssueScreen />
+          </main>
         </DraggableShell>
       )}
       {phase === "labeling" && <LabelingView onDone={() => void handleDone()} />}
       {phase === "prepare" && (
         <DraggableShell onBack={backToModeSelect} backLabel="Back">
-          {<PrepareView />}
+          <main className="flex flex-1 flex-col">
+            <PrepareView />
+          </main>
         </DraggableShell>
       )}
-      {phase === "done" && <DraggableShell>{<DoneScreen />}</DraggableShell>}
+      {phase === "done" && (
+        <DraggableShell>
+          <main className="flex flex-1 flex-col">
+            <DoneScreen />
+          </main>
+        </DraggableShell>
+      )}
+      <LiveAnnouncer />
       <Toaster />
     </div>
   );

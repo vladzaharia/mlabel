@@ -1,12 +1,14 @@
 import { CheckCircle2, FileDown, Loader2, PartyPopper } from "lucide-react";
 import { useStore } from "../store/store";
 import { Button } from "../components/ui/button";
+import { useHeadingFocus } from "../a11y/useHeadingFocus";
 
 export function DoneScreen(): React.JSX.Element {
   const result = useStore((s) => s.exportResult);
   const pickInput = useStore((s) => s.pickInput);
   const backToLabeling = useStore((s) => s.backToLabeling);
   const busy = useStore((s) => s.busy);
+  const headingRef = useHeadingFocus();
 
   const complete = result?.completeCount ?? 0;
   const remaining = result?.remainingCount ?? 0;
@@ -19,7 +21,9 @@ export function DoneScreen(): React.JSX.Element {
         </div>
 
         <div>
-          <h1 className="text-xl font-semibold">Nice work — you’re done!</h1>
+          <h1 ref={headingRef} tabIndex={-1} className="text-xl font-semibold outline-none">
+            Nice work — you’re done!
+          </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">Your labels have been exported.</p>
         </div>
 
