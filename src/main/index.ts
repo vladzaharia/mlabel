@@ -115,7 +115,22 @@ async function bootstrap(): Promise<void> {
   createWindow();
 }
 
-void bootstrap();
+// Enforce single-instance. This must run before any userData write so the
+// lock also guards the on-disk session file against cross-process write
+// races (a durability workstream depends on this guarantee).
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    const [win] = BrowserWindow.getAllWindows();
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+  });
+
+  void bootstrap();
+}
 
 // Closing the window quits the app on every platform (including macOS).
 app.on("window-all-closed", () => {
