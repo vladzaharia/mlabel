@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadConfig } from "@core/config";
 import type { AppConfig, RecordView } from "@core";
 import type { LabelMap } from "@core";
@@ -110,5 +110,70 @@ describe("store: color theme", () => {
       expect(localStorage.getItem("mlabel.colortheme")).toBe(theme);
       expect(document.documentElement.dataset.theme).toBe(theme);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Write-through autosave tests
+// ---------------------------------------------------------------------------
+describe("store: write-through autosave", () => {
+  const saveSessionMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+  const clearSessionMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    saveSessionMock.mockClear();
+    clearSessionMock.mockClear();
+    // Must use Object.defineProperty (same as app.test.tsx) so that
+    // `window.api` resolves correctly in happy-dom.
+    Object.defineProperty(window, "api", {
+      value: { saveSession: saveSessionMock, clearSession: clearSessionMock },
+      configurable: true,
+      writable: true,
+    });
+    // Seed with non-null configPath/inputPath so the autosave guard passes.
+    seed({ configPath: "/cfg/test.jsonc", inputPath: "/data/input.csv" });
+    saveSessionMock.mockClear(); // ignore the subscriber call from setState in seed()
+  });
+
+  afterEach(() => {
+    // Reset store to non-labeling phase to stop autosave emissions.
+    useStore.setState({ phase: "boot" });
+  });
+
+  it("calls saveSession once per setLabel during labeling", () => {
+    useStore.getState().setLabel(0, "verdict", "good");
+    expect(saveSessionMock).toHaveBeenCalledOnce();
+    expect(saveSessionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        configPath: "/cfg/test.jsonc",
+        inputPath: "/data/input.csv",
+        index: 0,
+      }),
+    );
+  });
+
+  it("does not call saveSession when phase is not labeling", () => {
+    useStore.setState({ phase: "done" });
+    saveSessionMock.mockClear();
+    useStore.getState().setLabel(0, "verdict", "good");
+    expect(saveSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("does not call saveSession when only unrelated state (updateStatus) changes during labeling", () => {
+    saveSessionMock.mockClear();
+    // Trigger a state change that only touches updateStatus — not labels/index/paths.
+    useStore.setState({ updateStatus: { kind: "checking" } });
+    expect(saveSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("calls saveSession with correct payload when index advances", () => {
+    useStore.getState().next();
+    expect(saveSessionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        configPath: "/cfg/test.jsonc",
+        inputPath: "/data/input.csv",
+        index: 1,
+      }),
+    );
   });
 });

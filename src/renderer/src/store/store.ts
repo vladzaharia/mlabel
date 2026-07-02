@@ -12,7 +12,6 @@ import type {
   UpdateStatus,
   ValidationIssue,
 } from "@core";
-import { debounce } from "../lib/utils";
 import { usePrepareStore } from "./prepare-store";
 
 export type Phase =
@@ -275,7 +274,7 @@ export const useStore = create<AppStore>((set, get) => ({
     set({ busy: false });
     if (result.ok) {
       set({ exportResult: result, phase: "done" });
-      void window.api.clearSession();
+      await window.api.clearSession();
       return { ok: true };
     }
     return { ok: false, error: result.error };
@@ -354,15 +353,23 @@ export function selectCompletedCount(state: AppStore): number {
 export const selectCurrentRecord = (state: AppStore): RecordView | undefined =>
   state.records[state.index];
 
-// --- Autosave: persist labels + index to the main process (debounced). ---
-const persist = debounce((data: SessionData) => void window.api.saveSession(data), 400);
-useStore.subscribe((state) => {
-  if (state.phase === "labeling" && state.configPath && state.inputPath) {
-    persist({
-      configPath: state.configPath,
-      inputPath: state.inputPath,
-      index: state.index,
-      labels: state.labels,
-    });
-  }
+// --- Autosave: write-through on every labeling-relevant state change. ---
+// Using the two-arg subscriber so we can bail out when only unrelated state
+// (e.g. updateStatus, themeMode) changes — avoiding unnecessary IPC traffic.
+useStore.subscribe((state, prev) => {
+  if (state.phase !== "labeling" || !state.configPath || !state.inputPath) return;
+  // Only IPC when something meaningful to the session actually changed.
+  if (
+    state.labels === prev.labels &&
+    state.index === prev.index &&
+    state.configPath === prev.configPath &&
+    state.inputPath === prev.inputPath
+  )
+    return;
+  void window.api.saveSession({
+    configPath: state.configPath,
+    inputPath: state.inputPath,
+    index: state.index,
+    labels: state.labels,
+  });
 });

@@ -3,8 +3,10 @@ import { app, BrowserWindow, nativeImage, nativeTheme, session } from "electron"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { IPC_EVENT } from "@core/ipc";
 import { registerIpc } from "./ipc";
+import { createQuitFlushHandler } from "./quit-flush";
 import { offerRelocateToApplications } from "./services/app-location";
 import { installNetworkGuard } from "./services/network-guard";
+import { flushSession } from "./services/session-store";
 // Bundled by electron-vite (?asset) so it's available at runtime in dev and in
 // the packaged asar — keeps the icon identical across platforms and builds.
 import appIcon from "../../build/icon.png?asset";
@@ -115,9 +117,8 @@ async function bootstrap(): Promise<void> {
   createWindow();
 }
 
-// Enforce single-instance. This must run before any userData write so the
-// lock also guards the on-disk session file against cross-process write
-// races (a durability workstream depends on this guarantee).
+// Must run before bootstrap() — all userData writes are deferred until then.
+// Guards session files against cross-process write races.
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -128,6 +129,11 @@ if (!app.requestSingleInstanceLock()) {
       win.focus();
     }
   });
+
+  app.on(
+    "before-quit",
+    createQuitFlushHandler([flushSession], () => app.quit()),
+  );
 
   void bootstrap();
 }
