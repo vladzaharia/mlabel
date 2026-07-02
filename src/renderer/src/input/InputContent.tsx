@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import type { InputField } from "@core/config";
 import { useStore, selectCurrentRecord } from "../store/store";
 import { CategoryCard } from "./CategoryCard";
@@ -7,11 +6,9 @@ export function InputContent(): React.JSX.Element {
   const config = useStore((s) => s.config);
   const record = useStore(selectCurrentRecord);
 
-  const fieldsByName = useMemo(() => {
-    const map = new Map<string, InputField>();
-    for (const field of config?.input.fields ?? []) map.set(field.name, field);
-    return map;
-  }, [config]);
+  const fieldsByName = new Map<string, InputField>(
+    (config?.input.fields ?? []).map((field) => [field.name, field]),
+  );
 
   if (!config || !record) return <div className="flex-1" />;
 

@@ -1,5 +1,6 @@
 import { Moon, Sun, SunMoon } from "lucide-react";
 import { useStore } from "../store/store";
+import { Button } from "../components/ui/button";
 import { Tooltip } from "../components/ui/tooltip";
 
 const themeIcon = { system: SunMoon, light: Sun, dark: Moon } as const;
@@ -12,14 +13,15 @@ export function ModeToggle(): React.JSX.Element {
 
   return (
     <Tooltip content={`Theme: ${themeMode}`}>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={cycleTheme}
         aria-label="Toggle theme"
-        className="no-drag flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+        className="no-drag h-7 w-7 text-muted-foreground hover:text-foreground"
       >
         <ThemeIcon size={15} />
-      </button>
+      </Button>
     </Tooltip>
   );
 }

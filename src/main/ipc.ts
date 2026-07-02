@@ -1,8 +1,24 @@
 import { ipcMain, nativeTheme, shell } from "electron";
-import { IPC_INVOKE, type ExportRequest, type SessionData } from "@core";
+import {
+  IPC_INVOKE,
+  type ExportRequest,
+  type JoinKind,
+  type JoinRequest,
+  type SessionData,
+  type SplitRequest,
+} from "@core";
 import { getStartupConfig, pickConfig } from "./services/config-service";
 import { exportLabels, loadInputFromPath, pickInput } from "./services/coordinator";
+import {
+  analyzeJoinFiles,
+  analyzeSplitFile,
+  pickJoinFiles,
+  pickSplitFile,
+  runJoin,
+  runSplit,
+} from "./services/prepare-service";
 import { clearSession, getRecent, saveSession } from "./services/session-store";
+import { isAllowedExternalUrl } from "./services/network-policy";
 import { installUpdate } from "./services/updater";
 
 /** Register every request-response IPC handler. One handler per IpcApi method. */
@@ -25,6 +41,19 @@ export function registerIpc(): void {
 
   ipcMain.handle(IPC_INVOKE.getRecent, () => getRecent());
 
+  ipcMain.handle(IPC_INVOKE.pickSplitFile, () => pickSplitFile());
+  ipcMain.handle(IPC_INVOKE.analyzeSplitFile, (_event, path: string) => analyzeSplitFile(path));
+  ipcMain.handle(IPC_INVOKE.runSplit, (_event, request: SplitRequest) => runSplit(request));
+  ipcMain.handle(IPC_INVOKE.pickJoinFiles, (_event, kind: JoinKind) => pickJoinFiles(kind));
+  ipcMain.handle(IPC_INVOKE.analyzeJoinFiles, (_event, request: JoinRequest) =>
+    analyzeJoinFiles(request),
+  );
+  ipcMain.handle(IPC_INVOKE.runJoin, (_event, request: JoinRequest) => runJoin(request));
+
   ipcMain.handle(IPC_INVOKE.installUpdate, () => installUpdate());
-  ipcMain.handle(IPC_INVOKE.openExternal, (_event, url: string) => shell.openExternal(url));
+  ipcMain.handle(IPC_INVOKE.openExternal, (_event, url: string) => {
+    // Defense in depth: only main-built release URLs may leave the app.
+    if (!isAllowedExternalUrl(url)) throw new Error(`Blocked non-release external URL: ${url}`);
+    return shell.openExternal(url);
+  });
 }

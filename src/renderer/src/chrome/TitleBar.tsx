@@ -1,6 +1,7 @@
 import { ChevronRight, Save } from "lucide-react";
 import { useStore, selectCompletedCount, selectCurrentRecord } from "../store/store";
-import { cn, isMac, isWindows } from "../lib/utils";
+import { Button } from "../components/ui/button";
+import { chromePadding, cn } from "../lib/utils";
 import type { AppConfig, CoercedValue, RecordView } from "@core";
 
 function titleText(
@@ -39,7 +40,7 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
     <header
       className={cn(
         "drag glass relative flex h-11 shrink-0 items-center border-b border-border",
-        isMac() ? "pl-24 pr-2" : isWindows() ? "pl-5 pr-36" : "pl-5 pr-3",
+        chromePadding(),
       )}
     >
       <span className="truncate text-sm font-medium">{titleText(config, record, inputPath)}</span>
@@ -49,21 +50,17 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
           <span className="no-drag px-2 text-xs tabular-nums text-muted-foreground">
             <span className="font-medium text-foreground">{completed}</span> / {total} labeled
           </span>
-          <button
-            type="button"
+          <Button
+            size="xs"
             onClick={next}
             disabled={index >= total - 1}
-            className="no-drag flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground shadow-sm transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
+            className="no-drag shadow-sm"
           >
             Next <ChevronRight size={13} />
-          </button>
-          <button
-            type="button"
-            onClick={onDone}
-            className="no-drag mr-0.5 flex items-center gap-1 rounded-md bg-progress px-2.5 py-1 text-xs font-medium text-progress-foreground shadow-sm transition-opacity hover:opacity-90"
-          >
+          </Button>
+          <Button size="xs" variant="success" onClick={onDone} className="no-drag mr-0.5 shadow-sm">
             <Save size={13} /> Save
-          </button>
+          </Button>
         </div>
       )}
 

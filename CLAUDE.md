@@ -38,7 +38,7 @@ src/main/      Electron main (Node ESM): window, CSP, nativeTheme, config-servic
                IPC handlers.
 src/preload/   contextBridge exposing `window.api` (typed via IpcApi).
 src/renderer/  React 19 UI: chrome bars, category cards, recursive input formatters,
-               RHF output form, Zustand store. Imports from @core only.
+               controlled-widget output form, Zustand store. Imports from @core only.
 ```
 
 Data flow: `SourceAdapter.parse` → `RawRecord[]` (with opaque provenance) →

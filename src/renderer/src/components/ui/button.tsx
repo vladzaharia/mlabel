@@ -14,6 +14,7 @@ const buttonVariants = cva(
         subtle: "bg-muted text-foreground hover:opacity-90",
       },
       size: {
+        xs: "h-6 gap-1 px-2.5 text-xs",
         sm: "h-8 px-3",
         md: "h-9 px-4",
         lg: "h-11 px-6 text-base",

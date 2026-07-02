@@ -1,4 +1,4 @@
-import { FileSpreadsheet, Settings2 } from "lucide-react";
+import { FileSpreadsheet, Loader2, Settings2 } from "lucide-react";
 import { useStore } from "../store/store";
 import { Button } from "../components/ui/button";
 import { Logo } from "../components/Logo";
@@ -41,6 +41,7 @@ export function StartScreen({ kind }: { kind: "config" | "input" }): React.JSX.E
           onClick={() => void (isConfig ? pickConfig() : pickInput())}
           className="mt-7"
         >
+          {busy && <Loader2 size={16} className="animate-spin" />}
           {isConfig ? "Select config…" : "Select input file…"}
         </Button>
         <p className="text-muted-foreground text-xs">…or drag a file onto the window.</p>

@@ -1,6 +1,7 @@
 import { Popover as P } from "radix-ui";
 import { Check, ChevronDown } from "lucide-react";
 import { useStore, COLOR_THEMES } from "../store/store";
+import { Button } from "../components/ui/button";
 import { cn } from "../lib/utils";
 
 /** Borderless color-theme picker styled to match the "‹ Config" button. */
@@ -12,15 +13,16 @@ export function ThemeSwitcher(): React.JSX.Element {
   return (
     <P.Root>
       <P.Trigger asChild>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="xs"
           aria-label="Color theme"
-          className="no-drag flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="no-drag gap-1.5 font-normal text-muted-foreground hover:text-foreground"
         >
           <Swatch color={active.swatch} />
           {active.name}
           <ChevronDown size={13} className="opacity-70" />
-        </button>
+        </Button>
       </P.Trigger>
       <P.Portal>
         <P.Content
@@ -37,7 +39,7 @@ export function ThemeSwitcher(): React.JSX.Element {
               key={theme.id}
               type="button"
               onClick={() => setColorTheme(theme.id)}
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted"
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Swatch color={theme.swatch} />
               <span className="flex-1">{theme.name}</span>

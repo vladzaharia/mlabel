@@ -2,7 +2,6 @@ import type { FC } from "react";
 import type { OutputControl, OutputField } from "@core/config";
 import { validateOutputValue, type CoercedValue } from "@core";
 import { HelpBubble } from "../components/ui/popover";
-import { cn } from "../lib/utils";
 import {
   CheckboxWidget,
   DateWidget,
@@ -90,7 +89,7 @@ export function FieldRenderer({
   }
 
   return (
-    <div className={cn("flex flex-col gap-1.5")}>
+    <div className="flex flex-col gap-1.5">
       {label}
       {description}
       {widget}

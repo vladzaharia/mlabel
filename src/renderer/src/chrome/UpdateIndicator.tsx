@@ -1,11 +1,11 @@
 import { AlertCircle, Check, Download, RefreshCw, RotateCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useStore } from "../store/store";
-import { cn } from "../lib/utils";
+import { Button } from "../components/ui/button";
 
 const baseClass =
   "no-drag flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground";
-const buttonClass = cn(baseClass, "hover:bg-muted hover:text-foreground");
+const buttonClass = "no-drag gap-1.5 font-normal text-muted-foreground hover:text-foreground";
 
 /**
  * Subtle auto-update status, shown in the chrome bar (inline with "‹ Config").
@@ -26,24 +26,26 @@ export function UpdateIndicator(): React.JSX.Element | null {
       return <Static icon={Download} label={`Downloading update… ${String(status.percent)}%`} />;
     case "downloaded":
       return (
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="xs"
           className={buttonClass}
           onClick={() => void window.api.installUpdate()}
         >
           <RotateCw size={13} /> Restart to update
-        </button>
+        </Button>
       );
     case "available-external": {
       const url = status.url;
       return (
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="xs"
           className={buttonClass}
           onClick={() => void window.api.openExternal(url)}
         >
           <Download size={13} /> Update available
-        </button>
+        </Button>
       );
     }
     case "error":

@@ -9,6 +9,14 @@ export function cn(...inputs: ClassValue[]): string {
 export const isMac = (): boolean => globalThis.window?.platform === "darwin";
 export const isWindows = (): boolean => globalThis.window?.platform === "win32";
 
+/**
+ * Horizontal padding that keeps chrome-bar content clear of the platform's
+ * window controls (macOS traffic lights left, Windows overlay buttons right).
+ */
+export function chromePadding(): string {
+  return isMac() ? "pl-24 pr-2" : isWindows() ? "pl-5 pr-36" : "pl-5 pr-3";
+}
+
 /** Trailing-edge debounce. */
 export function debounce<A extends unknown[]>(
   fn: (...args: A) => void,

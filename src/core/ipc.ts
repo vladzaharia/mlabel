@@ -3,8 +3,15 @@ import type {
   ExportRequest,
   ExportResponse,
   InputLoadResponse,
+  JoinAnalyzeResponse,
+  JoinKind,
+  JoinRequest,
+  JoinRunResponse,
   RecentPaths,
   SessionData,
+  SplitAnalyzeResponse,
+  SplitRequest,
+  SplitRunResponse,
   UpdateStatus,
 } from "./types/view";
 
@@ -61,6 +68,20 @@ export interface IpcApi {
 
   // --- Recents ---
   getRecent: () => Promise<RecentPaths>;
+
+  // --- Prepare (split / join; stateless in main — files re-read on run) ---
+  /** Pick one input file and validate it against the input schema. */
+  pickSplitFile: () => Promise<SplitAnalyzeResponse>;
+  /** Analyze a specific input path (drag-drop). */
+  analyzeSplitFile: (path: string) => Promise<SplitAnalyzeResponse>;
+  /** Split the file into N contiguous parts next to the source. */
+  runSplit: (request: SplitRequest) => Promise<SplitRunResponse>;
+  /** Pick one or more files of the given kind and analyze them for a join. */
+  pickJoinFiles: (kind: JoinKind) => Promise<JoinAnalyzeResponse>;
+  /** (Re-)analyze the full current file list for a join. */
+  analyzeJoinFiles: (request: JoinRequest) => Promise<JoinAnalyzeResponse>;
+  /** Join the files into one, saved where the user chooses. */
+  runJoin: (request: JoinRequest) => Promise<JoinRunResponse>;
 }
 
 /** Channel names for `invoke`/`handle` request-response methods. */
@@ -77,6 +98,12 @@ export const IPC_INVOKE = {
   getRecent: "recent:get",
   installUpdate: "update:install",
   openExternal: "shell:open-external",
+  pickSplitFile: "prepare:split-pick",
+  analyzeSplitFile: "prepare:split-analyze",
+  runSplit: "prepare:split-run",
+  pickJoinFiles: "prepare:join-pick",
+  analyzeJoinFiles: "prepare:join-analyze",
+  runJoin: "prepare:join-run",
 } as const;
 
 /** Channel names for main -> renderer push events. */

@@ -59,6 +59,64 @@ export interface RecentPaths {
   input?: string;
 }
 
+// --- Prepare mode (split one input into parts; join outputs / remaining) ---
+
+/** Which kind of files a join combines; decides the schema it validates against. */
+export type JoinKind = "output" | "remaining";
+
+/** One analyzed file in a Prepare operation. */
+export interface PrepareFileInfo {
+  path: string;
+  rowCount: number;
+  issues: ValidationIssue[];
+  /** True when no `severity: "error"` issue was found. */
+  ok: boolean;
+}
+
+export interface SplitAnalyzeResponse {
+  ok: boolean;
+  canceled?: boolean;
+  file?: PrepareFileInfo;
+  error?: string;
+}
+
+export interface SplitRequest {
+  path: string;
+  parts: number;
+}
+
+export interface SplitRunResponse {
+  ok: boolean;
+  files?: { path: string; rowCount: number }[];
+  /** Includes the refuse-to-overwrite case, listing the colliding paths. */
+  error?: string;
+}
+
+export interface JoinRequest {
+  kind: JoinKind;
+  paths: string[];
+}
+
+export interface JoinAnalyzeResponse {
+  ok: boolean;
+  canceled?: boolean;
+  files?: PrepareFileInfo[];
+  /** Header mismatches (error), duplicate rows / dialect notes (warning). */
+  crossFileIssues?: ValidationIssue[];
+  totalRows?: number;
+  error?: string;
+}
+
+export interface JoinRunResponse {
+  ok: boolean;
+  /** True when the user dismissed the save dialog. */
+  canceled?: boolean;
+  path?: string;
+  rowCount?: number;
+  duplicateCount?: number;
+  error?: string;
+}
+
 /**
  * Auto-update progress, pushed from main → renderer. `available-external` is the
  * portable-build case: it can't self-install, so it carries a direct download URL

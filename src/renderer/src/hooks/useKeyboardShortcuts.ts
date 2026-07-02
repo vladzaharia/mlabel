@@ -11,18 +11,24 @@ import { useStore } from "../store/store";
 export function useKeyboardShortcuts(onDone: () => void): void {
   useEffect(() => {
     function handler(event: KeyboardEvent): void {
-      const target = event.target as HTMLElement | null;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      // A field that consumes keystrokes has focus: text entry, or a Radix
+      // widget (slider/radio/select) that handles arrows and digit typeahead.
       const typing =
         target?.tagName === "INPUT" ||
         target?.tagName === "TEXTAREA" ||
-        target?.isContentEditable === true;
+        target?.isContentEditable === true ||
+        target?.closest(
+          '[role="combobox"], [role="slider"], [role="radiogroup"], [role="listbox"]',
+        ) != null;
 
       if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
         event.preventDefault();
         onDone();
         return;
       }
-      if (typing) return;
+      // Radix widgets preventDefault on keys they consume — never double-handle.
+      if (typing || event.defaultPrevented) return;
 
       const state = useStore.getState();
       if (event.key === "ArrowRight") {

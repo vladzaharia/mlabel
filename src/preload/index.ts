@@ -6,7 +6,14 @@ import {
   type ThemeListener,
   type UpdateStatusListener,
 } from "@core/ipc";
-import type { ExportRequest, SessionData, UpdateStatus } from "@core";
+import type {
+  ExportRequest,
+  JoinKind,
+  JoinRequest,
+  SessionData,
+  SplitRequest,
+  UpdateStatus,
+} from "@core";
 
 const api = {
   ping: () => ipcRenderer.invoke(IPC_INVOKE.ping),
@@ -40,6 +47,14 @@ const api = {
   exportLabels: (request: ExportRequest) => ipcRenderer.invoke(IPC_INVOKE.exportLabels, request),
 
   getRecent: () => ipcRenderer.invoke(IPC_INVOKE.getRecent),
+
+  pickSplitFile: () => ipcRenderer.invoke(IPC_INVOKE.pickSplitFile),
+  analyzeSplitFile: (path: string) => ipcRenderer.invoke(IPC_INVOKE.analyzeSplitFile, path),
+  runSplit: (request: SplitRequest) => ipcRenderer.invoke(IPC_INVOKE.runSplit, request),
+  pickJoinFiles: (kind: JoinKind) => ipcRenderer.invoke(IPC_INVOKE.pickJoinFiles, kind),
+  analyzeJoinFiles: (request: JoinRequest) =>
+    ipcRenderer.invoke(IPC_INVOKE.analyzeJoinFiles, request),
+  runJoin: (request: JoinRequest) => ipcRenderer.invoke(IPC_INVOKE.runJoin, request),
 } satisfies IpcApi;
 
 contextBridge.exposeInMainWorld("api", api);

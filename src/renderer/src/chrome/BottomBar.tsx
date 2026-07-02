@@ -22,7 +22,7 @@ export function BottomBar(): React.JSX.Element {
           onClick={prev}
           disabled={index <= 0}
           aria-label="Previous record"
-          className="no-drag flex h-full w-12 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+          className="no-drag flex h-full w-12 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronLeft size={18} />
         </button>
@@ -34,7 +34,7 @@ export function BottomBar(): React.JSX.Element {
           onClick={next}
           disabled={index >= total - 1}
           aria-label="Next record"
-          className="no-drag flex h-full w-12 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+          className="no-drag flex h-full w-12 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronRight size={18} />
         </button>

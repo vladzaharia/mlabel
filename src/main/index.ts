@@ -4,6 +4,7 @@ import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { IPC_EVENT } from "@core/ipc";
 import { registerIpc } from "./ipc";
 import { offerRelocateToApplications } from "./services/app-location";
+import { installNetworkGuard } from "./services/network-guard";
 // Bundled by electron-vite (?asset) so it's available at runtime in dev and in
 // the packaged asar — keeps the icon identical across platforms and builds.
 import appIcon from "../../build/icon.png?asset";
@@ -105,6 +106,7 @@ async function bootstrap(): Promise<void> {
   if (app.dock) app.dock.setIcon(nativeImage.createFromPath(appIcon));
 
   installCsp();
+  installNetworkGuard();
   registerIpc();
 
   app.on("browser-window-created", (_event, win) => optimizer.watchWindowShortcuts(win));

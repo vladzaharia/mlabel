@@ -1,4 +1,4 @@
-import { CheckCircle2, FileDown, PartyPopper } from "lucide-react";
+import { CheckCircle2, FileDown, Loader2, PartyPopper } from "lucide-react";
 import { useStore } from "../store/store";
 import { Button } from "../components/ui/button";
 
@@ -53,6 +53,7 @@ export function DoneScreen(): React.JSX.Element {
             Keep editing
           </Button>
           <Button variant="success" disabled={busy} onClick={() => void pickInput()}>
+            {busy && <Loader2 size={14} className="animate-spin" />}
             Label another file
           </Button>
         </div>

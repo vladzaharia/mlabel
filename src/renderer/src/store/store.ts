@@ -13,14 +13,17 @@ import type {
   ValidationIssue,
 } from "@core";
 import { debounce } from "../lib/utils";
+import { usePrepareStore } from "./prepare-store";
 
 export type Phase =
   | "boot"
   | "need-config"
   | "config-invalid"
+  | "select-mode"
   | "need-input"
   | "input-invalid"
   | "labeling"
+  | "prepare"
   | "done";
 export type ThemeMode = "system" | "light" | "dark";
 export type ColorTheme = "cobalt" | "parchment" | "fjord" | "vespers";
@@ -70,18 +73,20 @@ interface AppActions {
   pickInput: () => Promise<void>;
   loadInputPath: (path: string) => Promise<void>;
 
+  chooseLabeling: () => void;
+  choosePrepare: () => void;
+  backToModeSelect: () => void;
+
   applyResume: () => void;
   dismissResume: () => void;
 
   setLabel: (index: number, field: string, value: CoercedValue | null) => void;
   next: () => void;
   prev: () => void;
-  goTo: (index: number) => void;
 
   submitDone: () => Promise<{ ok: boolean; error?: string }>;
   backToLabeling: () => void;
   backToConfig: () => void;
-  resetInput: () => void;
 }
 
 export type AppStore = AppState & AppActions;
@@ -143,7 +148,7 @@ export const useStore = create<AppStore>((set, get) => ({
 
     const response = await window.api.getStartupConfig();
     if (response.status === "loaded") {
-      set({ config: response.config, configPath: response.path, phase: "need-input" });
+      set({ config: response.config, configPath: response.path, phase: "select-mode" });
     } else if (response.status === "invalid") {
       set({
         configIssues: response.issues,
@@ -186,7 +191,7 @@ export const useStore = create<AppStore>((set, get) => ({
         config: response.config,
         configPath: response.path,
         configIssues: [],
-        phase: "need-input",
+        phase: "select-mode",
         busy: false,
       });
     } else if (response.status === "invalid") {
@@ -199,6 +204,29 @@ export const useStore = create<AppStore>((set, get) => ({
     } else {
       set({ busy: false });
     }
+  },
+
+  chooseLabeling() {
+    set({ phase: "need-input" });
+  },
+
+  choosePrepare() {
+    set({ phase: "prepare" });
+  },
+
+  /** Return to the mode choice; clears any loaded input (labels are autosaved). */
+  backToModeSelect() {
+    set({
+      phase: "select-mode",
+      inputPath: null,
+      records: [],
+      headerIssues: [],
+      labels: {},
+      index: 0,
+      exportResult: null,
+      pendingResume: null,
+      error: null,
+    });
   },
 
   async pickInput() {
@@ -241,11 +269,6 @@ export const useStore = create<AppStore>((set, get) => ({
     if (index > 0) set({ index: index - 1 });
   },
 
-  goTo(index) {
-    const max = Math.max(0, get().records.length - 1);
-    set({ index: Math.max(0, Math.min(index, max)) });
-  },
-
   async submitDone() {
     set({ busy: true });
     const result = await window.api.exportLabels({ labels: get().labels });
@@ -264,6 +287,7 @@ export const useStore = create<AppStore>((set, get) => ({
 
   /** Return to the config picker to switch configs; clears any loaded input. */
   backToConfig() {
+    usePrepareStore.getState().reset();
     set({
       phase: "need-config",
       inputPath: null,
@@ -274,18 +298,6 @@ export const useStore = create<AppStore>((set, get) => ({
       exportResult: null,
       pendingResume: null,
       error: null,
-    });
-  },
-
-  resetInput() {
-    set({
-      inputPath: null,
-      records: [],
-      headerIssues: [],
-      labels: {},
-      index: 0,
-      exportResult: null,
-      phase: "need-input",
     });
   },
 }));

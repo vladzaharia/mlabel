@@ -1,7 +1,7 @@
-import { useMemo } from "react";
 import type { GridRow as GridRowConfig } from "@core/config";
 import { isAutoCopied, type CoercedValue, type LabelMap, type OutputField } from "@core";
 import { useStore, selectCurrentRecord } from "../store/store";
+import { WrapRow } from "../components/WrapRow";
 import { FieldRenderer } from "./FieldRenderer";
 
 /** A category-shaped grouping of output fields (heading optional for implicit). */
@@ -17,15 +17,12 @@ export function OutputForm(): React.JSX.Element | null {
   const labels = useStore((s) => s.labels[s.index]);
   const setLabel = useStore((s) => s.setLabel);
 
-  const { fieldsByName, inputNames, sections } = useMemo(() => {
-    const byName = new Map<string, OutputField>(
-      (config?.output.fields ?? []).map((f) => [f.name, f]),
-    );
-    const names = new Set(config?.input.fields.map((f) => f.name));
-    const secs: OutputSection[] =
-      config?.output.categories ?? implicitSections(config?.output.fields ?? [], names);
-    return { fieldsByName: byName, inputNames: names, sections: secs };
-  }, [config]);
+  const fieldsByName = new Map<string, OutputField>(
+    (config?.output.fields ?? []).map((f) => [f.name, f]),
+  );
+  const inputNames = new Set(config?.input.fields.map((f) => f.name));
+  const sections: OutputSection[] =
+    config?.output.categories ?? implicitSections(config?.output.fields ?? [], inputNames);
 
   if (!config || !record || !hasVisibleField(config.output.fields, inputNames)) return null;
   const current: LabelMap = labels ?? record.labelValues;
@@ -77,21 +74,19 @@ function OutputRow({
     .filter((f): f is OutputField => Boolean(f) && !isAutoCopied(f!, inputNames));
   if (fields.length === 0) return null;
 
-  const columns = row.columns ?? fields.length;
-  const basis = `calc(${(100 / columns).toFixed(4)}% - 1.5rem)`;
+  const items = fields.map((field) => ({
+    key: field.name,
+    node: (
+      <FieldRenderer
+        field={field}
+        value={values[field.name] ?? null}
+        onChange={(value) => onChange(field.name, value)}
+      />
+    ),
+  }));
 
   return (
-    <div className="flex flex-wrap gap-x-6 gap-y-3">
-      {fields.map((field) => (
-        <div key={field.name} className="min-w-56" style={{ flexBasis: basis, flexGrow: 1 }}>
-          <FieldRenderer
-            field={field}
-            value={values[field.name] ?? null}
-            onChange={(value) => onChange(field.name, value)}
-          />
-        </div>
-      ))}
-    </div>
+    <WrapRow columns={row.columns ?? fields.length} itemMinWidthClass="min-w-56" items={items} />
   );
 }
 

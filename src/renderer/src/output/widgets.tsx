@@ -12,7 +12,7 @@ export interface WidgetProps {
 }
 
 const fieldBase =
-  "w-full rounded-md border bg-background/40 px-3 py-1.5 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-ring";
+  "w-full rounded-md border bg-background/40 px-3 py-1.5 text-sm outline-none transition-colors focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-ring";
 
 function borderClass(invalid?: boolean): string {
   return invalid ? "border-danger" : "border-border";
@@ -88,7 +88,7 @@ export function CheckboxWidget({ value, onChange }: WidgetProps): React.JSX.Elem
     <Checkbox.Root
       checked={value === true}
       onCheckedChange={(checked) => onChange(checked === true)}
-      className="flex h-5 w-5 items-center justify-center rounded border border-border bg-background/40 data-[state=checked]:border-accent data-[state=checked]:bg-accent"
+      className="flex h-5 w-5 items-center justify-center rounded border border-border bg-background/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:border-accent data-[state=checked]:bg-accent"
     >
       <Checkbox.Indicator>
         <Check size={14} className="text-accent-foreground" />
@@ -108,7 +108,7 @@ export function RadioWidget({ field, value, onChange }: WidgetProps): React.JSX.
         <RadioGroup.Item
           key={option.value}
           value={option.value}
-          className="group flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm data-[state=checked]:border-accent data-[state=checked]:bg-accent/10"
+          className="group flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:border-accent data-[state=checked]:bg-accent/10"
         >
           <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-muted-foreground group-data-[state=checked]:border-accent">
             <RadioGroup.Indicator className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -173,7 +173,7 @@ export function SliderWidget({ field, value, onChange }: WidgetProps): React.JSX
         <Slider.Track className="relative h-1.5 grow rounded-full bg-muted">
           <Slider.Range className="absolute h-full rounded-full bg-accent" />
         </Slider.Track>
-        <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-accent bg-background shadow focus:outline-none focus:ring-2 focus:ring-ring" />
+        <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-accent bg-background shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
       </Slider.Root>
       <span className="w-10 text-right text-sm tabular-nums text-muted-foreground">{current}</span>
     </div>

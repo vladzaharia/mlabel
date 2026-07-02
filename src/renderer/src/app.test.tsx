@@ -34,6 +34,12 @@ function mockApi(overrides: Partial<IpcApi> = {}): void {
     clearSession: async () => {},
     exportLabels: async () => ({ ok: true }),
     getRecent: async () => ({}),
+    pickSplitFile: async () => ({ ok: false, canceled: true }),
+    analyzeSplitFile: async () => ({ ok: false, canceled: true }),
+    runSplit: async () => ({ ok: false }),
+    pickJoinFiles: async () => ({ ok: false, canceled: true }),
+    analyzeJoinFiles: async () => ({ ok: false }),
+    runJoin: async () => ({ ok: false }),
   };
   Object.defineProperty(window, "api", { value: { ...base, ...overrides }, configurable: true });
   Object.defineProperty(window, "platform", { value: "darwin", configurable: true });
@@ -63,7 +69,21 @@ describe("App startup flow", () => {
     await waitFor(() => expect(screen.getByText("This config isn’t valid")).toBeInTheDocument());
   });
 
-  it("lets you go back to switch configs from the input screen", async () => {
+  it("offers Label and Prepare after a config loads", async () => {
+    mockApi({
+      getStartupConfig: async () => ({
+        status: "loaded",
+        config: sampleConfig(),
+        path: "/x/c.jsonc",
+      }),
+    });
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Label data")).toBeInTheDocument());
+    expect(screen.getByText("Prepare data")).toBeInTheDocument();
+    expect(screen.getByText(/1 input column · 1 output field/)).toBeInTheDocument();
+  });
+
+  it("navigates mode select → labeling input → back → prepare → back → config", async () => {
     const user = userEvent.setup();
     mockApi({
       getStartupConfig: async () => ({
@@ -73,8 +93,16 @@ describe("App startup flow", () => {
       }),
     });
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Open data to label")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Label data")).toBeInTheDocument());
 
+    await user.click(screen.getByRole("button", { name: /label data/i }));
+    expect(screen.getByText("Open data to label")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /back/i }));
+    await user.click(screen.getByRole("button", { name: /prepare data/i }));
+    expect(screen.getByText("Split an input file")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /back/i }));
     await user.click(screen.getByRole("button", { name: /config/i }));
     expect(screen.getByText("Configure MLabel")).toBeInTheDocument();
   });
