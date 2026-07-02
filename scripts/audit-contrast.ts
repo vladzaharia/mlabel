@@ -12,8 +12,11 @@ import { resolve, dirname } from "node:path";
 import {
   parseThemeTokens,
   resolveColor,
-  wcagRatio,
-  type RGB,
+  worstRatio,
+  buildRequiredPairs,
+  WHITE,
+  WCAG_AA_NON_TEXT,
+  PALETTE_ORDER,
   type TokenMap,
 } from "./lib/contrast.js";
 
@@ -24,37 +27,8 @@ const CSS_PATH = resolve(__dir, "../src/renderer/src/styles.css");
 const SHOW_ALL = process.argv.includes("--all");
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const WHITE: RGB = { r: 1, g: 1, b: 1 };
-const BLACK: RGB = { r: 0, g: 0, b: 0 };
-
-function resolve2(tokens: TokenMap, name: string, backdrop: RGB): RGB | null {
-  const v = tokens[name];
-  if (!v) return null;
-  return resolveColor(v, backdrop);
-}
-
-/**
- * For alpha surfaces: test over BOTH white and black backdrops.
- * A pair "passes" only when it passes over both (vibrancy = arbitrary wallpaper).
- * Returns the WORST (lowest) ratio across both.
- */
-function worstRatio(fgRGB: RGB, bgToken: string, tokens: TokenMap): number {
-  const bgWhite = resolve2(tokens, bgToken, WHITE);
-  const bgBlack = resolve2(tokens, bgToken, BLACK);
-  if (!bgWhite || !bgBlack) return 0;
-  const ratioWhite = wcagRatio(fgRGB, bgWhite);
-  const ratioBlack = wcagRatio(fgRGB, bgBlack);
-  return Math.min(ratioWhite, ratioBlack);
-}
-
-// ---------------------------------------------------------------------------
 // Pair definitions
 // ---------------------------------------------------------------------------
-
-const SURFACE_TOKENS = ["background", "card", "chrome", "popover", "muted"] as const;
 
 interface Pair {
   label: string;
@@ -65,53 +39,30 @@ interface Pair {
 }
 
 function buildPairs(tokens: TokenMap): Pair[] {
-  const pairs: Pair[] = [];
+  // Required pairs from shared lib
+  const required = buildRequiredPairs(tokens).map((p) => ({ ...p, required: true }));
 
-  const add = (fg: string, bg: string, threshold: number, required: boolean): void => {
-    pairs.push({ label: `${fg} / ${bg}`, fg, bg, threshold, required });
-  };
-
-  // TEXT pairs (≥4.5): foreground / muted-foreground on every surface
-  for (const surface of SURFACE_TOKENS) {
-    if (tokens["foreground"]) add("foreground", surface, 4.5, true);
-    if (tokens["muted-foreground"]) add("muted-foreground", surface, 4.5, true);
-  }
-
-  // Semantic chip foregrounds on their own chip background
-  if (tokens["accent-foreground"] && tokens["accent"]) {
-    add("accent-foreground", "accent", 4.5, true);
-  }
-  if (tokens["danger-foreground"] && tokens["danger"]) {
-    add("danger-foreground", "danger", 4.5, true);
-  }
-  if (tokens["warning-foreground"] && tokens["warning"]) {
-    add("warning-foreground", "warning", 4.5, true);
-  }
-  if (tokens["info-foreground"] && tokens["info"]) {
-    add("info-foreground", "info", 4.5, true);
-  }
-  if (tokens["progress-foreground"] && tokens["progress"]) {
-    add("progress-foreground", "progress", 4.5, true);
-  }
-
-  // Semantic AS TEXT tokens on background and card (the new -text tokens)
-  for (const semantic of ["danger-text", "warning-text", "progress-text", "info-text"]) {
-    if (tokens[semantic]) {
-      add(semantic, "background", 4.5, true);
-      add(semantic, "card", 4.5, true);
+  // Informational (non-required) pairs: ring/border/progress-on-chrome
+  // Light-theme chromatic colors on alpha-glass surfaces cannot physically
+  // achieve 3.0 over both white AND black backdrops simultaneously.
+  const informational: Pair[] = [];
+  const addInfo = (fg: string, bg: string): void => {
+    if (tokens[fg] && tokens[bg]) {
+      informational.push({
+        label: `${fg} / ${bg}`,
+        fg,
+        bg,
+        threshold: WCAG_AA_NON_TEXT,
+        required: false,
+      });
     }
-  }
+  };
+  addInfo("progress", "chrome");
+  addInfo("ring", "background");
+  addInfo("border", "background");
+  addInfo("border", "card");
 
-  // NON-TEXT pairs (≥3.0)
-  // progress/chrome: informational — light-theme chromatic colors on alpha-glass surfaces
-  // cannot physically achieve 3.0 over both white AND black backdrops simultaneously.
-  if (tokens["progress"] && tokens["chrome"]) add("progress", "chrome", 3.0, false);
-  if (tokens["accent"] && tokens["background"]) add("accent", "background", 3.0, true);
-  if (tokens["ring"] && tokens["background"]) add("ring", "background", 3.0, false);
-  if (tokens["border"] && tokens["background"]) add("border", "background", 3.0, false);
-  if (tokens["border"] && tokens["card"]) add("border", "card", 3.0, false);
-
-  return pairs;
+  return [...required, ...informational];
 }
 
 // ---------------------------------------------------------------------------
@@ -126,13 +77,15 @@ interface PairResult {
   required: boolean;
 }
 
-function auditPalette(_paletteName: string, tokens: TokenMap): PairResult[] {
+function auditPalette(tokens: TokenMap): PairResult[] {
   const pairs = buildPairs(tokens);
   const results: PairResult[] = [];
 
   for (const pair of pairs) {
     // Resolve foreground against white backdrop (it's usually opaque text)
-    const fgRGB = resolve2(tokens, pair.fg, WHITE);
+    const fgV = tokens[pair.fg];
+    if (!fgV) continue;
+    const fgRGB = resolveColor(fgV, WHITE);
     if (!fgRGB) continue;
 
     // Background: check worst case over both backdrops (for alpha surfaces)
@@ -159,17 +112,6 @@ const palettes = parseThemeTokens(css);
 let totalFailures = 0;
 let totalRequired = 0;
 
-const PALETTE_ORDER = [
-  "cobalt-light",
-  "cobalt-dark",
-  "parchment-light",
-  "parchment-dark",
-  "fjord-light",
-  "fjord-dark",
-  "vespers-light",
-  "vespers-dark",
-] as const;
-
 for (const paletteName of PALETTE_ORDER) {
   const tokens = palettes[paletteName];
   if (!tokens) {
@@ -177,7 +119,7 @@ for (const paletteName of PALETTE_ORDER) {
     continue;
   }
 
-  const results = auditPalette(paletteName, tokens);
+  const results = auditPalette(tokens);
   const failures = results.filter((r) => !r.passes && r.required);
   const requiredCount = results.filter((r) => r.required).length;
 

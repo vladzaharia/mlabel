@@ -17,8 +17,11 @@ import {
   resolveColor,
   composite,
   relativeLuminance,
+  worstRatio,
+  buildRequiredPairs,
+  WHITE,
+  PALETTE_ORDER,
   type RGB,
-  type TokenMap,
 } from "./lib/contrast.js";
 
 // ---------------------------------------------------------------------------
@@ -122,71 +125,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dir = dirname(__filename);
 const CSS_PATH = resolve(__dir, "../src/renderer/src/styles.css");
 
-const WHITE: RGB = { r: 1, g: 1, b: 1 };
-const BLACK: RGB = { r: 0, g: 0, b: 0 };
-
-function resolve2(tokens: TokenMap, name: string, backdrop: RGB): RGB | null {
-  const v = tokens[name];
-  if (!v) return null;
-  return resolveColor(v, backdrop);
-}
-
-function worstRatio(fgRGB: RGB, bgToken: string, tokens: TokenMap): number {
-  const bgWhite = resolve2(tokens, bgToken, WHITE);
-  const bgBlack = resolve2(tokens, bgToken, BLACK);
-  if (!bgWhite || !bgBlack) return 0;
-  return Math.min(wcagRatio(fgRGB, bgWhite), wcagRatio(fgRGB, bgBlack));
-}
-
-const SURFACE_TOKENS = ["background", "card", "chrome", "popover", "muted"] as const;
-
-interface RequiredPair {
-  label: string;
-  fg: string;
-  bg: string;
-  threshold: number;
-}
-
-function buildRequiredPairs(tokens: TokenMap): RequiredPair[] {
-  const pairs: RequiredPair[] = [];
-  const add = (fg: string, bg: string, t: number): void => {
-    if (tokens[fg] && tokens[bg]) pairs.push({ label: `${fg} / ${bg}`, fg, bg, threshold: t });
-  };
-
-  for (const surface of SURFACE_TOKENS) {
-    add("foreground", surface, 4.5);
-    add("muted-foreground", surface, 4.5);
-  }
-
-  add("accent-foreground", "accent", 4.5);
-  add("danger-foreground", "danger", 4.5);
-  add("warning-foreground", "warning", 4.5);
-  add("info-foreground", "info", 4.5);
-  add("progress-foreground", "progress", 4.5);
-
-  for (const sem of ["danger-text", "warning-text", "progress-text", "info-text"]) {
-    add(sem, "background", 4.5);
-    add(sem, "card", 4.5);
-  }
-
-  // progress/chrome: informational — light-theme chromatic colors on alpha-glass surfaces
-  // cannot physically achieve 3.0 over both white+black backdrops simultaneously.
-  add("accent", "background", 3.0);
-
-  return pairs;
-}
-
-const PALETTE_ORDER = [
-  "cobalt-light",
-  "cobalt-dark",
-  "parchment-light",
-  "parchment-dark",
-  "fjord-light",
-  "fjord-dark",
-  "vespers-light",
-  "vespers-dark",
-] as const;
-
 describe("WCAG 2.2 AA contrast gate (styles.css)", () => {
   const css = readFileSync(CSS_PATH, "utf8");
   const palettes = parseThemeTokens(css);
@@ -205,7 +143,8 @@ describe("WCAG 2.2 AA contrast gate (styles.css)", () => {
 
       for (const pair of pairs) {
         it(`${pair.label} ≥ ${String(pair.threshold)}:1`, () => {
-          const fgRGB = resolve2(tokens, pair.fg, WHITE);
+          const fgV = tokens[pair.fg];
+          const fgRGB = fgV ? resolveColor(fgV, WHITE) : null;
           expect(fgRGB, `Cannot resolve fg token "${pair.fg}"`).not.toBeNull();
           if (!fgRGB) return;
 

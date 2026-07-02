@@ -261,3 +261,82 @@ export function resolveColor(value: string, backdrop: RGB): RGB | null {
   }
   return srgb;
 }
+
+// ---------------------------------------------------------------------------
+// Shared audit primitives
+// ---------------------------------------------------------------------------
+
+export const WHITE: RGB = { r: 1, g: 1, b: 1 };
+export const BLACK: RGB = { r: 0, g: 0, b: 0 };
+
+export const WCAG_AA_NORMAL = 4.5;
+export const WCAG_AA_NON_TEXT = 3.0;
+
+export const SURFACE_TOKENS = ["background", "card", "chrome", "popover", "muted"] as const;
+
+export const PALETTE_ORDER = [
+  "cobalt-light",
+  "cobalt-dark",
+  "parchment-light",
+  "parchment-dark",
+  "fjord-light",
+  "fjord-dark",
+  "vespers-light",
+  "vespers-dark",
+] as const;
+
+/**
+ * For alpha surfaces: test over BOTH white and black backdrops.
+ * A pair "passes" only when it passes over both (vibrancy = arbitrary wallpaper).
+ * Returns the WORST (lowest) ratio across both.
+ */
+export function worstRatio(fgRGB: RGB, bgToken: string, tokens: TokenMap): number {
+  const bgV = tokens[bgToken];
+  if (!bgV) return 0;
+  const bgWhite = resolveColor(bgV, WHITE);
+  const bgBlack = resolveColor(bgV, BLACK);
+  if (!bgWhite || !bgBlack) return 0;
+  return Math.min(wcagRatio(fgRGB, bgWhite), wcagRatio(fgRGB, bgBlack));
+}
+
+export interface RequiredPair {
+  label: string;
+  fg: string;
+  bg: string;
+  threshold: number;
+}
+
+/**
+ * Build the required contrast pair matrix for a palette.
+ * Guards on BOTH fg and bg token existence before adding a pair.
+ */
+export function buildRequiredPairs(tokens: TokenMap): RequiredPair[] {
+  const pairs: RequiredPair[] = [];
+  const add = (fg: string, bg: string, t: number): void => {
+    if (tokens[fg] && tokens[bg]) pairs.push({ label: `${fg} / ${bg}`, fg, bg, threshold: t });
+  };
+
+  // TEXT pairs (≥4.5): foreground / muted-foreground on every surface
+  for (const surface of SURFACE_TOKENS) {
+    add("foreground", surface, WCAG_AA_NORMAL);
+    add("muted-foreground", surface, WCAG_AA_NORMAL);
+  }
+
+  // Semantic chip foregrounds on their own chip background
+  add("accent-foreground", "accent", WCAG_AA_NORMAL);
+  add("danger-foreground", "danger", WCAG_AA_NORMAL);
+  add("warning-foreground", "warning", WCAG_AA_NORMAL);
+  add("info-foreground", "info", WCAG_AA_NORMAL);
+  add("progress-foreground", "progress", WCAG_AA_NORMAL);
+
+  // Semantic AS TEXT tokens on background and card (the new -text tokens)
+  for (const sem of ["danger-text", "warning-text", "progress-text", "info-text"]) {
+    add(sem, "background", WCAG_AA_NORMAL);
+    add(sem, "card", WCAG_AA_NORMAL);
+  }
+
+  // NON-TEXT: accent on background (≥3.0)
+  add("accent", "background", WCAG_AA_NON_TEXT);
+
+  return pairs;
+}
