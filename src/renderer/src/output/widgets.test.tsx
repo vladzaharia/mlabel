@@ -1,3 +1,7 @@
+/**
+ * Tests the ARIA contract of widgets (name, role, required, invalid).
+ * Rendering, value, and change-event behavior are tested in FieldRenderer.test.tsx.
+ */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { loadConfig } from "@core/config";

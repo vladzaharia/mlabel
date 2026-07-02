@@ -121,12 +121,13 @@ export function CheckboxWidget({
   invalid,
   describedBy,
 }: WidgetProps): React.JSX.Element {
+  // Intentionally no aria-label: FieldRenderer's wrapping <label> names this control.
   return (
     <Checkbox.Root
       checked={value === true}
       onCheckedChange={(checked) => onChange(checked === true)}
+      required={field.required || undefined}
       aria-describedby={describedBy}
-      aria-required={field.required || undefined}
       aria-invalid={invalid || undefined}
       className={cn(
         "flex h-5 w-5 items-center justify-center rounded border bg-background/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:border-accent data-[state=checked]:bg-accent",
@@ -150,7 +151,7 @@ export function RadioWidget({
   return (
     <RadioGroup.Root
       aria-label={ariaLabel(field)}
-      aria-required={field.required || undefined}
+      required={field.required || undefined}
       aria-invalid={invalid || undefined}
       aria-describedby={describedBy}
       className={cn(
