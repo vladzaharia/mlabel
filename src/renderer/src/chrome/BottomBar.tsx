@@ -27,7 +27,7 @@ export function BottomBar(): React.JSX.Element {
           <ChevronLeft size={18} />
         </button>
         <span className="no-drag min-w-16 text-center text-xs tabular-nums">
-          {total > 0 ? index + 1 : 0} / {total}
+          Record {total > 0 ? index + 1 : 0} of {total}
         </span>
         <button
           type="button"

@@ -57,6 +57,7 @@ interface AppState {
   index: number;
   labels: Record<number, LabelMap>;
   exportResult: ExportResponse | null;
+  exportError: string | null;
 
   /** Latest auto-update status pushed from main; `null` until the first event. */
   updateStatus: UpdateStatus | null;
@@ -79,6 +80,8 @@ interface AppActions {
 
   applyResume: () => void;
   dismissResume: () => void;
+  deferResume: () => void;
+  clearExportError: () => void;
 
   setLabel: (index: number, field: string, value: CoercedValue | null) => void;
   next: () => void;
@@ -137,6 +140,7 @@ export const useStore = create<AppStore>((set, get) => ({
   index: 0,
   labels: {},
   exportResult: null,
+  exportError: null,
 
   updateStatus: null,
 
@@ -254,6 +258,15 @@ export const useStore = create<AppStore>((set, get) => ({
     void window.api.clearSession();
   },
 
+  /** Clear the resume prompt without deleting the saved session — "not now" semantics. */
+  deferResume() {
+    set({ pendingResume: null });
+  },
+
+  clearExportError() {
+    set({ exportError: null });
+  },
+
   setLabel(index, field, value) {
     const labels = get().labels;
     set({ labels: { ...labels, [index]: { ...labels[index], [field]: value } } });
@@ -270,7 +283,7 @@ export const useStore = create<AppStore>((set, get) => ({
   },
 
   async submitDone() {
-    set({ busy: true });
+    set({ busy: true, exportError: null });
     const result = await window.api.exportLabels({ labels: get().labels });
     set({ busy: false });
     if (result.ok) {
@@ -284,7 +297,9 @@ export const useStore = create<AppStore>((set, get) => ({
       await window.api.clearSession();
       return { ok: true };
     }
-    announce(`Export failed: ${result.error ?? "unknown error"}`, "assertive");
+    const errMsg = result.error ?? "unknown error";
+    announce(`Export failed: ${errMsg}`, "assertive");
+    set({ exportError: errMsg });
     return { ok: false, error: result.error };
   },
 
@@ -327,6 +342,16 @@ function applyInputResponse(set: SetFn, response: InputLoadResponse): void {
     return;
   }
   const records = response.records ?? [];
+  if (records.length === 0) {
+    set({
+      busy: false,
+      headerIssues: response.headerIssues ?? [],
+      inputPath: response.path ?? null,
+      error: "This file has no data rows to label.",
+      phase: "input-invalid",
+    });
+    return;
+  }
   const labels: Record<number, LabelMap> = {};
   for (const record of records) labels[record.index] = { ...record.labelValues };
   // Only offer to resume when the saved session holds real progress; otherwise

@@ -11,7 +11,7 @@ import { ModeSelectScreen } from "./flow/ModeSelectScreen";
 import { PrepareView } from "./prepare/PrepareView";
 import { UpdateIndicator } from "./chrome/UpdateIndicator";
 import { Button } from "./components/ui/button";
-import { Toaster, toast } from "./components/ui/sonner";
+import { Toaster } from "./components/ui/sonner";
 import { chromePadding, cn } from "./lib/utils";
 import { LiveAnnouncer } from "./a11y/LiveAnnouncer";
 import { announce } from "./a11y/announcer";
@@ -70,8 +70,9 @@ export function App(): React.JSX.Element {
   }, [phase]);
 
   async function handleDone(): Promise<void> {
-    const result = await submitDone();
-    if (!result.ok) toast.error("Export failed", { description: result.error });
+    await submitDone();
+    // Export failures are surfaced via the inline banner in LabelingView +
+    // an assertive aria-live announcement. No toast needed here.
   }
 
   function handleDrop(event: DragEvent): void {

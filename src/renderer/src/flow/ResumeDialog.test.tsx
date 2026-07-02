@@ -71,6 +71,14 @@ describe("ResumeDialog", () => {
     expect(screen.getByText(/\(1 record touched\)/)).toBeInTheDocument();
   });
 
+  it("shows destructive copy warning about deleted progress", () => {
+    useStore.setState({ pendingResume: session });
+    render(<ResumeDialog />);
+    expect(
+      screen.getByText(/Starting fresh permanently deletes this saved progress/),
+    ).toBeInTheDocument();
+  });
+
   it('"Resume" applies the saved labels and index and clears the prompt', () => {
     useStore.setState({ pendingResume: session });
     render(<ResumeDialog />);
@@ -93,5 +101,21 @@ describe("ResumeDialog", () => {
     expect(useStore.getState().pendingResume).toBeNull();
     expect(clearSession).toHaveBeenCalledTimes(1);
     expect(useStore.getState().index).toBe(0); // saved position is discarded
+  });
+
+  it("Esc/overlay close defers (does NOT call clearSession)", () => {
+    const clearSession = vi.fn(async () => {});
+    mockApi({ clearSession });
+    useStore.setState({ pendingResume: session });
+    render(<ResumeDialog />);
+
+    // Simulate Radix calling onOpenChange(false) — what happens on Esc or overlay click.
+    // We fire an Escape keydown on the dialog content to trigger Radix's onOpenChange.
+    const dialog = screen.getByRole("dialog");
+    fireEvent.keyDown(dialog, { key: "Escape", code: "Escape" });
+
+    // pendingResume cleared (deferred) but clearSession NOT called
+    expect(useStore.getState().pendingResume).toBeNull();
+    expect(clearSession).not.toHaveBeenCalled();
   });
 });

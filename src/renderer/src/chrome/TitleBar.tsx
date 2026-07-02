@@ -1,4 +1,4 @@
-import { ChevronRight, Save } from "lucide-react";
+import { CheckCircle2, ChevronRight, Save } from "lucide-react";
 import { useStore, selectCompletedCount, selectCurrentRecord } from "../store/store";
 import { Button } from "../components/ui/button";
 import { chromePadding, cn } from "../lib/utils";
@@ -47,9 +47,16 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
 
       {labeling && (
         <div className="ml-auto flex h-full items-center gap-3">
-          <span className="no-drag px-2 text-xs tabular-nums text-muted-foreground">
-            <span className="font-medium text-foreground">{completed}</span> / {total} labeled
-          </span>
+          {total > 0 && completed === total ? (
+            <span className="no-drag flex items-center gap-1 px-2 text-xs tabular-nums text-progress">
+              <CheckCircle2 size={13} />
+              <span className="font-medium">{completed}</span> of {total} labeled
+            </span>
+          ) : (
+            <span className="no-drag px-2 text-xs tabular-nums text-muted-foreground">
+              <span className="font-medium text-foreground">{completed}</span> of {total} labeled
+            </span>
+          )}
           <Button
             size="xs"
             onClick={next}
@@ -65,7 +72,17 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
       )}
 
       {/* Full-width progress bar as the title bar's bottom border. */}
-      <div className="absolute inset-x-0 bottom-0 h-[3px] bg-transparent">
+      <progress
+        value={completed}
+        max={total}
+        aria-label="Labeling progress"
+        className="absolute inset-x-0 bottom-0 h-[3px] appearance-none bg-transparent [&::-webkit-progress-bar]:bg-transparent [&::-webkit-progress-value]:bg-progress [&::-moz-progress-bar]:bg-progress transition-[width] duration-300 ease-out"
+      />
+      {/* Visible fill bar (mirrors value for browsers that don't style <progress>). */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-[3px] bg-transparent pointer-events-none"
+      >
         <div
           className="h-full bg-progress transition-[width] duration-300 ease-out"
           style={{ width: `${String(fraction * 100)}%` }}

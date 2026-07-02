@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { AppConfig, IpcApi } from "@core";
 import { loadConfig } from "@core/config";
 import { useStore } from "../store/store";
@@ -236,6 +236,82 @@ describe("LabelingView announcements", () => {
     });
 
     expect(useAnnouncer.getState().polite.message).toBe("");
+  });
+});
+
+describe("LabelingView: empty-records state", () => {
+  beforeEach(() => {
+    mockApi();
+    useStore.setState({
+      config: sampleConfig(),
+      phase: "labeling",
+      records: [],
+      index: 0,
+      labels: {},
+    });
+  });
+  afterEach(() => cleanup());
+
+  it("renders a fallback message when records is empty", () => {
+    render(<LabelingView onDone={() => {}} />);
+    expect(screen.getByText(/No records to label in this file/)).toBeInTheDocument();
+  });
+
+  it("renders a 'Choose another file' button that calls backToModeSelect", () => {
+    const backToModeSelect = vi.fn();
+    useStore.setState({ backToModeSelect });
+    render(<LabelingView onDone={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Choose another file" }));
+    expect(backToModeSelect).toHaveBeenCalledOnce();
+  });
+
+  it("does not render the TitleBar or BottomBar in empty state", () => {
+    render(<LabelingView onDone={() => {}} />);
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+});
+
+describe("LabelingView: export error banner", () => {
+  beforeEach(() => {
+    mockApi();
+    useStore.setState({
+      config: sampleConfig(),
+      phase: "labeling",
+      records: makeRecords(2),
+      index: 0,
+      labels: {},
+      exportError: null,
+    });
+  });
+  afterEach(() => cleanup());
+
+  it("renders nothing when exportError is null", () => {
+    render(<LabelingView onDone={() => {}} />);
+    expect(screen.queryByText(/Export failed/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+  });
+
+  it("shows the error message in a banner when exportError is set", () => {
+    useStore.setState({ exportError: "Disk full" });
+    render(<LabelingView onDone={() => {}} />);
+    expect(screen.getByText("Disk full")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+  });
+
+  it("dismiss button clears exportError", () => {
+    useStore.setState({ exportError: "Disk full" });
+    render(<LabelingView onDone={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss export error" }));
+    expect(useStore.getState().exportError).toBeNull();
+  });
+
+  it("Try again button invokes the onDone callback", () => {
+    const onDone = vi.fn();
+    useStore.setState({ exportError: "Disk full" });
+    render(<LabelingView onDone={onDone} />);
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onDone).toHaveBeenCalledOnce();
   });
 });
 

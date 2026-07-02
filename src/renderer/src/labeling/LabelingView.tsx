@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { X } from "lucide-react";
 import { TitleBar } from "../chrome/TitleBar";
 import { BottomBar } from "../chrome/BottomBar";
 import { InputContent } from "../input/InputContent";
@@ -9,6 +10,7 @@ import { useStore, selectCompletedCount } from "../store/store";
 import { debounce } from "../lib/utils";
 import { announce } from "../a11y/announcer";
 import { useHeadingFocus } from "../a11y/useHeadingFocus";
+import { Button } from "../components/ui/button";
 
 const MILESTONES = [0.25, 0.5, 0.75, 1.0];
 
@@ -57,6 +59,21 @@ export function LabelingView({ onDone }: { onDone: () => void }): React.JSX.Elem
   useKeyboardShortcuts(onDone);
   useLabelingAnnouncements();
   const headingRef = useHeadingFocus();
+  const records = useStore((s) => s.records);
+  const exportError = useStore((s) => s.exportError);
+  const clearExportError = useStore((s) => s.clearExportError);
+  const backToModeSelect = useStore((s) => s.backToModeSelect);
+
+  if (records.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+        <p className="text-muted-foreground text-sm">No records to label in this file.</p>
+        <Button variant="outline" onClick={backToModeSelect}>
+          Choose another file
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -65,6 +82,22 @@ export function LabelingView({ onDone }: { onDone: () => void }): React.JSX.Elem
         <h1 ref={headingRef} tabIndex={-1} className="sr-only outline-none">
           Labeling
         </h1>
+        {exportError && (
+          <div className="flex items-center gap-3 border-b border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger">
+            <span className="flex-1">{exportError}</span>
+            <Button size="xs" variant="danger-outline" onClick={() => void onDone()}>
+              Try again
+            </Button>
+            <button
+              type="button"
+              aria-label="Dismiss export error"
+              onClick={clearExportError}
+              className="rounded p-0.5 hover:bg-danger/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
         <InputContent />
         <OutputForm />
       </main>

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadConfig } from "@core/config";
-import type { AppConfig, RecordView } from "@core";
+import type { AppConfig, IpcApi, RecordView } from "@core";
 import type { LabelMap } from "@core";
 import {
   COLOR_THEMES,
@@ -10,6 +10,7 @@ import {
   type AppStore,
   type ColorTheme,
 } from "./store";
+import { useAnnouncer } from "../a11y/announcer";
 
 const config = loadAppConfig();
 
@@ -175,5 +176,181 @@ describe("store: write-through autosave", () => {
         index: 1,
       }),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Zero-records guard
+// ---------------------------------------------------------------------------
+describe("store: zero-records guard", () => {
+  const loadInputMock = vi.fn<IpcApi["loadInput"]>();
+  const clearSessionMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+  const saveSessionMock2 = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    loadInputMock.mockClear();
+    clearSessionMock.mockClear();
+    saveSessionMock2.mockClear();
+    Object.defineProperty(window, "api", {
+      value: {
+        loadInput: loadInputMock,
+        clearSession: clearSessionMock,
+        saveSession: saveSessionMock2,
+      },
+      configurable: true,
+      writable: true,
+    });
+    useStore.setState({ phase: "need-input", config, records: [], error: null, busy: false });
+  });
+
+  afterEach(() => {
+    useStore.setState({ phase: "boot" });
+  });
+
+  it("routes to input-invalid with a clear message when records is empty", async () => {
+    loadInputMock.mockResolvedValue({
+      ok: true,
+      canceled: false,
+      path: "/data/empty.csv",
+      records: [],
+      headerIssues: [],
+    });
+
+    await useStore.getState().loadInputPath("/data/empty.csv");
+
+    const state = useStore.getState();
+    expect(state.phase).toBe("input-invalid");
+    expect(state.error).toBe("This file has no data rows to label.");
+    expect(state.records).toHaveLength(0);
+  });
+
+  it("proceeds to labeling when records is non-empty", async () => {
+    loadInputMock.mockResolvedValue({
+      ok: true,
+      canceled: false,
+      path: "/data/rows.csv",
+      records,
+      headerIssues: [],
+    });
+
+    await useStore.getState().loadInputPath("/data/rows.csv");
+
+    expect(useStore.getState().phase).toBe("labeling");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// exportError lifecycle + submitDone announcements
+// ---------------------------------------------------------------------------
+describe("store: exportError and submitDone announcements", () => {
+  const exportLabelsMock = vi.fn<IpcApi["exportLabels"]>();
+  const clearSessionMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+  const saveSessionMock3 = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    exportLabelsMock.mockClear();
+    clearSessionMock.mockClear();
+    saveSessionMock3.mockClear();
+    Object.defineProperty(window, "api", {
+      value: {
+        exportLabels: exportLabelsMock,
+        clearSession: clearSessionMock,
+        saveSession: saveSessionMock3,
+      },
+      configurable: true,
+      writable: true,
+    });
+    useAnnouncer.setState({ polite: { message: "", seq: 0 }, assertive: { message: "", seq: 0 } });
+    seed({ configPath: "/cfg/test.jsonc", inputPath: "/data/input.csv" });
+  });
+
+  afterEach(() => {
+    useStore.setState({ phase: "boot", exportError: null });
+  });
+
+  it("clears exportError at the start of an export attempt", async () => {
+    exportLabelsMock.mockResolvedValue({ ok: true, completeCount: 1 });
+    useStore.setState({ exportError: "previous error" });
+
+    await useStore.getState().submitDone();
+
+    // exportError was cleared (set to null) before the await resolved
+    expect(useStore.getState().exportError).toBeNull();
+  });
+
+  it("sets exportError on failure and stays in labeling phase", async () => {
+    exportLabelsMock.mockResolvedValue({ ok: false, error: "Disk full" });
+
+    await useStore.getState().submitDone();
+
+    const state = useStore.getState();
+    expect(state.exportError).toBe("Disk full");
+    expect(state.phase).toBe("labeling");
+  });
+
+  it("announces assertively on export failure", async () => {
+    exportLabelsMock.mockResolvedValue({ ok: false, error: "Disk full" });
+
+    await useStore.getState().submitDone();
+
+    expect(useAnnouncer.getState().assertive.message).toBe("Export failed: Disk full");
+  });
+
+  it("announces assertively on export success", async () => {
+    exportLabelsMock.mockResolvedValue({ ok: true, completeCount: 2 });
+
+    await useStore.getState().submitDone();
+
+    expect(useAnnouncer.getState().assertive.message).toBe("Export complete, 2 records exported");
+  });
+
+  it("announces singular for a single record export", async () => {
+    exportLabelsMock.mockResolvedValue({ ok: true, completeCount: 1 });
+
+    await useStore.getState().submitDone();
+
+    expect(useAnnouncer.getState().assertive.message).toBe("Export complete, 1 record exported");
+  });
+
+  it("clearExportError sets exportError to null", () => {
+    useStore.setState({ exportError: "some error" });
+    useStore.getState().clearExportError();
+    expect(useStore.getState().exportError).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deferResume — Esc/overlay-close semantics
+// ---------------------------------------------------------------------------
+describe("store: deferResume", () => {
+  const clearSessionMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    clearSessionMock.mockClear();
+    Object.defineProperty(window, "api", {
+      value: { clearSession: clearSessionMock },
+      configurable: true,
+      writable: true,
+    });
+    useStore.setState({
+      pendingResume: {
+        configPath: "/cfg.jsonc",
+        inputPath: "/in.csv",
+        index: 1,
+        labels: { 0: { verdict: "good" } },
+      },
+    });
+  });
+
+  it("clears pendingResume without calling clearSession", () => {
+    useStore.getState().deferResume();
+    expect(useStore.getState().pendingResume).toBeNull();
+    expect(clearSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("dismissResume (Start fresh) DOES call clearSession", () => {
+    useStore.getState().dismissResume();
+    expect(useStore.getState().pendingResume).toBeNull();
+    expect(clearSessionMock).toHaveBeenCalledOnce();
   });
 });

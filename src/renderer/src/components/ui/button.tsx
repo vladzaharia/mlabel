@@ -12,6 +12,8 @@ const buttonVariants = cva(
         outline: "border border-border bg-transparent hover:bg-muted",
         ghost: "hover:bg-muted",
         subtle: "bg-muted text-foreground hover:opacity-90",
+        danger: "bg-danger text-danger-foreground hover:opacity-90",
+        "danger-outline": "border border-danger text-danger bg-transparent hover:bg-danger/10",
       },
       size: {
         xs: "h-6 gap-1 px-2.5 text-xs",

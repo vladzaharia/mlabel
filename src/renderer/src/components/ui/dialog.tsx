@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Dialog as D } from "radix-ui";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 export function Dialog({
@@ -35,4 +36,15 @@ export function DialogTitle({ children }: { children: ReactNode }): React.JSX.El
 
 export function DialogDescription({ children }: { children: ReactNode }): React.JSX.Element {
   return <D.Description className="text-muted-foreground mt-1.5 text-sm">{children}</D.Description>;
+}
+
+/** Amber warning box for destructive-action dialogs. Renders nothing when children is falsy. */
+export function DialogWarning({ children }: { children?: ReactNode }): React.JSX.Element | null {
+  if (!children) return null;
+  return (
+    <div className="mt-3 flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2">
+      <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warning" />
+      <p className="text-xs text-warning">{children}</p>
+    </div>
+  );
 }
