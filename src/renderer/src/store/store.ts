@@ -261,6 +261,7 @@ export const useStore = create<AppStore>((set, get) => ({
     });
   },
 
+  /** Permanently discard the saved session — "start fresh" semantics. */
   dismissResume() {
     set({ pendingResume: null, pendingResumeStale: false });
     void window.api.clearSession();
@@ -372,6 +373,7 @@ function applyInputResponse(set: SetFn, response: InputLoadResponse): void {
     records,
     headerIssues: response.headerIssues ?? [],
     pendingResume,
+    // Legacy sessions ship resumeStale=undefined (unverified, treated as not stale).
     pendingResumeStale: pendingResume !== null ? (response.resumeStale ?? false) : false,
     labels,
     index: 0,

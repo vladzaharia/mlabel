@@ -16,7 +16,7 @@ describe("fingerprintOf", () => {
 
   it("passes size and mtimeMs through from the stat unchanged", () => {
     const buf = Buffer.from("some data");
-    const stat = { size: 9999, mtimeMs: 42.5 };
+    const stat = { size: 9999, mtimeMs: 42.5 }; // size comes from stat, not buf.length
     const result = fingerprintOf(buf, stat);
     expect(result.size).toBe(9999);
     expect(result.mtimeMs).toBe(42.5);

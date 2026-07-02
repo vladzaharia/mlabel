@@ -165,8 +165,7 @@ describe("ResumeDialog — stale file warning", () => {
     useStore.setState({ pendingResume: session, pendingResumeStale: true });
     render(<ResumeDialog />);
     const resumeAnyway = screen.getByRole("button", { name: "Resume anyway" });
-    // danger-outline variant adds a data-variant attribute or class; check the button exists
-    expect(resumeAnyway).toBeInTheDocument();
+    expect(resumeAnyway.className).toContain("border-danger");
   });
 
   it("non-stale: 'Resume' is in DOM before 'Start fresh'", () => {
