@@ -7,13 +7,15 @@ import { UpdateIndicator } from "./UpdateIndicator";
 
 const installUpdate = vi.fn(async () => {});
 const openExternal = vi.fn(async () => {});
+const checkForUpdates = vi.fn(async () => {});
 
 beforeEach(() => {
   installUpdate.mockClear();
   openExternal.mockClear();
+  checkForUpdates.mockClear();
   useStore.setState({ updateStatus: null });
   Object.defineProperty(window, "api", {
-    value: { installUpdate, openExternal },
+    value: { installUpdate, openExternal, checkForUpdates },
     configurable: true,
   });
 });
@@ -43,10 +45,17 @@ describe("UpdateIndicator", () => {
     expect(screen.getByText(/Downloading update… 42%/i)).toBeInTheDocument();
   });
 
-  it("surfaces the error detail as a tooltip on the friendly message", () => {
+  it("surfaces the error detail as a title on the retry button", () => {
     show({ kind: "error", message: "net::ERR_DISCONNECTED" });
-    const el = screen.getByText(/Couldn’t check for updates/i);
-    expect(el).toHaveAttribute("title", "net::ERR_DISCONNECTED");
+    const btn = screen.getByRole("button", { name: /Couldn’t check for updates/i });
+    expect(btn).toHaveAttribute("title", "net::ERR_DISCONNECTED");
+  });
+
+  it("calls checkForUpdates when the error retry button is clicked", async () => {
+    const user = userEvent.setup();
+    show({ kind: "error", message: "net::ERR_DISCONNECTED" });
+    await user.click(screen.getByRole("button", { name: /Retry/i }));
+    expect(checkForUpdates).toHaveBeenCalledOnce();
   });
 
   it("installs the update when the downloaded button is clicked", async () => {

@@ -5,6 +5,20 @@ import type { ExportResponse } from "@core";
 import { useStore, type AppStore } from "../store/store";
 import { DoneScreen } from "./DoneScreen";
 
+const revealPath = vi.fn(async () => {});
+
+beforeEach(() => {
+  revealPath.mockClear();
+  Object.defineProperty(window, "api", {
+    value: { revealPath },
+    configurable: true,
+  });
+  Object.defineProperty(window, "platform", {
+    value: "darwin",
+    configurable: true,
+  });
+});
+
 function seed(partial: Partial<AppStore> = {}): void {
   const exportResult: ExportResponse = {
     ok: true,
@@ -55,9 +69,42 @@ describe("DoneScreen", () => {
     expect(screen.getByText("incomplete records saved to the remaining file")).toBeInTheDocument();
   });
 
-  it("renders the output path", () => {
+  it("renders the output path basename with full path in title", () => {
     render(<DoneScreen />);
-    expect(screen.getByText("/tmp/data-output.csv")).toBeInTheDocument();
+    const nameEl = screen.getByText("data-output.csv");
+    expect(nameEl).toHaveAttribute("title", "/tmp/data-output.csv");
+  });
+
+  it("shows a 'Show in Finder' button for the output file on macOS", async () => {
+    const user = userEvent.setup();
+    render(<DoneScreen />);
+    const buttons = screen.getAllByRole("button", { name: /Show in Finder/i });
+    // At least the output row; remaining path is set but remainingCount=0 hides count row.
+    // OutputRow is still shown when remainingPath is set regardless of count.
+    expect(buttons.length).toBeGreaterThanOrEqual(1);
+    await user.click(buttons[0]!);
+    expect(revealPath).toHaveBeenCalledWith("/tmp/data-output.csv");
+  });
+
+  it("shows a 'Show in Finder' button for the remaining file when remainingPath is set", async () => {
+    const user = userEvent.setup();
+    render(<DoneScreen />);
+    // seed() sets remainingPath="/tmp/data-remaining.csv"
+    const remainingBtn = screen.getAllByRole("button", { name: /Show in Finder/i })[1];
+    expect(remainingBtn).toBeTruthy();
+    await user.click(remainingBtn!);
+    expect(revealPath).toHaveBeenCalledWith("/tmp/data-remaining.csv");
+  });
+
+  it("does NOT show a remaining reveal button when remainingPath is absent", () => {
+    seed({
+      exportResult: { ok: true, completeCount: 5, remainingCount: 0, outputPath: "/tmp/o.csv" },
+    });
+    render(<DoneScreen />);
+    const buttons = screen.getAllByRole("button", { name: /Show in Finder/i });
+    // Only the output row button; no remaining row.
+    expect(buttons).toHaveLength(1);
+    expect(revealPath).not.toHaveBeenCalled();
   });
 
   it('"Keep editing" calls backToLabeling', async () => {

@@ -24,7 +24,8 @@ import {
 } from "./services/prepare-service";
 import { clearSession, getRecent } from "./services/session-store";
 import { isAllowedExternalUrl } from "./services/network-policy";
-import { installUpdate } from "./services/updater";
+import { checkForUpdatesManually, installUpdate } from "./services/updater";
+import { appState, isRevealable } from "./state";
 
 /** Register every request-response IPC handler. One handler per IpcApi method. */
 export function registerIpc(): void {
@@ -56,9 +57,16 @@ export function registerIpc(): void {
   ipcMain.handle(IPC_INVOKE.runJoin, (_event, request: JoinRequest) => runJoin(request));
 
   ipcMain.handle(IPC_INVOKE.installUpdate, () => installUpdate());
+  ipcMain.handle(IPC_INVOKE.checkForUpdates, () => checkForUpdatesManually());
   ipcMain.handle(IPC_INVOKE.openExternal, (_event, url: string) => {
     // Defense in depth: only main-built release URLs may leave the app.
     if (!isAllowedExternalUrl(url)) throw new Error(`Blocked non-release external URL: ${url}`);
     return shell.openExternal(url);
+  });
+  ipcMain.handle(IPC_INVOKE.revealPath, (_event, path: string) => {
+    if (!isRevealable(path, appState.revealablePaths)) {
+      throw new Error(`Blocked reveal of non-produced path: ${path}`);
+    }
+    shell.showItemInFolder(path);
   });
 }

@@ -32,7 +32,9 @@ const api = {
     return () => ipcRenderer.removeListener(IPC_EVENT.updateStatus, handler);
   },
   installUpdate: () => ipcRenderer.invoke(IPC_INVOKE.installUpdate),
+  checkForUpdates: () => ipcRenderer.invoke(IPC_INVOKE.checkForUpdates),
   openExternal: (url: string) => ipcRenderer.invoke(IPC_INVOKE.openExternal, url),
+  revealPath: (path: string) => ipcRenderer.invoke(IPC_INVOKE.revealPath, path),
 
   getStartupConfig: () => ipcRenderer.invoke(IPC_INVOKE.getStartupConfig),
   pickConfig: () => ipcRenderer.invoke(IPC_INVOKE.pickConfig),

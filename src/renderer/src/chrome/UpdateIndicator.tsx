@@ -50,9 +50,15 @@ export function UpdateIndicator(): React.JSX.Element | null {
     }
     case "error":
       return (
-        <span className={baseClass} title={status.message ?? undefined}>
-          <AlertCircle size={13} /> Couldn’t check for updates
-        </span>
+        <Button
+          variant="ghost"
+          size="xs"
+          className={buttonClass}
+          title={status.message ?? undefined}
+          onClick={() => void window.api.checkForUpdates()}
+        >
+          <AlertCircle size={13} /> Couldn’t check for updates — Retry
+        </Button>
       );
   }
 }

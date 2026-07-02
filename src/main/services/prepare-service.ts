@@ -91,6 +91,7 @@ export async function runSplit(request: SplitRequest): Promise<SplitRunResponse>
 
   try {
     await Promise.all(targets.map((target, i) => writeFile(target, parts[i]!.content, "utf8")));
+    for (const target of targets) appState.addRevealablePath(target);
   } catch (err) {
     return { ok: false, error: `Failed to write split files: ${(err as Error).message}` };
   }
@@ -161,6 +162,7 @@ export async function runJoin(request: JoinRequest): Promise<JoinRunResponse> {
 
   try {
     await writeFile(target.filePath, build.content, "utf8");
+    appState.addRevealablePath(target.filePath);
   } catch (err) {
     return { ok: false, error: `Failed to write joined file: ${(err as Error).message}` };
   }

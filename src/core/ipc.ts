@@ -44,6 +44,19 @@ export interface IpcApi {
   installUpdate: () => Promise<void>;
   /** Open a URL in the user's default browser (e.g. a portable release asset). */
   openExternal: (url: string) => Promise<void>;
+  /**
+   * Manually trigger an update check from the renderer (e.g. error-state retry).
+   * No-op if updates were never armed (zero-network invariant preserved).
+   */
+  checkForUpdates: () => Promise<void>;
+
+  // --- File reveal ---
+  /**
+   * Reveal a file in the OS file manager. Only paths that main itself produced
+   * (export output / remaining, prepare split / join outputs) are allowed;
+   * all others are rejected to prevent path-traversal misuse.
+   */
+  revealPath: (path: string) => Promise<void>;
 
   // --- Config ---
   /** Auto-discover a config adjacent to the executable (or recent), if any. */
@@ -97,7 +110,9 @@ export const IPC_INVOKE = {
   exportLabels: "export:run",
   getRecent: "recent:get",
   installUpdate: "update:install",
+  checkForUpdates: "update:check",
   openExternal: "shell:open-external",
+  revealPath: "shell:reveal-path",
   pickSplitFile: "prepare:split-pick",
   analyzeSplitFile: "prepare:split-analyze",
   runSplit: "prepare:split-run",

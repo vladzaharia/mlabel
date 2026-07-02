@@ -15,9 +15,18 @@ interface MainState {
   config?: AppConfig;
   configPath?: string;
   input?: LoadedInput;
+  revealablePaths: Set<string>;
 }
 
-const state: MainState = {};
+const state: MainState = { revealablePaths: new Set() };
+
+/**
+ * True when `path` was produced by main (export output / remaining, prepare
+ * split / join outputs). Only produced paths may be revealed in the file manager.
+ */
+export function isRevealable(path: string, revealable: Set<string>): boolean {
+  return revealable.has(path);
+}
 
 export const appState = {
   get config(): AppConfig | undefined {
@@ -29,6 +38,9 @@ export const appState = {
   get input(): LoadedInput | undefined {
     return state.input;
   },
+  get revealablePaths(): Set<string> {
+    return state.revealablePaths;
+  },
   setConfig(config: AppConfig, path: string): void {
     state.config = config;
     state.configPath = path;
@@ -36,9 +48,13 @@ export const appState = {
   setInput(input: LoadedInput): void {
     state.input = input;
   },
+  addRevealablePath(path: string): void {
+    state.revealablePaths.add(path);
+  },
   reset(): void {
     state.config = undefined;
     state.configPath = undefined;
     state.input = undefined;
+    state.revealablePaths = new Set();
   },
 };

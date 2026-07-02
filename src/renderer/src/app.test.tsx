@@ -20,15 +20,17 @@ function sampleConfig(): AppConfig {
 }
 
 function mockApi(overrides: Partial<IpcApi> = {}): void {
-  const base: IpcApi = {
-    ping: async () => "pong",
+  const base = {
+    ping: async () => "pong" as const,
     getTheme: async () => true,
     onThemeChange: () => () => {},
     onUpdateStatus: () => () => {},
     installUpdate: async () => {},
+    checkForUpdates: async () => {},
     openExternal: async () => {},
-    getStartupConfig: async () => ({ status: "none" }),
-    pickConfig: async () => ({ status: "canceled" }),
+    revealPath: async () => {},
+    getStartupConfig: async () => ({ status: "none" as const }),
+    pickConfig: async () => ({ status: "canceled" as const }),
     pickInput: async () => ({ ok: false, canceled: true }),
     loadInput: async () => ({ ok: false, canceled: true }),
     pathForFile: () => "",
@@ -42,7 +44,7 @@ function mockApi(overrides: Partial<IpcApi> = {}): void {
     pickJoinFiles: async () => ({ ok: false, canceled: true }),
     analyzeJoinFiles: async () => ({ ok: false }),
     runJoin: async () => ({ ok: false }),
-  };
+  } satisfies IpcApi;
   Object.defineProperty(window, "api", { value: { ...base, ...overrides }, configurable: true });
   Object.defineProperty(window, "platform", { value: "darwin", configurable: true });
 }

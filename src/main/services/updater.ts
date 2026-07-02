@@ -55,3 +55,13 @@ export function startUpdates(): void {
 export function installUpdate(): void {
   electronUpdater.autoUpdater.quitAndInstall();
 }
+
+/**
+ * Manually trigger an update check from the renderer (e.g. error-state retry).
+ * No-op when updates were never armed — preserves the zero-network invariant.
+ * Errors flow through the existing event→status broadcast (wired by wireUpdater).
+ */
+export function checkForUpdatesManually(): void {
+  if (!started) return;
+  void electronUpdater.autoUpdater.checkForUpdates();
+}

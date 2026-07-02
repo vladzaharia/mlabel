@@ -123,10 +123,12 @@ export async function exportLabels(request: ExportRequest): Promise<ExportRespon
 
   try {
     await writeFile(outputPath, artifacts.outputContent, "utf8");
+    appState.addRevealablePath(outputPath);
     let remainingPath: string | undefined;
     if (artifacts.remainingContent !== undefined) {
       remainingPath = join(dir, `${stem}-remaining${ext}`);
       await writeFile(remainingPath, artifacts.remainingContent, "utf8");
+      appState.addRevealablePath(remainingPath);
     }
     return {
       ok: true,
