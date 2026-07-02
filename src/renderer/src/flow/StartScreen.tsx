@@ -21,7 +21,7 @@ function useDragOver(): boolean {
     }
 
     function onLeave(): void {
-      count -= 1;
+      count = Math.max(0, count - 1);
       if (count === 0) setDragging(false);
     }
 

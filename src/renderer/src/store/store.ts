@@ -87,7 +87,7 @@ interface AppActions {
   next: () => void;
   prev: () => void;
 
-  submitDone: () => Promise<{ ok: boolean; error?: string }>;
+  submitDone: () => Promise<void>;
   backToLabeling: () => void;
   backToConfig: () => void;
 }
@@ -295,12 +295,11 @@ export const useStore = create<AppStore>((set, get) => ({
       // a clearSession on a different channel and overwrite a cleared session.
       set({ exportResult: result, phase: "done" });
       await window.api.clearSession();
-      return { ok: true };
+      return;
     }
     const errMsg = result.error ?? "unknown error";
     announce(`Export failed: ${errMsg}`, "assertive");
     set({ exportError: errMsg });
-    return { ok: false, error: result.error };
   },
 
   backToLabeling() {

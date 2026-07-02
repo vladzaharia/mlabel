@@ -38,7 +38,7 @@ export function DialogDescription({ children }: { children: ReactNode }): React.
   return <D.Description className="text-muted-foreground mt-1.5 text-sm">{children}</D.Description>;
 }
 
-/** Amber warning box for destructive-action dialogs. Renders nothing when children is falsy. */
+/** Amber warning box for destructive-action dialogs; reserved for the resume-stale-file warning flow. Renders nothing when children is falsy. */
 export function DialogWarning({ children }: { children?: ReactNode }): React.JSX.Element | null {
   if (!children) return null;
   return (

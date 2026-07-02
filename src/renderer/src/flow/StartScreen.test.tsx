@@ -95,6 +95,22 @@ describe("StartScreen drag-over visual state", () => {
     fireEvent(window, new Event("dragleave", { bubbles: false }));
     expect(card.className).not.toContain("border-dashed");
   });
+
+  it("stray dragleave before any dragenter does not wedge the dragging state", () => {
+    render(<StartScreen kind="config" />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    const card = heading.closest("div.rounded-2xl") as HTMLElement;
+
+    // Fire dragleave without a prior dragenter — counter must clamp to 0, not go negative.
+    fireEvent(window, new Event("dragleave", { bubbles: false }));
+    expect(card.className).not.toContain("border-dashed");
+
+    // A subsequent enter + leave should still work correctly.
+    fireEvent(window, new Event("dragenter", { bubbles: false }));
+    expect(card.className).toContain("border-dashed");
+    fireEvent(window, new Event("dragleave", { bubbles: false }));
+    expect(card.className).not.toContain("border-dashed");
+  });
 });
 
 describe("StartScreen: no example config content", () => {

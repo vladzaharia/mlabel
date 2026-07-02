@@ -71,23 +71,27 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
         </div>
       )}
 
-      {/* Full-width progress bar as the title bar's bottom border. */}
-      <progress
-        value={completed}
-        max={total}
-        aria-label="Labeling progress"
-        className="absolute inset-x-0 bottom-0 h-[3px] appearance-none bg-transparent [&::-webkit-progress-bar]:bg-transparent [&::-webkit-progress-value]:bg-progress [&::-moz-progress-bar]:bg-progress transition-[width] duration-300 ease-out"
-      />
-      {/* Visible fill bar (mirrors value for browsers that don't style <progress>). */}
-      <div
-        aria-hidden
-        className="absolute inset-x-0 bottom-0 h-[3px] bg-transparent pointer-events-none"
-      >
-        <div
-          className="h-full bg-progress transition-[width] duration-300 ease-out"
-          style={{ width: `${String(fraction * 100)}%` }}
-        />
-      </div>
+      {labeling && (
+        <>
+          {/* Full-width progress bar as the title bar's bottom border. */}
+          <progress
+            value={completed}
+            max={total}
+            aria-label="Labeling progress"
+            className="absolute inset-x-0 bottom-0 h-[3px] appearance-none bg-transparent [&::-webkit-progress-bar]:bg-transparent [&::-webkit-progress-value]:bg-progress [&::-moz-progress-bar]:bg-progress"
+          />
+          {/* Visible fill bar (mirrors value for browsers that don't style <progress>). */}
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-[3px] bg-transparent pointer-events-none"
+          >
+            <div
+              className="h-full bg-progress transition-[width] duration-300 ease-out"
+              style={{ width: `${String(fraction * 100)}%` }}
+            />
+          </div>
+        </>
+      )}
     </header>
   );
 }
