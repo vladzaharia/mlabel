@@ -34,8 +34,14 @@ const records: RecordView[] = [0, 1, 2].map((i) => ({
 }));
 
 /** Real Radix widgets so focus/role behavior matches the labeling screen. */
-function Harness({ onDone }: { onDone: () => void }): React.JSX.Element {
-  useKeyboardShortcuts(onDone);
+function Harness({
+  onDone,
+  onToggleHelp,
+}: {
+  onDone: () => void;
+  onToggleHelp?: () => void;
+}): React.JSX.Element {
+  useKeyboardShortcuts({ onDone, onToggleHelp });
   const radioField = config.output.fields.find((f) => f.name === "verdict")!;
   const sliderField = config.output.fields.find((f) => f.name === "score")!;
   return (
@@ -56,17 +62,19 @@ const consume = (event: Event): void => event.preventDefault();
 
 describe("useKeyboardShortcuts", () => {
   const onDone = vi.fn();
+  const onToggleHelp = vi.fn();
 
   beforeEach(() => {
     const labels: Record<number, LabelMap> = {};
     for (const record of records) labels[record.index] = { ...record.labelValues };
     useStore.setState({ config, records, index: 0, labels, phase: "labeling" });
-    render(<Harness onDone={onDone} />);
+    render(<Harness onDone={onDone} onToggleHelp={onToggleHelp} />);
   });
 
   afterEach(() => {
     cleanup();
     onDone.mockReset();
+    onToggleHelp.mockReset();
   });
 
   it("navigates records with arrow keys", () => {
@@ -115,5 +123,16 @@ describe("useKeyboardShortcuts", () => {
     const radio = screen.getAllByRole("radio")[0]!;
     press(radio, "1");
     expect(useStore.getState().labels[0]?.["verdict"]).toBeNull();
+  });
+
+  it("fires onToggleHelp when '?' is pressed", () => {
+    press(window, "?");
+    expect(onToggleHelp).toHaveBeenCalledTimes(1);
+  });
+
+  it("suppresses onToggleHelp while typing in a text field", () => {
+    const input = screen.getByLabelText("text field");
+    press(input, "?");
+    expect(onToggleHelp).not.toHaveBeenCalled();
   });
 });

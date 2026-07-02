@@ -2,13 +2,19 @@ import { useEffect } from "react";
 import { isAutoCopied } from "@core";
 import { useStore } from "../store/store";
 
+interface KeyboardShortcutOptions {
+  onDone: () => void;
+  onToggleHelp?: () => void;
+}
+
 /**
  * Core labeling shortcuts:
  *   ← / → : previous / next record (ignored while typing in a field)
  *   ⌘/Ctrl + Enter : Done (export)
  *   1–9 : pick the Nth option of the first radio/select output field
+ *   ? : toggle the keyboard shortcuts help dialog
  */
-export function useKeyboardShortcuts(onDone: () => void): void {
+export function useKeyboardShortcuts({ onDone, onToggleHelp }: KeyboardShortcutOptions): void {
   useEffect(() => {
     function handler(event: KeyboardEvent): void {
       const target = event.target instanceof HTMLElement ? event.target : null;
@@ -29,6 +35,11 @@ export function useKeyboardShortcuts(onDone: () => void): void {
       }
       // Radix widgets preventDefault on keys they consume — never double-handle.
       if (typing || event.defaultPrevented) return;
+
+      if (event.key === "?") {
+        onToggleHelp?.();
+        return;
+      }
 
       const state = useStore.getState();
       if (event.key === "ArrowRight") {
@@ -55,5 +66,5 @@ export function useKeyboardShortcuts(onDone: () => void): void {
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onDone]);
+  }, [onDone, onToggleHelp]);
 }

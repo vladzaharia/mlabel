@@ -1,9 +1,10 @@
+import { Tabs } from "radix-ui";
 import { useStore } from "../store/store";
 import { usePrepareStore, type PrepareTab } from "../store/prepare-store";
-import { Button } from "../components/ui/button";
 import { SplitPanel } from "./SplitPanel";
 import { JoinPanel } from "./JoinPanel";
 import { useHeadingFocus } from "../a11y/useHeadingFocus";
+import { cn } from "../lib/utils";
 
 const TABS: { id: PrepareTab; label: string }[] = [
   { id: "split", label: "Split input" },
@@ -36,23 +37,39 @@ export function PrepareView(): React.JSX.Element {
           </p>
         </header>
 
-        <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1">
-          {TABS.map(({ id, label }) => (
-            <Button
-              key={id}
-              variant={tab === id ? "subtle" : "ghost"}
-              size="sm"
-              onClick={() => setTab(id)}
-              className="flex-1"
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
+        <Tabs.Root value={tab} onValueChange={(v) => setTab(v as PrepareTab)}>
+          <Tabs.List
+            aria-label="Prepare actions"
+            className="flex gap-1 rounded-lg border border-border bg-muted/30 p-1"
+          >
+            {TABS.map(({ id, label }) => (
+              <Tabs.Trigger
+                key={id}
+                value={id}
+                className={cn(
+                  "inline-flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "select-none disabled:pointer-events-none disabled:opacity-50",
+                  "hover:bg-muted",
+                  "data-[state=active]:bg-muted data-[state=active]:text-foreground",
+                  "data-[state=inactive]:text-muted-foreground",
+                )}
+              >
+                {label}
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
 
-        {tab === "split" && <SplitPanel />}
-        {tab === "join-output" && <JoinPanel kind="output" />}
-        {tab === "join-remaining" && <JoinPanel kind="remaining" />}
+          <Tabs.Content value="split">
+            <SplitPanel />
+          </Tabs.Content>
+          <Tabs.Content value="join-output">
+            <JoinPanel kind="output" />
+          </Tabs.Content>
+          <Tabs.Content value="join-remaining">
+            <JoinPanel kind="remaining" />
+          </Tabs.Content>
+        </Tabs.Root>
       </div>
     </div>
   );

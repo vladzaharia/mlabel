@@ -28,6 +28,50 @@ function mockApi(overrides: Partial<IpcApi>): void {
   Object.defineProperty(window, "api", { value: api, configurable: true });
 }
 
+describe("PrepareView tabs semantics", () => {
+  beforeEach(() => {
+    usePrepareStore.getState().reset();
+    useStore.setState({ config: sampleConfig(), phase: "prepare" });
+  });
+  afterEach(() => cleanup());
+
+  it("renders exactly 3 tabs", () => {
+    render(<PrepareView />);
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
+  });
+
+  it("aria-selected follows the store tab", () => {
+    render(<PrepareView />);
+    const splitTab = screen.getByRole("tab", { name: "Split input" });
+    expect(splitTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Join outputs" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+  });
+
+  it("arrow key moves selection and shows the next panel", async () => {
+    const user = userEvent.setup();
+    render(<PrepareView />);
+    const splitTab = screen.getByRole("tab", { name: "Split input" });
+    splitTab.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { name: "Join outputs" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByText("Join output files")).toBeInTheDocument();
+  });
+
+  it("tabpanel is labelled by the active tab", () => {
+    render(<PrepareView />);
+    const panel = screen.getByRole("tabpanel");
+    const splitTab = screen.getByRole("tab", { name: "Split input" });
+    // The panel's aria-labelledby should reference the active trigger's id.
+    expect(panel.getAttribute("aria-labelledby")).toBe(splitTab.id);
+  });
+});
+
 describe("PrepareView", () => {
   beforeEach(() => {
     usePrepareStore.getState().reset();
@@ -41,10 +85,10 @@ describe("PrepareView", () => {
     expect(screen.getByText(/Input schema: id/)).toBeInTheDocument();
     expect(screen.getByText("Split an input file")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Join outputs" }));
+    await user.click(screen.getByRole("tab", { name: "Join outputs" }));
     expect(screen.getByText("Join output files")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Join remaining" }));
+    await user.click(screen.getByRole("tab", { name: "Join remaining" }));
     expect(screen.getByText("Join remaining files")).toBeInTheDocument();
   });
 
@@ -94,7 +138,7 @@ describe("PrepareView", () => {
     const joinButton = screen.getByRole("button", { name: /join 1 file/i });
     expect(joinButton).toBeDisabled();
     // Sanity: tab strip still interactive.
-    await user.click(screen.getByRole("button", { name: "Split input" }));
+    await user.click(screen.getByRole("tab", { name: "Split input" }));
     expect(screen.getByText("Split an input file")).toBeInTheDocument();
   });
 });

@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { TitleBar } from "../chrome/TitleBar";
 import { BottomBar } from "../chrome/BottomBar";
 import { InputContent } from "../input/InputContent";
 import { OutputForm } from "../output/OutputForm";
 import { ResumeDialog } from "../flow/ResumeDialog";
+import { ShortcutsDialog } from "../components/ShortcutsDialog";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useStore, selectCompletedCount } from "../store/store";
 import { debounce } from "../lib/utils";
@@ -56,7 +57,8 @@ function useLabelingAnnouncements(): void {
 }
 
 export function LabelingView({ onDone }: { onDone: () => void }): React.JSX.Element {
-  useKeyboardShortcuts(onDone);
+  const [helpOpen, setHelpOpen] = useState(false);
+  useKeyboardShortcuts({ onDone, onToggleHelp: () => setHelpOpen((o) => !o) });
   useLabelingAnnouncements();
   const headingRef = useHeadingFocus();
   const records = useStore((s) => s.records);
@@ -101,8 +103,9 @@ export function LabelingView({ onDone }: { onDone: () => void }): React.JSX.Elem
         <InputContent />
         <OutputForm />
       </main>
-      <BottomBar />
+      <BottomBar onHelp={() => setHelpOpen((o) => !o)} />
       <ResumeDialog />
+      <ShortcutsDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </>
   );
 }

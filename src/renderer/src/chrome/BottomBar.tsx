@@ -1,9 +1,15 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleHelp } from "lucide-react";
 import { useStore } from "../store/store";
 import { ModeToggle } from "./ModeToggle";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { Button } from "../components/ui/button";
+import { Tooltip } from "../components/ui/tooltip";
 
-export function BottomBar(): React.JSX.Element {
+interface BottomBarProps {
+  onHelp?: () => void;
+}
+
+export function BottomBar({ onHelp }: BottomBarProps): React.JSX.Element {
   const inputPath = useStore((s) => s.inputPath);
   const index = useStore((s) => s.index);
   const total = useStore((s) => s.records.length);
@@ -43,6 +49,19 @@ export function BottomBar(): React.JSX.Element {
       <div className="flex h-full items-center justify-end gap-1">
         <ThemeSwitcher />
         <ModeToggle />
+        {onHelp && (
+          <Tooltip content="Keyboard shortcuts">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onHelp}
+              aria-label="Keyboard shortcuts"
+              className="no-drag h-7 w-7 text-muted-foreground hover:text-foreground"
+            >
+              <CircleHelp size={15} />
+            </Button>
+          </Tooltip>
+        )}
       </div>
     </footer>
   );
