@@ -1,6 +1,5 @@
-import { Dialog, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogTitle, DialogDescription } from "./ui/dialog";
 import { isMac } from "../lib/utils";
-import { cn } from "../lib/utils";
 
 interface ShortcutRow {
   keys: string[];
@@ -39,10 +38,11 @@ export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps): R
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTitle>Keyboard shortcuts</DialogTitle>
+      <DialogDescription>All keyboard shortcuts available in this window.</DialogDescription>
       <table className="mt-4 w-full text-sm" aria-label="Keyboard shortcuts">
         <tbody>
           {rows.map((row) => (
-            <tr key={row.action} className={cn("border-b border-border/50 last:border-0")}>
+            <tr key={row.action} className="border-b border-border/50 last:border-0">
               <td className="py-2 pr-4">
                 <span className="flex flex-wrap gap-1">
                   {row.keys.map((k) => (

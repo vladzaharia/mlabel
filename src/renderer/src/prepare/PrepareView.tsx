@@ -60,15 +60,30 @@ export function PrepareView(): React.JSX.Element {
             ))}
           </Tabs.List>
 
-          <Tabs.Content value="split">
-            <SplitPanel />
-          </Tabs.Content>
-          <Tabs.Content value="join-output">
-            <JoinPanel kind="output" />
-          </Tabs.Content>
-          <Tabs.Content value="join-remaining">
-            <JoinPanel kind="remaining" />
-          </Tabs.Content>
+          {TABS.map(({ id }) => {
+            if (id === "split") {
+              return (
+                <Tabs.Content key={id} value={id}>
+                  <SplitPanel />
+                </Tabs.Content>
+              );
+            }
+            if (id === "join-output") {
+              return (
+                <Tabs.Content key={id} value={id}>
+                  <JoinPanel kind="output" />
+                </Tabs.Content>
+              );
+            }
+            if (id === "join-remaining") {
+              return (
+                <Tabs.Content key={id} value={id}>
+                  <JoinPanel kind="remaining" />
+                </Tabs.Content>
+              );
+            }
+            return null;
+          })}
         </Tabs.Root>
       </div>
     </div>
