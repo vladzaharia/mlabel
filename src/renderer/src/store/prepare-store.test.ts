@@ -7,7 +7,34 @@ function fileInfo(path: string, rowCount = 4, ok = true): PrepareFileInfo {
 }
 
 function mockApi(overrides: Partial<IpcApi>): IpcApi {
-  const api = { ...window.api, ...overrides } as IpcApi;
+  const base: IpcApi = {
+    ping: async () => "pong",
+    getTheme: async () => false,
+    onThemeChange: () => () => {},
+    onUpdateStatus: () => () => {},
+    onSetMode: () => () => {},
+    setMenuContext: async () => {},
+    installUpdate: async () => {},
+    checkForUpdates: async () => {},
+    openExternal: async () => {},
+    revealPath: async () => {},
+    getStartupConfig: async () => ({ status: "none" }),
+    pickConfig: async () => ({ status: "canceled" }),
+    pickInput: async () => ({ ok: false, canceled: true }),
+    loadInput: async () => ({ ok: false, canceled: true }),
+    pathForFile: () => "",
+    saveSession: async () => {},
+    clearSession: async () => {},
+    exportLabels: async () => ({ ok: true }),
+    getRecent: async () => ({}),
+    pickSplitFile: async () => ({ ok: false, canceled: true }),
+    analyzeSplitFile: async () => ({ ok: false, canceled: true }),
+    runSplit: async () => ({ ok: false }),
+    pickJoinFiles: async () => ({ ok: false, canceled: true }),
+    analyzeJoinFiles: async () => ({ ok: false }),
+    runJoin: async () => ({ ok: false }),
+  };
+  const api: IpcApi = { ...base, ...overrides };
   Object.defineProperty(window, "api", { value: api, configurable: true });
   return api;
 }

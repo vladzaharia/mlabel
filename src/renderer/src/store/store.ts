@@ -320,10 +320,10 @@ export const useStore = create<AppStore>((set, get) => ({
     if (result.ok) {
       const n = result.completeCount ?? 0;
       announce(`Export complete, ${String(n)} record${n === 1 ? "" : "s"} exported`, "assertive");
-      // phase: "done" must be set BEFORE clearSession() is called. Electron
-      // does not order messages across separate IPC channels, so the autosave
-      // subscriber (which bails when phase !== "labeling") could otherwise race
-      // a clearSession on a different channel and overwrite a cleared session.
+      // phase: "done" must be set BEFORE clearSession() is called. Both calls
+      // share one ordered main-side IPC queue once received, and the export
+      // round-trip drains any in-flight saveSession calls before clearSession
+      // is pushed — making the autosave-vs-clear race practically impossible.
       set({ exportResult: result, phase: "done" });
       await window.api.clearSession();
       return;
@@ -429,9 +429,9 @@ export const selectCurrentRecord = (state: AppStore): RecordView | undefined =>
 // (e.g. updateStatus, themeMode) changes — avoiding unnecessary IPC traffic.
 useStore.subscribe((state, prev) => {
   // Guard on phase === "labeling" before issuing saveSession. submitDone() sets
-  // phase: "done" synchronously before calling clearSession() on a separate IPC
-  // channel; this guard is what prevents a saveSession from racing that
-  // clearSession — Electron provides no ordering guarantee across channels.
+  // phase: "done" synchronously before calling clearSession(); the export
+  // round-trip drains in-flight saves before clearSession reaches the main
+  // queue, making a saveSession/clearSession reorder practically impossible.
   if (state.phase !== "labeling" || !state.configPath || !state.inputPath) return;
   // Only IPC when something meaningful to the session actually changed.
   if (

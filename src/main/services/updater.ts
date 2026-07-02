@@ -40,11 +40,6 @@ export function onUpdatesArmed(cb: () => void): void {
   _onArmed = cb;
 }
 
-/** Whether the updater has been armed (i.e. a packaged build with network permitted). */
-export function isUpdatesArmed(): boolean {
-  return started;
-}
-
 /**
  * Arm the auto-updater and run a first check. No-op in dev (updates need a
  * packaged app) and idempotent, so repeated config loads don't re-arm it.
