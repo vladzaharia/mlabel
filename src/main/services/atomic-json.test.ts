@@ -161,6 +161,100 @@ describe("writeJsonAtomic: crash simulation — destination never corrupted", ()
       expect(tmps).toHaveLength(0);
     }
   });
+
+  it("leaves old value intact and closes handle before unlink when writeFile() throws", async () => {
+    const path = join(dir, "safe.json");
+    await seedOldFile(path);
+
+    const fsPromises = await import("node:fs/promises");
+    const origMkdir = fsPromises.mkdir.bind(fsPromises);
+    const origUnlink = fsPromises.unlink.bind(fsPromises);
+    const origRename = fsPromises.rename.bind(fsPromises);
+
+    const callOrder: string[] = [];
+
+    await expect(
+      writeJsonAtomic(path, { version: "new" }, undefined, {
+        open: async (_filePath) => {
+          // Return a fake FileHandle whose writeFile rejects.
+          return {
+            writeFile: async () => {
+              throw new Error("writeFile failed");
+            },
+            sync: async () => {},
+            close: async () => {
+              callOrder.push("close");
+            },
+          } as unknown as Awaited<ReturnType<typeof fsPromises.open>>;
+        },
+        mkdir: origMkdir as typeof fsPromises.mkdir,
+        rename: origRename as typeof fsPromises.rename,
+        unlink: async (...args) => {
+          callOrder.push("unlink");
+          return origUnlink(...args);
+        },
+      }),
+    ).rejects.toThrow("writeFile failed");
+
+    // Destination still contains the old value.
+    const result = await readJsonSafe<typeof goodValue>(path);
+    expect(result).toEqual(goodValue);
+
+    // close() must have been called before unlink() (Windows can't unlink open files).
+    expect(callOrder.indexOf("close")).toBeLessThan(callOrder.indexOf("unlink"));
+
+    // No *.tmp file remains.
+    const entries = await readdir(dir);
+    const tmps = entries.filter((e) => e.endsWith(".tmp"));
+    expect(tmps).toHaveLength(0);
+  });
+
+  it("leaves old value intact and closes handle before unlink when sync() throws", async () => {
+    const path = join(dir, "safe.json");
+    await seedOldFile(path);
+
+    const fsPromises = await import("node:fs/promises");
+    const origMkdir = fsPromises.mkdir.bind(fsPromises);
+    const origUnlink = fsPromises.unlink.bind(fsPromises);
+    const origRename = fsPromises.rename.bind(fsPromises);
+
+    const callOrder: string[] = [];
+
+    await expect(
+      writeJsonAtomic(path, { version: "new" }, undefined, {
+        open: async (_filePath) => {
+          // Return a fake FileHandle whose sync rejects (writeFile succeeds).
+          return {
+            writeFile: async () => {},
+            sync: async () => {
+              throw new Error("sync failed");
+            },
+            close: async () => {
+              callOrder.push("close");
+            },
+          } as unknown as Awaited<ReturnType<typeof fsPromises.open>>;
+        },
+        mkdir: origMkdir as typeof fsPromises.mkdir,
+        rename: origRename as typeof fsPromises.rename,
+        unlink: async (...args) => {
+          callOrder.push("unlink");
+          return origUnlink(...args);
+        },
+      }),
+    ).rejects.toThrow("sync failed");
+
+    // Destination still contains the old value.
+    const result = await readJsonSafe<typeof goodValue>(path);
+    expect(result).toEqual(goodValue);
+
+    // close() must have been called before unlink() (Windows can't unlink open files).
+    expect(callOrder.indexOf("close")).toBeLessThan(callOrder.indexOf("unlink"));
+
+    // No *.tmp file remains.
+    const entries = await readdir(dir);
+    const tmps = entries.filter((e) => e.endsWith(".tmp"));
+    expect(tmps).toHaveLength(0);
+  });
 });
 
 // ---------------------------------------------------------------------------
