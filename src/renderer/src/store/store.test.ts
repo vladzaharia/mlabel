@@ -120,14 +120,20 @@ describe("store: color theme", () => {
 describe("store: write-through autosave", () => {
   const saveSessionMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
   const clearSessionMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+  const setMenuContextMockAutosave = vi.fn<IpcApi["setMenuContext"]>().mockResolvedValue(undefined);
 
   beforeEach(() => {
     saveSessionMock.mockClear();
     clearSessionMock.mockClear();
+    setMenuContextMockAutosave.mockClear();
     // Must use Object.defineProperty (same as app.test.tsx) so that
     // `window.api` resolves correctly in happy-dom.
     Object.defineProperty(window, "api", {
-      value: { saveSession: saveSessionMock, clearSession: clearSessionMock },
+      value: {
+        saveSession: saveSessionMock,
+        clearSession: clearSessionMock,
+        setMenuContext: setMenuContextMockAutosave,
+      },
       configurable: true,
       writable: true,
     });
@@ -186,16 +192,19 @@ describe("store: zero-records guard", () => {
   const loadInputMock = vi.fn<IpcApi["loadInput"]>();
   const clearSessionMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
   const saveSessionMock2 = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+  const setMenuContextMockZero = vi.fn<IpcApi["setMenuContext"]>().mockResolvedValue(undefined);
 
   beforeEach(() => {
     loadInputMock.mockClear();
     clearSessionMock.mockClear();
     saveSessionMock2.mockClear();
+    setMenuContextMockZero.mockClear();
     Object.defineProperty(window, "api", {
       value: {
         loadInput: loadInputMock,
         clearSession: clearSessionMock,
         saveSession: saveSessionMock2,
+        setMenuContext: setMenuContextMockZero,
       },
       configurable: true,
       writable: true,
@@ -246,16 +255,19 @@ describe("store: exportError and submitDone announcements", () => {
   const exportLabelsMock = vi.fn<IpcApi["exportLabels"]>();
   const clearSessionMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
   const saveSessionMock3 = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+  const setMenuContextMockExport = vi.fn<IpcApi["setMenuContext"]>().mockResolvedValue(undefined);
 
   beforeEach(() => {
     exportLabelsMock.mockClear();
     clearSessionMock.mockClear();
     saveSessionMock3.mockClear();
+    setMenuContextMockExport.mockClear();
     Object.defineProperty(window, "api", {
       value: {
         exportLabels: exportLabelsMock,
         clearSession: clearSessionMock,
         saveSession: saveSessionMock3,
+        setMenuContext: setMenuContextMockExport,
       },
       configurable: true,
       writable: true,
@@ -488,7 +500,7 @@ describe("store: setMode", () => {
   });
 
   afterEach(() => {
-    useStore.setState({ phase: "boot", config: null, records: [] });
+    useStore.setState({ phase: "boot", config: null, records: [], mode: "label" });
   });
 
   it("is a no-op when no config is loaded", () => {
@@ -500,15 +512,19 @@ describe("store: setMode", () => {
 
   it("setMode('prepare') transitions to 'prepare' phase when config is loaded", () => {
     useStore.setState({ phase: "need-input", config, records: [] });
+    setMenuContextMock.mockClear(); // clear the call from config-load subscriber
     useStore.getState().setMode("prepare");
     expect(useStore.getState().phase).toBe("prepare");
+    expect(useStore.getState().mode).toBe("prepare");
     expect(setMenuContextMock).toHaveBeenCalledWith({ configLoaded: true, mode: "prepare" });
   });
 
   it("setMode('label') transitions to 'need-input' when no records loaded", () => {
-    useStore.setState({ phase: "prepare", config, records: [] });
+    useStore.setState({ phase: "prepare", config, records: [], mode: "prepare" });
+    setMenuContextMock.mockClear(); // clear the call from config-load subscriber
     useStore.getState().setMode("label");
     expect(useStore.getState().phase).toBe("need-input");
+    expect(useStore.getState().mode).toBe("label");
     expect(setMenuContextMock).toHaveBeenCalledWith({ configLoaded: true, mode: "label" });
   });
 
@@ -517,9 +533,12 @@ describe("store: setMode", () => {
       phase: "prepare",
       config,
       records: [{ index: 0, inputValues: {}, labelValues: {}, coercionErrors: [] }],
+      mode: "prepare",
     });
+    setMenuContextMock.mockClear(); // clear the call from config-load subscriber
     useStore.getState().setMode("label");
     expect(useStore.getState().phase).toBe("labeling");
+    expect(useStore.getState().mode).toBe("label");
     expect(setMenuContextMock).toHaveBeenCalledWith({ configLoaded: true, mode: "label" });
   });
 
@@ -530,8 +549,58 @@ describe("store: setMode", () => {
   });
 
   it("setMode('label') announces 'Labeling mode'", () => {
-    useStore.setState({ phase: "prepare", config, records: [] });
+    useStore.setState({ phase: "prepare", config, records: [], mode: "prepare" });
     useStore.getState().setMode("label");
     expect(useAnnouncer.getState().polite.message).toBe("Labeling mode");
+  });
+
+  // M1 — preservation: labels and index survive a prepare→label→prepare cycle
+  it("labels and index are unchanged across a prepare→label→prepare cycle", () => {
+    const frozenLabels: Record<number, LabelMap> = {
+      0: { verdict: "good" },
+      1: { verdict: "bad" },
+    };
+    useStore.setState({
+      phase: "labeling",
+      config,
+      records,
+      labels: frozenLabels,
+      index: 1,
+      mode: "label",
+    });
+    setMenuContextMock.mockClear();
+
+    useStore.getState().setMode("prepare");
+    expect(useStore.getState().labels).toEqual(frozenLabels);
+    expect(useStore.getState().index).toBe(1);
+
+    useStore.getState().setMode("label");
+    expect(useStore.getState().labels).toEqual(frozenLabels);
+    expect(useStore.getState().index).toBe(1);
+
+    useStore.getState().setMode("prepare");
+    expect(useStore.getState().labels).toEqual(frozenLabels);
+    expect(useStore.getState().index).toBe(1);
+  });
+
+  // I2/I3 — subscriber-driven menu-context sync
+  it("config load triggers setMenuContext with configLoaded:true via subscriber", () => {
+    // Start with no config (config: null from afterEach + boot).
+    useStore.setState({ phase: "need-config", config: null, records: [], mode: "label" });
+    setMenuContextMock.mockClear();
+
+    // Simulate a config becoming available.
+    useStore.setState({ config, phase: "need-input" });
+
+    expect(setMenuContextMock).toHaveBeenCalledWith({ configLoaded: true, mode: "label" });
+  });
+
+  it("backToConfig triggers setMenuContext with configLoaded:false via subscriber", () => {
+    useStore.setState({ phase: "need-input", config, records: [], mode: "label" });
+    setMenuContextMock.mockClear();
+
+    useStore.getState().backToConfig();
+
+    expect(setMenuContextMock).toHaveBeenCalledWith({ configLoaded: false, mode: "label" });
   });
 });

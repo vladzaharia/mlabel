@@ -1,3 +1,4 @@
+import { Menu } from "electron";
 import type { MenuItemConstructorOptions } from "electron";
 
 export interface MenuHandlers {
@@ -104,9 +105,6 @@ let _context: MenuContext | null = null;
 
 function rebuild(): void {
   if (!_handlers || !_context) return;
-  // Lazy import so tests that only call buildMenuTemplate never touch Electron.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Menu } = require("electron") as typeof import("electron");
   Menu.setApplicationMenu(Menu.buildFromTemplate(buildMenuTemplate(_context, _handlers)));
 }
 

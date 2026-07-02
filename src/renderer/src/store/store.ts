@@ -65,6 +65,12 @@ interface AppState {
 
   /** Latest auto-update status pushed from main; `null` until the first event. */
   updateStatus: UpdateStatus | null;
+
+  /**
+   * Current user-selected mode. Source of truth for the Mode menu radio state.
+   * Drives the menu-context subscriber — keeps menu in sync without imperative calls.
+   */
+  mode: "label" | "prepare";
 }
 
 interface AppActions {
@@ -158,6 +164,8 @@ export const useStore = create<AppStore>((set, get) => ({
 
   updateStatus: null,
 
+  mode: "label",
+
   async bootstrap() {
     applyColorTheme(get().colorTheme);
     const systemDark = await window.api.getTheme();
@@ -167,7 +175,6 @@ export const useStore = create<AppStore>((set, get) => ({
     const response = await window.api.getStartupConfig();
     if (response.status === "loaded") {
       set({ config: response.config, configPath: response.path, phase: "need-input" });
-      void window.api.setMenuContext({ configLoaded: true, mode: "label" });
     } else if (response.status === "invalid") {
       set({
         configIssues: response.issues,
@@ -213,7 +220,6 @@ export const useStore = create<AppStore>((set, get) => ({
         phase: "need-input",
         busy: false,
       });
-      void window.api.setMenuContext({ configLoaded: true, mode: "label" });
     } else if (response.status === "invalid") {
       set({
         configIssues: response.issues,
@@ -230,20 +236,20 @@ export const useStore = create<AppStore>((set, get) => ({
     const { config, records } = get();
     if (!config) return;
     if (mode === "prepare") {
-      set({ phase: "prepare" });
+      set({ phase: "prepare", mode: "prepare" });
       announce("Prepare mode", "polite");
     } else {
       // Label mode: go to labeling if records loaded, else input picker.
-      set({ phase: records.length > 0 ? "labeling" : "need-input" });
+      set({ phase: records.length > 0 ? "labeling" : "need-input", mode: "label" });
       announce("Labeling mode", "polite");
     }
-    void window.api.setMenuContext({ configLoaded: true, mode });
   },
 
   /** Return to the input picker; clears any loaded input (labels are autosaved). */
   backToInput() {
     set({
       phase: "need-input",
+      mode: "label",
       inputPath: null,
       records: [],
       headerIssues: [],
@@ -254,7 +260,6 @@ export const useStore = create<AppStore>((set, get) => ({
       pendingResumeStale: false,
       error: null,
     });
-    void window.api.setMenuContext({ configLoaded: true, mode: "label" });
   },
 
   async pickInput() {
@@ -337,6 +342,7 @@ export const useStore = create<AppStore>((set, get) => ({
     usePrepareStore.getState().reset();
     set({
       phase: "need-config",
+      mode: "label",
       config: null,
       configPath: null,
       configIssues: [],
@@ -350,7 +356,6 @@ export const useStore = create<AppStore>((set, get) => ({
       pendingResumeStale: false,
       error: null,
     });
-    void window.api.setMenuContext({ configLoaded: false, mode: "label" });
   },
 }));
 
@@ -442,4 +447,14 @@ useStore.subscribe((state, prev) => {
     index: state.index,
     labels: state.labels,
   });
+});
+
+// --- Menu-context sync: keep the native menu in sync with config/mode state. ---
+// Single subscriber instead of imperative calls scattered across actions.
+// Fires only when config-nullness or mode actually changes to avoid redundant IPC.
+useStore.subscribe((state, prev) => {
+  const configLoaded = state.config !== null;
+  const prevConfigLoaded = prev.config !== null;
+  if (configLoaded === prevConfigLoaded && state.mode === prev.mode) return;
+  void window.api.setMenuContext({ configLoaded, mode: state.mode });
 });
