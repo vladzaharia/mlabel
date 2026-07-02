@@ -277,6 +277,7 @@ describe("sanitizeWindowState", () => {
     // 3. if x/y are defined, the title-strip must intersect a display by ≥100×44
     if (result.x !== undefined && result.y !== undefined) {
       const TITLE_H = 44;
+      // Intentionally mirror THRESH_W and THRESH_H from the main code independently
       const PROP_THRESH_W = 100;
       const PROP_THRESH_H = 44;
       const stripX = result.x;
@@ -397,5 +398,30 @@ describe("trackWindowState (Electron glue)", () => {
     expect(saved?.x).toBe(100);
     expect(saved?.y).toBe(50);
     expect(saved?.maximized).toBe(false);
+  });
+
+  it("flushes debounced resize write without timing out", async () => {
+    const { flushWindowState } = await import("./window-state");
+    vi.useFakeTimers();
+
+    try {
+      trackWindowState(mockWin as Parameters<typeof trackWindowState>[0]);
+
+      // Trigger a resize event — schedules write via 500ms debounce
+      winListeners["resize"]?.[0]?.();
+
+      // Do NOT advance timers past the debounce — flush should still work
+      // and write the pending state without losing it
+      await flushWindowState();
+
+      const { readJsonSafe } = await import("./services/atomic-json");
+      const statePath = join(dir, "window-state.json");
+      const saved = await readJsonSafe<WindowState>(statePath);
+      // Verify the debounced resize state was written (not lost)
+      expect(saved?.width).toBe(900);
+      expect(saved?.height).toBe(650);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

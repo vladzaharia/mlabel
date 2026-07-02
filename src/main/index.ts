@@ -9,7 +9,12 @@ import { offerRelocateToApplications } from "./services/app-location";
 import { installNetworkGuard } from "./services/network-guard";
 import { flushSession } from "./services/session-store";
 import { checkForUpdatesManually, onUpdatesArmed } from "./services/updater";
-import { flushWindowState, loadWindowState, trackWindowState } from "./window-state";
+import {
+  flushWindowState,
+  loadWindowState,
+  trackWindowState,
+  type WindowState,
+} from "./window-state";
 // Bundled by electron-vite (?asset) so it's available at runtime in dev and in
 // the packaged asar — keeps the icon identical across platforms and builds.
 import appIcon from "../../build/icon.png?asset";
@@ -26,12 +31,7 @@ function titleBarOverlayColors(): { color: string; symbolColor: string; height: 
   };
 }
 
-function createWindow(state: {
-  width: number;
-  height: number;
-  x?: number;
-  y?: number;
-}): BrowserWindow {
+function createWindow(state: Pick<WindowState, "width" | "height" | "x" | "y">): BrowserWindow {
   const win = new BrowserWindow({
     width: state.width,
     height: state.height,

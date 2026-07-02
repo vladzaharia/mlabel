@@ -45,7 +45,10 @@ const TITLE_STRIP_H = 44;
  * accessible so the user can drag/move the window.
  */
 const THRESH_W = 100;
-const THRESH_H = 44;
+/**
+ * Must match TITLE_STRIP_H so the full draggable strip height remains visible.
+ */
+const THRESH_H = TITLE_STRIP_H;
 
 /** True for a finite positive number — valid for width/height dimensions. */
 const isValidDim = (v: unknown): v is number =>
@@ -146,6 +149,9 @@ const WIN_MIN = { width: 720, height: 560 };
 /** Trailing timer handle for resize/move coalescing. */
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
+/** Current window reference, cached for flush-time capture. */
+let cachedWin: BrowserWindow | undefined;
+
 /** Module-level write queue for window-state persistence. */
 const windowStateQueue = createWriteQueue<WindowState>(async (state) => {
   const path = join(app.getPath("userData"), STATE_FILENAME);
@@ -173,6 +179,8 @@ export async function loadWindowState(): Promise<WindowState> {
  *   is saved alongside `maximized: true`
  */
 export function trackWindowState(win: BrowserWindow): void {
+  cachedWin = win;
+
   function captureState(): WindowState {
     const b = win.getNormalBounds();
     return { ...b, maximized: win.isMaximized() };
@@ -207,11 +215,17 @@ export function trackWindowState(win: BrowserWindow): void {
 /**
  * Flush any pending window-state write.
  * Called by the quit-flush handler before Electron exits.
+ * If a resize/move debounce is pending, captures and pushes it immediately.
  */
 export function flushWindowState(): Promise<void> {
   if (debounceTimer !== undefined) {
     clearTimeout(debounceTimer);
     debounceTimer = undefined;
+    // Capture the current window state and push it so the debounced write isn't lost
+    if (cachedWin) {
+      const b = cachedWin.getNormalBounds();
+      windowStateQueue.push({ ...b, maximized: cachedWin.isMaximized() });
+    }
   }
   return windowStateQueue.flush();
 }
