@@ -127,6 +127,7 @@ export function CheckboxWidget({
       onCheckedChange={(checked) => onChange(checked === true)}
       aria-describedby={describedBy}
       aria-required={field.required || undefined}
+      aria-invalid={invalid || undefined}
       className={cn(
         "flex h-5 w-5 items-center justify-center rounded border bg-background/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:border-accent data-[state=checked]:bg-accent",
         invalid ? "border-danger" : "border-border",
@@ -234,8 +235,6 @@ export function SliderWidget({
   return (
     <div className="flex items-center gap-3">
       <Slider.Root
-        aria-describedby={describedBy}
-        aria-required={field.required || undefined}
         className="relative flex h-5 flex-1 touch-none items-center"
         value={[current]}
         min={min}
@@ -253,6 +252,8 @@ export function SliderWidget({
         <Slider.Thumb
           aria-label={ariaLabel(field)}
           aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
+          aria-required={field.required || undefined}
           className="relative block h-5 w-5 rounded-full border-2 border-accent bg-background shadow before:absolute before:-inset-1 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </Slider.Root>

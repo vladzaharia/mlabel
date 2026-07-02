@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { loadConfig } from "@core/config";
 import type { OutputField } from "@core/config";
+import { CheckboxWidget } from "./widgets";
 import { FieldRenderer } from "./FieldRenderer";
 
 /** Parse a real config so every OutputField carries the Zod-applied defaults. */
@@ -118,14 +119,30 @@ describe("widgets: invalid state (aria-invalid + aria-describedby)", () => {
     expect(texts.some((t) => /≤ 10/.test(t))).toBe(true);
   });
 
-  it("slider: aria-invalid set on thumb when invalid", () => {
-    render(<FieldRenderer field={field("score")} value={99} onChange={vi.fn()} />);
-    // Slider for score doesn't exist, but confidence has no min/max violation.
-    // Use a re-render of confidence with a separate invalid scenario through FieldRenderer.
-    // Since slider tracks validity from FieldRenderer, use a text field as proxy —
-    // slider itself doesn't have a min/max violation here so just check score spinbutton:
-    const input = screen.getByRole("spinbutton", { name: "Score" });
-    expect(input).toHaveAttribute("aria-invalid", "true");
+  it("slider: aria-invalid and aria-describedby set on thumb (role=slider) when invalid", () => {
+    // confidence has min:0, max:100; value 150 exceeds max and triggers a validation error.
+    render(<FieldRenderer field={field("confidence")} value={150} onChange={vi.fn()} />);
+    const thumb = screen.getByRole("slider", { name: "Confidence" });
+    expect(thumb).toHaveAttribute("aria-invalid", "true");
+    const errorId = thumb.getAttribute("aria-describedby");
+    expect(errorId).toBeTruthy();
+    const errorEl = document.getElementById(errorId!.split(" ").at(-1)!);
+    expect(errorEl).not.toBeNull();
+    expect(errorEl!.textContent).toMatch(/≤ 100/);
+  });
+
+  it("checkbox: aria-invalid set on role=checkbox element when invalid prop is true", () => {
+    // Render the widget directly with invalid=true — Checkbox.Root (role=checkbox) must expose it.
+    render(
+      <CheckboxWidget
+        field={field("flag")}
+        value={false}
+        onChange={vi.fn()}
+        invalid={true}
+        describedBy="flag-error"
+      />,
+    );
+    expect(screen.getByRole("checkbox")).toHaveAttribute("aria-invalid", "true");
   });
 
   it("radio: aria-invalid set on group when validation fails (via radiogroup role)", () => {
@@ -194,14 +211,13 @@ describe("widgets: aria-required", () => {
     );
   });
 
-  it("slider: aria-required set on root when field is required", () => {
+  it("slider: aria-required set on thumb (role=slider) when field is required", () => {
     render(<FieldRenderer field={field("confidence")} value={0} onChange={vi.fn()} />);
-    // Slider.Root gets aria-required; the thumb role=slider should inherit or check Slider.Root
-    const slider = screen.getByRole("slider");
-    // Radix Slider puts aria-required on Slider.Root (the role=group/none container),
-    // so check the Slider.Root container has it — or the thumb itself if Radix passes it through.
-    // In practice Radix does pass aria-required to the thumb via the root.
-    expect(slider.closest("[aria-required]") ?? slider).toHaveAttribute("aria-required", "true");
+    // confidence defaults to required:true; aria-required must be on the thumb (role=slider).
+    expect(screen.getByRole("slider", { name: "Confidence" })).toHaveAttribute(
+      "aria-required",
+      "true",
+    );
   });
 });
 
