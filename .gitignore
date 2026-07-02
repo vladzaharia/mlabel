@@ -17,3 +17,6 @@ examples/*-remaining.*
 # A global gitignore excludes build/, but it holds packaging assets (icons,
 # entitlements) that must be committed for reproducible builds.
 !build/
+
+# Local git worktrees
+.worktrees/
