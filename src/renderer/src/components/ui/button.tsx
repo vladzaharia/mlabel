@@ -13,7 +13,7 @@ const buttonVariants = cva(
         ghost: "hover:bg-muted",
         subtle: "bg-muted text-foreground hover:opacity-90",
         danger: "bg-danger text-danger-foreground hover:opacity-90",
-        "danger-outline": "border border-danger text-danger bg-transparent hover:bg-danger/10",
+        "danger-outline": "border border-danger text-danger-text bg-transparent hover:bg-danger/10",
       },
       size: {
         xs: "h-6 gap-1 px-2.5 text-xs",
@@ -21,6 +21,8 @@ const buttonVariants = cva(
         md: "h-9 px-4",
         lg: "h-11 px-6 text-base",
         icon: "h-9 w-9",
+        "icon-sm": "h-7 w-7",
+        "icon-xs": "h-6 w-6",
       },
     },
     defaultVariants: { variant: "default", size: "md" },

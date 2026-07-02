@@ -53,10 +53,10 @@ export function BottomBar({ onHelp }: BottomBarProps): React.JSX.Element {
           <Tooltip content="Keyboard shortcuts">
             <Button
               variant="ghost"
-              size="icon"
+              size="icon-sm"
               onClick={onHelp}
               aria-label="Keyboard shortcuts"
-              className="no-drag h-7 w-7 text-muted-foreground hover:text-foreground"
+              className="no-drag text-muted-foreground hover:text-foreground"
             >
               <CircleHelp size={15} />
             </Button>

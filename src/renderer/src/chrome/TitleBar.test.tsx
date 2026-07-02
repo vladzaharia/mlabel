@@ -82,9 +82,9 @@ describe("TitleBar", () => {
       },
     });
     render(<TitleBar onDone={() => {}} />);
-    // At 100%, the counter span has text-progress class.
+    // At 100%, the counter span has text-progress-text class.
     const counter = screen.getByText(/of 4 labeled/).closest("span");
-    expect(counter?.className).toContain("text-progress");
+    expect(counter?.className).toContain("text-progress-text");
   });
 
   it("does not show check icon when not at 100%", () => {

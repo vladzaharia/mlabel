@@ -39,7 +39,7 @@ export function SplitPanel(): React.JSX.Element {
         </div>
       )}
 
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && <p className="text-xs text-danger-text">{error}</p>}
 
       {file && (
         <>
@@ -50,22 +50,20 @@ export function SplitPanel(): React.JSX.Element {
             <div className="flex items-center gap-1">
               <Button
                 variant="outline"
-                size="icon"
+                size="icon-sm"
                 aria-label="Fewer files"
                 disabled={busy || parts <= 2}
                 onClick={() => setSplitParts(parts - 1)}
-                className="h-7 w-7"
               >
                 <Minus size={13} />
               </Button>
               <span className="w-8 text-center text-sm font-medium tabular-nums">{parts}</span>
               <Button
                 variant="outline"
-                size="icon"
+                size="icon-sm"
                 aria-label="More files"
                 disabled={busy || parts >= file.rowCount}
                 onClick={() => setSplitParts(parts + 1)}
-                className="h-7 w-7"
               >
                 <Plus size={13} />
               </Button>
@@ -83,12 +81,12 @@ export function SplitPanel(): React.JSX.Element {
             <Scissors size={14} /> Split into {parts} files
           </Button>
 
-          {result && !result.ok && <p className="text-xs text-danger">{result.error}</p>}
+          {result && !result.ok && <p className="text-xs text-danger-text">{result.error}</p>}
           {result?.ok && result.files && (
             <div className="space-y-1.5 rounded-lg border border-progress/30 bg-progress/5 p-3">
               {result.files.map((f) => (
                 <div key={f.path} className="flex items-center gap-2 text-xs">
-                  <CheckCircle2 size={13} className="text-progress shrink-0" />
+                  <CheckCircle2 size={13} className="text-progress-text shrink-0" />
                   <span className="min-w-0 flex-1 truncate" title={f.path}>
                     {baseName(f.path)}
                   </span>

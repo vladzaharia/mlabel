@@ -43,8 +43,8 @@ export function DialogWarning({ children }: { children?: ReactNode }): React.JSX
   if (!children) return null;
   return (
     <div className="mt-3 flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2">
-      <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warning" />
-      <p className="text-xs text-warning">{children}</p>
+      <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warning-text" />
+      <p className="text-xs text-warning-text">{children}</p>
     </div>
   );
 }

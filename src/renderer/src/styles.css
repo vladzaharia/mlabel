@@ -36,7 +36,7 @@
   --background: oklch(0.985 0.004 258 / 0.8);
   --foreground: oklch(0.24 0.026 262);
   --muted: oklch(0.955 0.006 258 / 0.7);
-  --muted-foreground: oklch(0.5 0.024 260);
+  --muted-foreground: oklch(0.31 0.024 260);
   --border: oklch(0.45 0.03 262 / 0.14);
   --card: oklch(0.995 0.003 258 / 0.72);
   --card-foreground: oklch(0.24 0.026 262);
@@ -52,21 +52,27 @@
   --danger-foreground: oklch(0.99 0.01 25);
   --warning: oklch(0.75 0.15 75);
   --warning-foreground: oklch(0.28 0.05 75);
-  --info: oklch(0.62 0.16 235);
+  --info: oklch(0.54 0.16 235);
   --info-foreground: oklch(0.99 0.01 235);
+  /* Semantic-as-text variants: AA-compliant dark tones for use on light surfaces */
+  --danger-text: oklch(0.4 0.19 25);
+  --warning-text: oklch(0.4 0.15 75);
+  --progress-text: oklch(0.36 0.15 155);
+  --info-text: oklch(0.38 0.15 235);
 }
 
 .dark,
 .dark[data-theme="cobalt"] {
-  --background: oklch(0.2 0.022 264 / 0.55);
+  /* Surface alpha raised to 0.95 for WCAG AA text contrast over any wallpaper. */
+  --background: oklch(0.2 0.022 264 / 0.95);
   --foreground: oklch(0.93 0.012 258);
-  --muted: oklch(0.27 0.026 264 / 0.55);
+  --muted: oklch(0.27 0.026 264 / 0.95);
   --muted-foreground: oklch(0.68 0.024 258);
   --border: oklch(0.88 0.02 258 / 0.14);
-  --card: oklch(0.255 0.026 264 / 0.52);
+  --card: oklch(0.255 0.026 264 / 0.95);
   --card-foreground: oklch(0.93 0.012 258);
-  --chrome: oklch(0.225 0.024 264 / 0.5);
-  --popover: oklch(0.19 0.026 264 / 0.9);
+  --chrome: oklch(0.225 0.024 264 / 0.95);
+  --popover: oklch(0.19 0.026 264 / 0.95);
   --popover-foreground: oklch(0.93 0.012 258);
   --accent: oklch(0.7 0.18 266);
   --accent-foreground: oklch(0.16 0.028 264);
@@ -79,6 +85,11 @@
   --warning-foreground: oklch(0.2 0.04 78);
   --info: oklch(0.72 0.16 235);
   --info-foreground: oklch(0.16 0.03 235);
+  /* Semantic-as-text variants for dark surfaces */
+  --danger-text: oklch(0.72 0.18 25);
+  --warning-text: oklch(0.8 0.15 78);
+  --progress-text: oklch(0.76 0.16 155);
+  --info-text: oklch(0.72 0.16 235);
 }
 
 /* Parchment Parlour — soft sage-tinted paper, dusty sage accent. */
@@ -86,17 +97,17 @@
   --background: oklch(0.975 0.014 98 / 0.8);
   --foreground: oklch(0.27 0.02 90);
   --muted: oklch(0.95 0.018 96 / 0.7);
-  --muted-foreground: oklch(0.5 0.022 95);
+  --muted-foreground: oklch(0.3 0.022 95);
   --border: oklch(0.45 0.04 95 / 0.16);
   --card: oklch(0.99 0.01 100 / 0.72);
   --card-foreground: oklch(0.27 0.02 90);
   --chrome: oklch(0.965 0.015 97 / 0.62);
   --popover: oklch(0.99 0.01 100 / 0.92);
   --popover-foreground: oklch(0.27 0.02 90);
-  --accent: oklch(0.57 0.09 130);
+  --accent: oklch(0.51 0.09 130);
   --accent-foreground: oklch(0.99 0.01 110);
-  --ring: oklch(0.57 0.09 130 / 0.5);
-  --progress: oklch(0.6 0.14 150);
+  --ring: oklch(0.51 0.09 130 / 0.5);
+  --progress: oklch(0.66 0.14 150);
   --progress-foreground: oklch(0.3 0.07 150);
   --danger: oklch(0.57 0.19 28);
   --danger-foreground: oklch(0.99 0.01 80);
@@ -104,18 +115,24 @@
   --warning-foreground: oklch(0.28 0.05 70);
   --info: oklch(0.55 0.15 245);
   --info-foreground: oklch(0.99 0.01 245);
+  /* Semantic-as-text variants: AA-compliant dark tones for use on light surfaces */
+  --danger-text: oklch(0.4 0.19 28);
+  --warning-text: oklch(0.4 0.14 70);
+  --progress-text: oklch(0.37 0.14 150);
+  --info-text: oklch(0.37 0.15 245);
 }
 
 .dark[data-theme="parchment"] {
-  --background: oklch(0.23 0.016 110 / 0.55);
+  /* Surface alpha raised to 0.95 for WCAG AA text contrast over any wallpaper. */
+  --background: oklch(0.23 0.016 110 / 0.95);
   --foreground: oklch(0.93 0.014 100);
-  --muted: oklch(0.285 0.018 110 / 0.55);
+  --muted: oklch(0.285 0.018 110 / 0.95);
   --muted-foreground: oklch(0.7 0.018 100);
   --border: oklch(0.9 0.02 100 / 0.14);
-  --card: oklch(0.275 0.018 110 / 0.52);
+  --card: oklch(0.275 0.018 110 / 0.95);
   --card-foreground: oklch(0.93 0.014 100);
-  --chrome: oklch(0.25 0.016 110 / 0.5);
-  --popover: oklch(0.21 0.018 110 / 0.9);
+  --chrome: oklch(0.25 0.016 110 / 0.95);
+  --popover: oklch(0.21 0.018 110 / 0.95);
   --popover-foreground: oklch(0.93 0.014 100);
   --accent: oklch(0.8 0.1 132);
   --accent-foreground: oklch(0.2 0.04 130);
@@ -128,6 +145,11 @@
   --warning-foreground: oklch(0.2 0.04 75);
   --info: oklch(0.72 0.15 245);
   --info-foreground: oklch(0.16 0.03 245);
+  /* Semantic-as-text variants for dark surfaces */
+  --danger-text: oklch(0.72 0.17 28);
+  --warning-text: oklch(0.83 0.14 75);
+  --progress-text: oklch(0.78 0.14 150);
+  --info-text: oklch(0.72 0.15 245);
 }
 
 /* Frostbound Fjord — glacial cool neutral, azure accent, cyan info. */
@@ -135,36 +157,42 @@
   --background: oklch(0.985 0.006 230 / 0.8);
   --foreground: oklch(0.24 0.022 235);
   --muted: oklch(0.955 0.008 232 / 0.7);
-  --muted-foreground: oklch(0.5 0.02 233);
+  --muted-foreground: oklch(0.31 0.02 233);
   --border: oklch(0.45 0.03 235 / 0.14);
   --card: oklch(0.995 0.004 230 / 0.72);
   --card-foreground: oklch(0.24 0.022 235);
   --chrome: oklch(0.97 0.006 232 / 0.62);
   --popover: oklch(0.995 0.004 230 / 0.92);
   --popover-foreground: oklch(0.24 0.022 235);
-  --accent: oklch(0.55 0.15 235);
+  --accent: oklch(0.51 0.15 235);
   --accent-foreground: oklch(0.99 0.008 230);
-  --ring: oklch(0.55 0.15 235 / 0.45);
-  --progress: oklch(0.62 0.14 165);
+  --ring: oklch(0.51 0.15 235 / 0.45);
+  --progress: oklch(0.66 0.14 165);
   --progress-foreground: oklch(0.3 0.07 165);
   --danger: oklch(0.58 0.19 25);
   --danger-foreground: oklch(0.99 0.01 25);
   --warning: oklch(0.72 0.13 80);
   --warning-foreground: oklch(0.28 0.05 80);
-  --info: oklch(0.6 0.13 210);
+  --info: oklch(0.52 0.13 210);
   --info-foreground: oklch(0.99 0.01 210);
+  /* Semantic-as-text variants: AA-compliant dark tones for use on light surfaces */
+  --danger-text: oklch(0.4 0.19 25);
+  --warning-text: oklch(0.4 0.13 80);
+  --progress-text: oklch(0.36 0.14 165);
+  --info-text: oklch(0.37 0.13 210);
 }
 
 .dark[data-theme="fjord"] {
-  --background: oklch(0.2 0.022 240 / 0.55);
+  /* Surface alpha raised to 0.95 for WCAG AA text contrast over any wallpaper. */
+  --background: oklch(0.2 0.022 240 / 0.95);
   --foreground: oklch(0.93 0.012 230);
-  --muted: oklch(0.27 0.026 240 / 0.55);
+  --muted: oklch(0.27 0.026 240 / 0.95);
   --muted-foreground: oklch(0.68 0.02 233);
   --border: oklch(0.88 0.02 230 / 0.14);
-  --card: oklch(0.255 0.026 240 / 0.52);
+  --card: oklch(0.255 0.026 240 / 0.95);
   --card-foreground: oklch(0.93 0.012 230);
-  --chrome: oklch(0.225 0.024 240 / 0.5);
-  --popover: oklch(0.19 0.026 240 / 0.9);
+  --chrome: oklch(0.225 0.024 240 / 0.95);
+  --popover: oklch(0.19 0.026 240 / 0.95);
   --popover-foreground: oklch(0.93 0.012 230);
   --accent: oklch(0.72 0.14 235);
   --accent-foreground: oklch(0.16 0.02 240);
@@ -177,6 +205,11 @@
   --warning-foreground: oklch(0.2 0.04 80);
   --info: oklch(0.76 0.13 210);
   --info-foreground: oklch(0.16 0.03 210);
+  /* Semantic-as-text variants for dark surfaces */
+  --danger-text: oklch(0.72 0.18 25);
+  --warning-text: oklch(0.83 0.13 80);
+  --progress-text: oklch(0.8 0.14 165);
+  --info-text: oklch(0.76 0.13 210);
 }
 
 /* Velvet Vespers — violet dusk; moody and regal. */
@@ -184,7 +217,7 @@
   --background: oklch(0.985 0.006 300 / 0.8);
   --foreground: oklch(0.25 0.024 300);
   --muted: oklch(0.955 0.008 300 / 0.7);
-  --muted-foreground: oklch(0.5 0.022 300);
+  --muted-foreground: oklch(0.31 0.022 300);
   --border: oklch(0.45 0.03 300 / 0.14);
   --card: oklch(0.995 0.004 305 / 0.72);
   --card-foreground: oklch(0.25 0.024 300);
@@ -194,7 +227,7 @@
   --accent: oklch(0.53 0.2 300);
   --accent-foreground: oklch(0.99 0.008 305);
   --ring: oklch(0.53 0.2 300 / 0.45);
-  --progress: oklch(0.62 0.14 158);
+  --progress: oklch(0.66 0.14 158);
   --progress-foreground: oklch(0.3 0.07 158);
   --danger: oklch(0.58 0.2 22);
   --danger-foreground: oklch(0.99 0.01 22);
@@ -202,18 +235,24 @@
   --warning-foreground: oklch(0.28 0.05 75);
   --info: oklch(0.56 0.16 270);
   --info-foreground: oklch(0.99 0.01 270);
+  /* Semantic-as-text variants: AA-compliant dark tones for use on light surfaces */
+  --danger-text: oklch(0.39 0.2 22);
+  --warning-text: oklch(0.4 0.13 75);
+  --progress-text: oklch(0.37 0.14 158);
+  --info-text: oklch(0.38 0.16 270);
 }
 
 .dark[data-theme="vespers"] {
-  --background: oklch(0.2 0.028 300 / 0.55);
+  /* Surface alpha raised to 0.95 for WCAG AA text contrast over any wallpaper. */
+  --background: oklch(0.2 0.028 300 / 0.95);
   --foreground: oklch(0.93 0.014 300);
-  --muted: oklch(0.27 0.03 300 / 0.55);
+  --muted: oklch(0.27 0.03 300 / 0.95);
   --muted-foreground: oklch(0.68 0.022 300);
   --border: oklch(0.88 0.02 300 / 0.14);
-  --card: oklch(0.255 0.03 300 / 0.52);
+  --card: oklch(0.255 0.03 300 / 0.95);
   --card-foreground: oklch(0.93 0.014 300);
-  --chrome: oklch(0.225 0.028 300 / 0.5);
-  --popover: oklch(0.19 0.03 300 / 0.9);
+  --chrome: oklch(0.225 0.028 300 / 0.95);
+  --popover: oklch(0.19 0.03 300 / 0.95);
   --popover-foreground: oklch(0.93 0.014 300);
   --accent: oklch(0.72 0.18 300);
   --accent-foreground: oklch(0.16 0.03 300);
@@ -226,6 +265,11 @@
   --warning-foreground: oklch(0.2 0.04 78);
   --info: oklch(0.74 0.16 270);
   --info-foreground: oklch(0.16 0.03 270);
+  /* Semantic-as-text variants for dark surfaces */
+  --danger-text: oklch(0.72 0.18 22);
+  --warning-text: oklch(0.83 0.13 78);
+  --progress-text: oklch(0.8 0.14 158);
+  --info-text: oklch(0.74 0.16 270);
 }
 
 @theme inline {
@@ -250,6 +294,10 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-danger-text: var(--danger-text);
+  --color-warning-text: var(--warning-text);
+  --color-progress-text: var(--progress-text);
+  --color-info-text: var(--info-text);
 }
 
 html,

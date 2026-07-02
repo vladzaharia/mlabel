@@ -15,10 +15,10 @@ export function ModeToggle(): React.JSX.Element {
     <Tooltip content={`Theme: ${themeMode}`}>
       <Button
         variant="ghost"
-        size="icon"
+        size="icon-sm"
         onClick={cycleTheme}
         aria-label="Toggle theme"
-        className="no-drag h-7 w-7 text-muted-foreground hover:text-foreground"
+        className="no-drag text-muted-foreground hover:text-foreground"
       >
         <ThemeIcon size={15} />
       </Button>

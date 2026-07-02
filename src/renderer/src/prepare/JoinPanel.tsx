@@ -54,7 +54,7 @@ export function JoinPanel({ kind }: { kind: JoinKind }): React.JSX.Element {
         </div>
       )}
 
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && <p className="text-xs text-danger-text">{error}</p>}
 
       {files.length > 0 && (
         <>
@@ -83,7 +83,7 @@ export function JoinPanel({ kind }: { kind: JoinKind }): React.JSX.Element {
             {files.length} file{files.length === 1 ? "" : "s"} · {totalRows} row
             {totalRows === 1 ? "" : "s"}
             {duplicateCount > 0 && (
-              <span className="text-warning">
+              <span className="text-warning-text">
                 {" "}
                 · {duplicateCount} duplicate row{duplicateCount === 1 ? "" : "s"}
               </span>
@@ -96,11 +96,11 @@ export function JoinPanel({ kind }: { kind: JoinKind }): React.JSX.Element {
           </Button>
 
           {result && !result.ok && !result.canceled && (
-            <p className="text-xs text-danger">{result.error}</p>
+            <p className="text-xs text-danger-text">{result.error}</p>
           )}
           {result?.ok && result.path && (
             <div className="flex items-center gap-2 rounded-lg border border-progress/30 bg-progress/5 p-3 text-xs">
-              <CheckCircle2 size={13} className="text-progress shrink-0" />
+              <CheckCircle2 size={13} className="text-progress-text shrink-0" />
               <span className="min-w-0 flex-1 truncate" title={result.path}>
                 {baseName(result.path)}
               </span>

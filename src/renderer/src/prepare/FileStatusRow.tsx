@@ -1,7 +1,8 @@
-import { AlertTriangle, CheckCircle2, FileSpreadsheet, X } from "lucide-react";
+import { FileSpreadsheet, X } from "lucide-react";
 import type { PrepareFileInfo } from "@core";
 import { Button } from "../components/ui/button";
 import { IssueList } from "../components/IssueList";
+import { SEVERITY } from "../components/Severity";
 import { baseName } from "../lib/utils";
 
 /** One analyzed file: name, row count, validation status, optional remove. */
@@ -27,26 +28,30 @@ export function FileStatusRow({
         </span>
         {file.ok ? (
           warnings > 0 ? (
-            <span className="flex shrink-0 items-center gap-1 text-xs text-warning">
-              <AlertTriangle size={13} /> {warnings} warning{warnings === 1 ? "" : "s"}
+            <span
+              className={`flex shrink-0 items-center gap-1 text-xs ${SEVERITY.warning.textClass}`}
+            >
+              <SEVERITY.warning.Icon size={13} /> {warnings} warning{warnings === 1 ? "" : "s"}
             </span>
           ) : (
-            <span className="flex shrink-0 items-center gap-1 text-xs text-progress">
-              <CheckCircle2 size={13} /> Valid
+            <span
+              className={`flex shrink-0 items-center gap-1 text-xs ${SEVERITY.success.textClass}`}
+            >
+              <SEVERITY.success.Icon size={13} /> Valid
             </span>
           )
         ) : (
-          <span className="flex shrink-0 items-center gap-1 text-xs text-danger">
-            <AlertTriangle size={13} /> {errors} error{errors === 1 ? "" : "s"}
+          <span className={`flex shrink-0 items-center gap-1 text-xs ${SEVERITY.error.textClass}`}>
+            <SEVERITY.error.Icon size={13} /> {errors} error{errors === 1 ? "" : "s"}
           </span>
         )}
         {onRemove && (
           <Button
             variant="ghost"
-            size="icon"
+            size="icon-xs"
             aria-label={`Remove ${baseName(file.path)}`}
             onClick={onRemove}
-            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
           >
             <X size={13} />
           </Button>

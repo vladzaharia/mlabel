@@ -30,6 +30,7 @@
     "test:watch": "vitest",
     "test:node": "vitest run --project node",
     "test:dom": "vitest run --project dom",
+    "audit:contrast": "tsx scripts/audit-contrast.ts",
     "schema": "tsx scripts/emit-schema.ts",
     "icons": "tsx scripts/gen-icons.ts",
     "build:mac": "electron-vite build && dotenv -e .env -- electron-builder --mac",

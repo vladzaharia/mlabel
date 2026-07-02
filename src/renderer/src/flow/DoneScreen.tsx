@@ -30,16 +30,16 @@ export function DoneScreen(): React.JSX.Element {
 
         <div className="w-full space-y-2 rounded-xl border border-border bg-muted/30 p-4 text-left text-sm">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-progress" />
-            <span className="font-medium text-progress">{complete}</span>
+            <CheckCircle2 size={16} className="text-progress-text" />
+            <span className="font-medium text-progress-text">{complete}</span>
             <span className="text-muted-foreground">
               record{complete === 1 ? "" : "s"} exported
             </span>
           </div>
           {remaining > 0 && (
             <div className="flex items-center gap-2">
-              <FileDown size={16} className="text-warning" />
-              <span className="font-medium text-warning">{remaining}</span>
+              <FileDown size={16} className="text-warning-text" />
+              <span className="font-medium text-warning-text">{remaining}</span>
               <span className="text-muted-foreground">
                 incomplete record{remaining === 1 ? "" : "s"} saved to the remaining file
               </span>

@@ -68,8 +68,8 @@ describe("InputIssueScreen", () => {
     seed();
     render(<InputIssueScreen />);
     expect(screen.getByText("This file doesn’t match the config")).toBeInTheDocument();
-    expect(screen.getByText("error")).toHaveClass("text-danger");
-    expect(screen.getByText("warning")).toHaveClass("text-warning");
+    expect(screen.getByText("error")).toHaveClass("text-danger-text");
+    expect(screen.getByText("warning")).toHaveClass("text-warning-text");
     expect(screen.getByText(/id — Missing column/)).toBeInTheDocument();
     expect(screen.getByText(/junk — Unexpected column/)).toBeInTheDocument();
   });

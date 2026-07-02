@@ -85,7 +85,7 @@ export function LabelingView({ onDone }: { onDone: () => void }): React.JSX.Elem
           Labeling
         </h1>
         {exportError && (
-          <div className="flex items-center gap-3 border-b border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger">
+          <div className="flex items-center gap-3 border-b border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger-text">
             <span className="flex-1">{exportError}</span>
             <Button size="xs" variant="danger-outline" onClick={() => void onDone()}>
               Try again

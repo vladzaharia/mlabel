@@ -53,7 +53,7 @@ function BoolPill({ value }: { value: boolean }): React.JSX.Element {
     <span
       className={
         value
-          ? "inline-flex items-center gap-1 text-progress"
+          ? "inline-flex items-center gap-1 text-progress-text"
           : "inline-flex items-center gap-1 text-muted-foreground"
       }
     >

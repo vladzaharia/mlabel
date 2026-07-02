@@ -48,7 +48,7 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
       {labeling && (
         <div className="ml-auto flex h-full items-center gap-3">
           {total > 0 && completed === total ? (
-            <span className="no-drag flex items-center gap-1 px-2 text-xs tabular-nums text-progress">
+            <span className="no-drag flex items-center gap-1 px-2 text-xs tabular-nums text-progress-text">
               <CheckCircle2 size={13} />
               <span className="font-medium">{completed}</span> of {total} labeled
             </span>

@@ -25,7 +25,7 @@ function IssueShell({
   return (
     <div className="flex flex-1 items-center justify-center p-8">
       <div className="glass-card flex w-full max-w-xl flex-col gap-4 rounded-2xl border border-border p-8 shadow-xl">
-        <div className="flex items-center gap-3 text-danger">
+        <div className="flex items-center gap-3 text-danger-text">
           <AlertTriangle size={20} />
           <h1 ref={headingRef} tabIndex={-1} className="text-base font-semibold outline-none">
             {title}

@@ -51,7 +51,7 @@ export function FieldRenderer({
     <div className="flex items-center gap-1">
       <span className="text-sm font-medium">
         {field.displayName ?? field.name}
-        {field.required && <span className="ml-0.5 text-danger">*</span>}
+        {field.required && <span className="ml-0.5 text-danger-text">*</span>}
       </span>
       {field.help && <HelpBubble>{field.help}</HelpBubble>}
     </div>
@@ -62,7 +62,7 @@ export function FieldRenderer({
     </p>
   );
   const errorEl = error && (
-    <p id={errorId} className="text-xs text-danger">
+    <p id={errorId} className="text-xs text-danger-text">
       {error}
     </p>
   );
