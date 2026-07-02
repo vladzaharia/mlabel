@@ -25,6 +25,12 @@ function useLabelingAnnouncements(): void {
   ).current;
 
   useEffect(() => {
+    return () => {
+      debouncedNav.cancel();
+    };
+  }, [debouncedNav]);
+
+  useEffect(() => {
     debouncedNav(index, total);
   }, [index, total, debouncedNav]);
 

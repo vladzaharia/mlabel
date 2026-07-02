@@ -21,10 +21,17 @@ export function chromePadding(): string {
 export function debounce<A extends unknown[]>(
   fn: (...args: A) => void,
   ms: number,
-): (...args: A) => void {
+): ((...args: A) => void) & { cancel: () => void } {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  return (...args: A) => {
+  const debounced = (...args: A): void => {
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => fn(...args), ms);
   };
+  debounced.cancel = (): void => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+  };
+  return debounced;
 }

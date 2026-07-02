@@ -33,9 +33,11 @@ function phaseAnnouncement(
     case "input-invalid":
       return { message: "Input invalid", politeness: "assertive" };
     case "labeling":
-      return { message: "Labeling", politeness: "polite" };
+      // The LabelingView h1 receives focus; AT reads the heading directly.
+      return null;
     case "prepare":
-      return { message: "Prepare data", politeness: "polite" };
+      // The PrepareView h1 receives focus; AT reads the heading directly.
+      return null;
     case "done":
       return { message: "Export complete", politeness: "polite" };
   }

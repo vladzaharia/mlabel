@@ -6,6 +6,7 @@ import { useStore } from "../store/store";
 import { useAnnouncer } from "../a11y/announcer";
 import { LabelingView } from "./LabelingView";
 import { LiveAnnouncer } from "../a11y/LiveAnnouncer";
+import { debounce } from "../lib/utils";
 
 function sampleConfig(): AppConfig {
   const result = loadConfig(`{
@@ -216,5 +217,69 @@ describe("LabelingView announcements", () => {
     });
 
     expect(useAnnouncer.getState().polite.message).toBe("All records labeled");
+  });
+
+  it("does not announce navigation after unmount before debounce elapses", () => {
+    const { unmount } = render(
+      <>
+        <LiveAnnouncer />
+        <LabelingView onDone={() => {}} />
+      </>,
+    );
+
+    // Unmount before the 300ms debounce fires.
+    unmount();
+
+    // Advance past the debounce window — the pending timer should have been cancelled.
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
+    expect(useAnnouncer.getState().polite.message).toBe("");
+  });
+});
+
+describe("debounce.cancel", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("cancels a pending invocation so the callback never runs", () => {
+    const fn = vi.fn();
+    const debounced = debounce(fn, 200);
+
+    debounced("a");
+    debounced.cancel();
+
+    vi.advanceTimersByTime(300);
+
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op when called with no pending timer", () => {
+    const fn = vi.fn();
+    const debounced = debounce(fn, 200);
+
+    // cancel before any call — should not throw
+    expect(() => {
+      debounced.cancel();
+    }).not.toThrow();
+  });
+
+  it("allows new invocations after cancel", () => {
+    const fn = vi.fn();
+    const debounced = debounce(fn, 200);
+
+    debounced("first");
+    debounced.cancel();
+
+    debounced("second");
+    vi.advanceTimersByTime(200);
+
+    expect(fn).toHaveBeenCalledOnce();
+    expect(fn).toHaveBeenCalledWith("second");
   });
 });
