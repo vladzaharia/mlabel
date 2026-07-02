@@ -67,7 +67,7 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "dotenv-cli": "11.0.0",
-    "electron": "42.3.3",
+    "electron": "42.5.2",
     "electron-builder": "26.15.6",
     "electron-vite": "5.0.0",
     "fast-check": "4.8.0",

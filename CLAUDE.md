@@ -91,3 +91,7 @@ and `*-remaining.*` (byte-faithful unlabeled/incomplete records).
   no-op in dev.
 - oxfmt is beta and the sole formatter: if it ever blocks a commit, bypass once with
   `--no-verify` and fix — never silently disable the hook.
+- **Babel stays on 7.x** — `babel-plugin-react-compiler@1.0.0` has no Babel 8 support;
+  plan is to drop Babel entirely once React's Rust compiler port ships in `plugin-react`
+  (do not migrate to Babel 8 in between). **Electron 43 held deliberately** — revisit at
+  43.0.1+; 42.x receives patches until ~Oct 2026.
