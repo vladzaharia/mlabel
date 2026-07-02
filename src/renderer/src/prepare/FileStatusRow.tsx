@@ -2,10 +2,7 @@ import { AlertTriangle, CheckCircle2, FileSpreadsheet, X } from "lucide-react";
 import type { PrepareFileInfo } from "@core";
 import { Button } from "../components/ui/button";
 import { IssueList } from "../components/IssueList";
-
-function baseName(path: string): string {
-  return path.split(/[/\\]/).pop() ?? path;
-}
+import { baseName } from "../lib/utils";
 
 /** One analyzed file: name, row count, validation status, optional remove. */
 export function FileStatusRow({

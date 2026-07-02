@@ -42,7 +42,7 @@ export function UpdateIndicator(): React.JSX.Element | null {
           variant="ghost"
           size="xs"
           className={buttonClass}
-          onClick={() => void window.api.openExternal(url)}
+          onClick={() => window.api.openExternal(url).catch(console.error)}
         >
           <Download size={13} /> Update available
         </Button>

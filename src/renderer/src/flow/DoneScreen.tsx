@@ -2,7 +2,7 @@ import { CheckCircle2, FileDown, Folder, Loader2, PartyPopper } from "lucide-rea
 import { useStore } from "../store/store";
 import { Button } from "../components/ui/button";
 import { useHeadingFocus } from "../a11y/useHeadingFocus";
-import { isMac } from "../lib/utils";
+import { baseName, isMac } from "../lib/utils";
 
 export function DoneScreen(): React.JSX.Element {
   const result = useStore((s) => s.exportResult);
@@ -47,8 +47,8 @@ export function DoneScreen(): React.JSX.Element {
           )}
         </div>
 
-        {result?.outputPath && <OutputRow path={result.outputPath} />}
-        {result?.remainingPath && <OutputRow path={result.remainingPath} />}
+        {result?.outputPath && <RevealRow path={result.outputPath} />}
+        {result?.remainingPath && <RevealRow path={result.remainingPath} />}
 
         <div className="flex gap-2">
           <Button variant="ghost" onClick={backToLabeling}>
@@ -65,19 +65,18 @@ export function DoneScreen(): React.JSX.Element {
 }
 
 /** One output file row: filename + full path tooltip + OS reveal button. */
-function OutputRow({ path }: { path: string }): React.JSX.Element {
-  const name = path.split(/[\\/]/).pop() ?? path;
+function RevealRow({ path }: { path: string }): React.JSX.Element {
   const revealLabel = isMac() ? "Show in Finder" : "Show in File Explorer";
   return (
     <div className="flex w-full items-center justify-between gap-2 text-xs text-muted-foreground">
       <span className="min-w-0 truncate font-medium" title={path}>
-        {name}
+        {baseName(path)}
       </span>
       <Button
         variant="ghost"
         size="xs"
         className="shrink-0"
-        onClick={() => void window.api.revealPath(path)}
+        onClick={() => window.api.revealPath(path).catch(console.error)}
       >
         <Folder size={12} />
         {revealLabel}

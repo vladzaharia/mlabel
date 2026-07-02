@@ -54,7 +54,7 @@ export interface IpcApi {
   /**
    * Reveal a file in the OS file manager. Only paths that main itself produced
    * (export output / remaining, prepare split / join outputs) are allowed;
-   * all others are rejected to prevent path-traversal misuse.
+   * all others reject with an Error to prevent path-traversal misuse.
    */
   revealPath: (path: string) => Promise<void>;
 

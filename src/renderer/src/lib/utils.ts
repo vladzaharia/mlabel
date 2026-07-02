@@ -17,6 +17,11 @@ export function chromePadding(): string {
   return isMac() ? "pl-24 pr-2" : isWindows() ? "pl-5 pr-36" : "pl-5 pr-3";
 }
 
+/** Extract the filename from a platform path (supports both / and \ separators). */
+export function baseName(path: string): string {
+  return path.split(/[/\\]/).pop() ?? path;
+}
+
 /** Trailing-edge debounce. */
 export function debounce<A extends unknown[]>(
   fn: (...args: A) => void,

@@ -47,7 +47,11 @@ describe("checkForUpdatesManually", () => {
 
   it("is a no-op when updates have never been armed (started===false)", () => {
     // On a fresh module the started flag is false; checkForUpdatesManually must be inert.
-    // We verify this by asserting no call was made (the module starts with started=false).
+    // We use a delta-count guard (callsBefore) rather than toHaveBeenCalledTimes(0)
+    // because the second test calls startUpdates() which mutates the module-level
+    // `started` flag — if tests ever run out of order that flag would already be true
+    // and the count would be non-zero. The delta check makes that failure loud and
+    // attributable rather than a confusing "called 1 time" assertion error.
     const callsBefore = mockedCheckForUpdates.mock.calls.length;
     checkForUpdatesManually();
     expect(mockedCheckForUpdates.mock.calls.length).toBe(callsBefore);
