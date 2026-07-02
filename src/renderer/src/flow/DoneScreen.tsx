@@ -18,7 +18,7 @@ export function DoneScreen(): React.JSX.Element {
     <div className="flex flex-1 items-center justify-center p-8">
       <div className="glass-card flex w-full max-w-md flex-col items-center gap-5 rounded-2xl border border-progress/30 p-10 text-center shadow-xl">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-progress/15 text-progress">
-          <PartyPopper size={30} />
+          <PartyPopper size={30} aria-hidden="true" />
         </div>
 
         <div>
@@ -30,7 +30,7 @@ export function DoneScreen(): React.JSX.Element {
 
         <div className="w-full space-y-2 rounded-xl border border-border bg-muted/30 p-4 text-left text-sm">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-progress-text" />
+            <CheckCircle2 size={16} aria-hidden="true" className="text-progress-text" />
             <span className="font-medium text-progress-text">{complete}</span>
             <span className="text-muted-foreground">
               record{complete === 1 ? "" : "s"} exported
@@ -38,7 +38,7 @@ export function DoneScreen(): React.JSX.Element {
           </div>
           {remaining > 0 && (
             <div className="flex items-center gap-2">
-              <FileDown size={16} className="text-warning-text" />
+              <FileDown size={16} aria-hidden="true" className="text-warning-text" />
               <span className="font-medium text-warning-text">{remaining}</span>
               <span className="text-muted-foreground">
                 incomplete record{remaining === 1 ? "" : "s"} saved to the remaining file
@@ -55,7 +55,7 @@ export function DoneScreen(): React.JSX.Element {
             Keep editing
           </Button>
           <Button variant="success" disabled={busy} onClick={() => void pickInput()}>
-            {busy && <Loader2 size={14} className="animate-spin" />}
+            {busy && <Loader2 size={14} aria-hidden="true" className="animate-spin" />}
             Label another file
           </Button>
         </div>
@@ -78,7 +78,7 @@ function RevealRow({ path }: { path: string }): React.JSX.Element {
         className="shrink-0"
         onClick={() => window.api.revealPath(path).catch(console.error)}
       >
-        <Folder size={12} />
+        <Folder size={12} aria-hidden="true" />
         {revealLabel}
       </Button>
     </div>

@@ -96,7 +96,7 @@ export function LabelingView({ onDone }: { onDone: () => void }): React.JSX.Elem
               onClick={clearExportError}
               className="rounded p-0.5 hover:bg-danger/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <X size={14} />
+              <X size={14} aria-hidden="true" />
             </button>
           </div>
         )}

@@ -9,7 +9,7 @@ export function IssueList({ issues }: { issues: readonly ValidationIssue[] }): R
         const { Icon, textClass } = SEVERITY[issue.severity as SeverityKind] ?? SEVERITY.info;
         return (
           <li key={`${issue.field ?? ""}-${i}`} className="flex items-start gap-1.5 text-xs">
-            <Icon size={12} className={`mt-0.5 shrink-0 ${textClass}`} />
+            <Icon size={12} aria-hidden="true" className={`mt-0.5 shrink-0 ${textClass}`} />
             <span>
               <span className={textClass}>{issue.severity}</span>
               {issue.recordIndex !== undefined ? ` · row ${issue.recordIndex + 1}` : ""}

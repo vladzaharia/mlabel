@@ -28,7 +28,7 @@ export function CardShell({
       )}
       {help && (
         <div className="flex items-start gap-2 border-t border-border px-4 py-2 text-xs text-muted-foreground">
-          <HelpCircle size={13} className="mt-0.5 shrink-0" />
+          <HelpCircle size={13} aria-hidden="true" className="mt-0.5 shrink-0" />
           <span>{help}</span>
         </div>
       )}

@@ -32,7 +32,7 @@ export function SplitPanel(): React.JSX.Element {
       {!file && (
         <div className="flex flex-col items-center gap-3 py-4">
           <Button variant="outline" disabled={busy} onClick={() => void pickSplitFile()}>
-            {busy && <Loader2 size={14} className="animate-spin" />}
+            {busy && <Loader2 size={14} aria-hidden="true" className="animate-spin" />}
             Select input file…
           </Button>
           <p className="text-muted-foreground text-xs">…or drop a file onto the window.</p>
@@ -77,8 +77,8 @@ export function SplitPanel(): React.JSX.Element {
           </div>
 
           <Button disabled={busy || !canSplit} onClick={() => void runSplit()}>
-            {busy && <Loader2 size={14} className="animate-spin" />}
-            <Scissors size={14} /> Split into {parts} files
+            {busy && <Loader2 size={14} aria-hidden="true" className="animate-spin" />}
+            <Scissors size={14} aria-hidden="true" /> Split into {parts} files
           </Button>
 
           {result && !result.ok && <p className="text-xs text-danger-text">{result.error}</p>}
@@ -86,7 +86,11 @@ export function SplitPanel(): React.JSX.Element {
             <div className="space-y-1.5 rounded-lg border border-progress/30 bg-progress/5 p-3">
               {result.files.map((f) => (
                 <div key={f.path} className="flex items-center gap-2 text-xs">
-                  <CheckCircle2 size={13} className="text-progress-text shrink-0" />
+                  <CheckCircle2
+                    size={13}
+                    aria-hidden="true"
+                    className="text-progress-text shrink-0"
+                  />
                   <span className="min-w-0 flex-1 truncate" title={f.path}>
                     {baseName(f.path)}
                   </span>

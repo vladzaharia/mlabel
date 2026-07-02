@@ -20,7 +20,7 @@ export function ModeToggle(): React.JSX.Element {
         aria-label="Toggle theme"
         className="no-drag text-muted-foreground hover:text-foreground"
       >
-        <ThemeIcon size={15} />
+        <ThemeIcon size={15} aria-hidden="true" />
       </Button>
     </Tooltip>
   );

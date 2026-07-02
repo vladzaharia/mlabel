@@ -121,7 +121,7 @@ export function CheckboxWidget({
   invalid,
   describedBy,
 }: WidgetProps): React.JSX.Element {
-  // Intentionally no aria-label: FieldRenderer's wrapping <label> names this control.
+  // Intentionally no aria-label: FieldRenderer wraps this in a <label> element that names the control.
   return (
     <Checkbox.Root
       checked={value === true}

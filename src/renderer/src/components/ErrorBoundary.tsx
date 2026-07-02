@@ -22,7 +22,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
         <div className="flex flex-1 items-center justify-center p-8">
           <div className="glass-card flex w-full max-w-xl flex-col gap-4 rounded-2xl border border-border p-8 shadow-xl">
             <div className="flex items-center gap-3 text-danger-text">
-              <AlertTriangle size={20} />
+              <AlertTriangle size={20} aria-hidden="true" />
               <h1 className="text-base font-semibold">Something went wrong</h1>
             </div>
             <p className="text-muted-foreground text-sm">

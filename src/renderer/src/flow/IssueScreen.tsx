@@ -26,7 +26,7 @@ function IssueShell({
     <div className="flex flex-1 items-center justify-center p-8">
       <div className="glass-card flex w-full max-w-xl flex-col gap-4 rounded-2xl border border-border p-8 shadow-xl">
         <div className="flex items-center gap-3 text-danger-text">
-          <AlertTriangle size={20} />
+          <AlertTriangle size={20} aria-hidden="true" />
           <h1 ref={headingRef} tabIndex={-1} className="text-base font-semibold outline-none">
             {title}
           </h1>
@@ -34,7 +34,7 @@ function IssueShell({
         {subtitle && <p className="text-muted-foreground -mt-2 truncate text-xs">{subtitle}</p>}
         {children}
         <Button variant="outline" disabled={busy} onClick={onAction}>
-          {busy && <Loader2 size={14} className="animate-spin" />}
+          {busy && <Loader2 size={14} aria-hidden="true" className="animate-spin" />}
           {actionLabel}
         </Button>
       </div>

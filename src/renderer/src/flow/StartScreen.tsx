@@ -69,7 +69,7 @@ export function StartScreen({ kind }: { kind: "config" | "input" }): React.JSX.E
         )}
       >
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/15 text-accent">
-          <Icon size={26} />
+          <Icon size={26} aria-hidden="true" />
         </div>
         <div>
           <h1 ref={headingRef} tabIndex={-1} className="text-lg font-semibold outline-none">
@@ -87,7 +87,7 @@ export function StartScreen({ kind }: { kind: "config" | "input" }): React.JSX.E
           onClick={() => void (isConfig ? pickConfig() : pickInput())}
           className="mt-7"
         >
-          {busy && <Loader2 size={16} className="animate-spin" />}
+          {busy && <Loader2 size={16} aria-hidden="true" className="animate-spin" />}
           {isConfig ? "Select config…" : "Select input file…"}
         </Button>
         <p className="text-muted-foreground text-xs">…or drag a file onto the window.</p>

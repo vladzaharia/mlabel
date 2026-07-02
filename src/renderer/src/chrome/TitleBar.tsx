@@ -49,7 +49,7 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
         <div className="ml-auto flex h-full items-center gap-3">
           {total > 0 && completed === total ? (
             <span className="no-drag flex items-center gap-1 px-2 text-xs tabular-nums text-progress-text">
-              <CheckCircle2 size={13} />
+              <CheckCircle2 size={13} aria-hidden="true" />
               <span className="font-medium">{completed}</span> of {total} labeled
             </span>
           ) : (
@@ -63,10 +63,10 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
             disabled={index >= total - 1}
             className="no-drag shadow-sm"
           >
-            Next <ChevronRight size={13} />
+            Next <ChevronRight size={13} aria-hidden="true" />
           </Button>
           <Button size="xs" variant="success" onClick={onDone} className="no-drag mr-0.5 shadow-sm">
-            <Save size={13} /> Save
+            <Save size={13} aria-hidden="true" /> Save
           </Button>
         </div>
       )}

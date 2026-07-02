@@ -32,7 +32,7 @@ export function UpdateIndicator(): React.JSX.Element | null {
           className={buttonClass}
           onClick={() => void window.api.installUpdate()}
         >
-          <RotateCw size={13} /> Restart to update
+          <RotateCw size={13} aria-hidden="true" /> Restart to update
         </Button>
       );
     case "available-external": {
@@ -44,7 +44,7 @@ export function UpdateIndicator(): React.JSX.Element | null {
           className={buttonClass}
           onClick={() => window.api.openExternal(url).catch(console.error)}
         >
-          <Download size={13} /> Update available
+          <Download size={13} aria-hidden="true" /> Update available
         </Button>
       );
     }
@@ -57,7 +57,7 @@ export function UpdateIndicator(): React.JSX.Element | null {
           title={status.message ?? undefined}
           onClick={() => void window.api.checkForUpdates()}
         >
-          <AlertCircle size={13} /> Couldn’t check for updates — Retry
+          <AlertCircle size={13} aria-hidden="true" /> Couldn’t check for updates — Retry
         </Button>
       );
   }
@@ -74,7 +74,11 @@ function Static({
 }): React.JSX.Element {
   return (
     <span className={baseClass}>
-      <Icon size={13} className={spin ? "animate-spin [animation-duration:2s]" : undefined} />
+      <Icon
+        size={13}
+        aria-hidden="true"
+        className={spin ? "animate-spin [animation-duration:2s]" : undefined}
+      />
       {label}
     </span>
   );

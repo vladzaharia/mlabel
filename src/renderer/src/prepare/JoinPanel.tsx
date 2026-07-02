@@ -47,7 +47,7 @@ export function JoinPanel({ kind }: { kind: JoinKind }): React.JSX.Element {
       {files.length === 0 && (
         <div className="flex flex-col items-center gap-3 py-4">
           <Button variant="outline" disabled={busy} onClick={() => void pickJoinFiles(kind)}>
-            {busy && <Loader2 size={14} className="animate-spin" />}
+            {busy && <Loader2 size={14} aria-hidden="true" className="animate-spin" />}
             Select files…
           </Button>
           <p className="text-muted-foreground text-xs">…or drop files onto the window.</p>
@@ -74,7 +74,7 @@ export function JoinPanel({ kind }: { kind: JoinKind }): React.JSX.Element {
             disabled={busy}
             onClick={() => void pickJoinFiles(kind)}
           >
-            <Plus size={14} /> Add files…
+            <Plus size={14} aria-hidden="true" /> Add files…
           </Button>
 
           {crossFileIssues.length > 0 && <IssueList issues={crossFileIssues} />}
@@ -91,8 +91,9 @@ export function JoinPanel({ kind }: { kind: JoinKind }): React.JSX.Element {
           </p>
 
           <Button disabled={busy || blocked} onClick={() => void runJoin(kind)}>
-            {busy && <Loader2 size={14} className="animate-spin" />}
-            <Combine size={14} /> Join {files.length} file{files.length === 1 ? "" : "s"}…
+            {busy && <Loader2 size={14} aria-hidden="true" className="animate-spin" />}
+            <Combine size={14} aria-hidden="true" /> Join {files.length} file
+            {files.length === 1 ? "" : "s"}…
           </Button>
 
           {result && !result.ok && !result.canceled && (
@@ -100,7 +101,7 @@ export function JoinPanel({ kind }: { kind: JoinKind }): React.JSX.Element {
           )}
           {result?.ok && result.path && (
             <div className="flex items-center gap-2 rounded-lg border border-progress/30 bg-progress/5 p-3 text-xs">
-              <CheckCircle2 size={13} className="text-progress-text shrink-0" />
+              <CheckCircle2 size={13} aria-hidden="true" className="text-progress-text shrink-0" />
               <span className="min-w-0 flex-1 truncate" title={result.path}>
                 {baseName(result.path)}
               </span>

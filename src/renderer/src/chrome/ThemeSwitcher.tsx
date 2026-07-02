@@ -43,7 +43,9 @@ export function ThemeSwitcher(): React.JSX.Element {
             >
               <Swatch color={theme.swatch} />
               <span className="flex-1">{theme.name}</span>
-              {theme.id === colorTheme && <Check size={13} className="text-accent" />}
+              {theme.id === colorTheme && (
+                <Check size={13} aria-hidden="true" className="text-accent" />
+              )}
             </button>
           ))}
         </P.Content>
@@ -55,7 +57,7 @@ export function ThemeSwitcher(): React.JSX.Element {
 function Swatch({ color }: { color: string }): React.JSX.Element {
   return (
     <span
-      className="h-3 w-3 shrink-0 rounded-sm ring-1 ring-black/10"
+      className="h-3 w-3 shrink-0 rounded-sm ring-1 ring-border"
       style={{ background: color }}
     />
   );

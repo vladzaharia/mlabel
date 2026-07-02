@@ -36,9 +36,12 @@ async function save(data: SessionData): Promise<void> {
 describe("session-store", () => {
   let dir: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     dir = mkdtempSync(join(tmpdir(), "mlabel-session-store-"));
     getPathMock.mockReturnValue(dir);
+    // Flush then clear any write the previous test may have enqueued but not
+    // awaited — the module-level queue persists across tests in the same file.
+    await clearSession();
   });
 
   afterEach(() => {

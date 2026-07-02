@@ -77,16 +77,31 @@ export function FieldRenderer({
   );
 
   // Checkbox reads more naturally as [control] label.
+  // The HelpBubble <button> must sit OUTSIDE the <label> to avoid nested
+  // interactive-content ambiguity per the HTML spec.
   if (field.control === "checkbox") {
-    return (
-      <label className="flex items-center gap-2.5">
-        {widget}
-        <span className="flex flex-col">
-          {label}
-          {description}
-          {errorEl}
+    const labelText = (
+      <span className="flex flex-col">
+        <span className="text-sm font-medium">
+          {field.displayName ?? field.name}
+          {field.required && <span className="ml-0.5 text-danger-text">*</span>}
         </span>
-      </label>
+        {field.description && (
+          <span id={descId} className="text-xs text-muted-foreground">
+            {field.description}
+          </span>
+        )}
+        {errorEl}
+      </span>
+    );
+    return (
+      <div className="flex items-center gap-2.5">
+        <label className="flex items-center gap-2.5">
+          {widget}
+          {labelText}
+        </label>
+        {field.help && <HelpBubble>{field.help}</HelpBubble>}
+      </div>
     );
   }
 

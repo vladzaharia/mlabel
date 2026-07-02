@@ -13,7 +13,7 @@ export function HelpBubble({ children }: { children: ReactNode }): React.JSX.Ele
           aria-label="Help"
           className="no-drag -m-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <HelpCircle size={13} />
+          <HelpCircle size={13} aria-hidden="true" />
         </button>
       </P.Trigger>
       <P.Portal>

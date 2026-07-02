@@ -173,7 +173,7 @@ function DraggableShell({
             onClick={onBack}
             className="no-drag font-normal text-muted-foreground hover:text-foreground"
           >
-            <ChevronLeft size={15} /> {backLabel}
+            <ChevronLeft size={15} aria-hidden="true" /> {backLabel}
           </Button>
         )}
         <div className="no-drag ml-auto">

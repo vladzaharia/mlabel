@@ -19,6 +19,7 @@ function buildFields(): Map<string, OutputField> {
         { "name": "score", "control": "number", "min": 0, "max": 10, "labelPosition": "above" },
         { "name": "when", "control": "date", "labelPosition": "above" },
         { "name": "flag", "control": "checkbox" },
+        { "name": "flag-help", "control": "checkbox", "help": "Tooltip text here" },
         { "name": "verdict", "control": "radio", "options": [{ "value": "good", "displayName": "Good" }, { "value": "bad" }] },
         { "name": "bucket", "control": "select", "options": [{ "value": "a" }, { "value": "b" }] },
         { "name": "confidence", "control": "slider", "min": 0, "max": 100 },
@@ -156,6 +157,16 @@ describe("FieldRenderer: change events", () => {
     render(<FieldRenderer field={field("flag")} value={true} onChange={onUncheck} />);
     await user.click(screen.getByRole("checkbox"));
     expect(onUncheck).toHaveBeenLastCalledWith(false);
+  });
+
+  it("checkbox with help: clicking the help trigger does NOT toggle the checkbox", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<FieldRenderer field={field("flag-help")} value={null} onChange={onChange} />);
+    // The help button must be OUTSIDE the <label>, so clicking it should not fire onChange.
+    const helpBtn = screen.getByRole("button", { name: "Help" });
+    await user.click(helpBtn);
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("radio: clicking an option emits its value", async () => {

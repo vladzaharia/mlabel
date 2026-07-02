@@ -30,7 +30,7 @@ export function BottomBar({ onHelp }: BottomBarProps): React.JSX.Element {
           aria-label="Previous record"
           className="no-drag flex h-full w-12 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
         >
-          <ChevronLeft size={18} />
+          <ChevronLeft size={18} aria-hidden="true" />
         </button>
         <span className="no-drag min-w-16 text-center text-xs tabular-nums">
           Record {total > 0 ? index + 1 : 0} of {total}
@@ -42,7 +42,7 @@ export function BottomBar({ onHelp }: BottomBarProps): React.JSX.Element {
           aria-label="Next record"
           className="no-drag flex h-full w-12 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
         >
-          <ChevronRight size={18} />
+          <ChevronRight size={18} aria-hidden="true" />
         </button>
       </div>
 
@@ -58,7 +58,7 @@ export function BottomBar({ onHelp }: BottomBarProps): React.JSX.Element {
               aria-label="Keyboard shortcuts"
               className="no-drag text-muted-foreground hover:text-foreground"
             >
-              <CircleHelp size={15} />
+              <CircleHelp size={15} aria-hidden="true" />
             </Button>
           </Tooltip>
         )}

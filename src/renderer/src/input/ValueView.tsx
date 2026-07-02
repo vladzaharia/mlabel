@@ -57,7 +57,8 @@ function BoolPill({ value }: { value: boolean }): React.JSX.Element {
           : "inline-flex items-center gap-1 text-muted-foreground"
       }
     >
-      {value ? <Check size={14} /> : <X size={14} />}
+      {value ? <Check size={14} aria-hidden="true" /> : <X size={14} aria-hidden="true" />}
+      <span className="sr-only">{value ? "true" : "false"}</span>
     </span>
   );
 }
