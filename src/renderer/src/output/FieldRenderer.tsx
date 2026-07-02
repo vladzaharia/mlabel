@@ -42,6 +42,11 @@ export function FieldRenderer({
   const Widget = REGISTRY[field.control];
   const error = isProvided(value) ? validateOutputValue(field, value as CoercedValue) : null;
 
+  const errorId = `field-${field.name}-error`;
+  const descId = `field-${field.name}-desc`;
+  const describedBy =
+    [field.description ? descId : "", error ? errorId : ""].filter(Boolean).join(" ") || undefined;
+
   const label = (
     <div className="flex items-center gap-1">
       <span className="text-sm font-medium">
@@ -52,11 +57,23 @@ export function FieldRenderer({
     </div>
   );
   const description = field.description && (
-    <p className="text-xs text-muted-foreground">{field.description}</p>
+    <p id={descId} className="text-xs text-muted-foreground">
+      {field.description}
+    </p>
   );
-  const errorEl = error && <p className="text-xs text-danger">{error}</p>;
+  const errorEl = error && (
+    <p id={errorId} className="text-xs text-danger">
+      {error}
+    </p>
+  );
   const widget = (
-    <Widget field={field} value={value} onChange={onChange} invalid={Boolean(error)} />
+    <Widget
+      field={field}
+      value={value}
+      onChange={onChange}
+      invalid={Boolean(error)}
+      describedBy={describedBy}
+    />
   );
 
   // Checkbox reads more naturally as [control] label.

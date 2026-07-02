@@ -11,7 +11,7 @@ export function HelpBubble({ children }: { children: ReactNode }): React.JSX.Ele
         <button
           type="button"
           aria-label="Help"
-          className="no-drag inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="no-drag -m-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <HelpCircle size={13} />
         </button>
