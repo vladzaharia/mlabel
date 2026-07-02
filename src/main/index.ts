@@ -9,6 +9,7 @@ import { offerRelocateToApplications } from "./services/app-location";
 import { installNetworkGuard } from "./services/network-guard";
 import { flushSession } from "./services/session-store";
 import { checkForUpdatesManually, onUpdatesArmed } from "./services/updater";
+import { flushWindowState, loadWindowState, trackWindowState } from "./window-state";
 // Bundled by electron-vite (?asset) so it's available at runtime in dev and in
 // the packaged asar — keeps the icon identical across platforms and builds.
 import appIcon from "../../build/icon.png?asset";
@@ -25,10 +26,16 @@ function titleBarOverlayColors(): { color: string; symbolColor: string; height: 
   };
 }
 
-function createWindow(): BrowserWindow {
+function createWindow(state: {
+  width: number;
+  height: number;
+  x?: number;
+  y?: number;
+}): BrowserWindow {
   const win = new BrowserWindow({
-    width: 1100,
-    height: 800,
+    width: state.width,
+    height: state.height,
+    ...(state.x !== undefined && state.y !== undefined ? { x: state.x, y: state.y } : {}),
     minWidth: 720,
     minHeight: 560,
     show: false,
@@ -116,7 +123,12 @@ async function bootstrap(): Promise<void> {
   app.on("browser-window-created", (_event, win) => optimizer.watchWindowShortcuts(win));
   nativeTheme.on("updated", broadcastTheme);
 
-  const win = createWindow();
+  const windowState = await loadWindowState();
+  const win = createWindow(windowState);
+
+  if (windowState.maximized) win.maximize();
+
+  trackWindowState(win);
 
   // Install the native application menu.  The mode-switch handler pushes the
   // new mode to the renderer via IPC_EVENT.setMode; the renderer store handles
@@ -149,7 +161,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on(
     "before-quit",
-    createQuitFlushHandler([flushSession], () => app.quit()),
+    createQuitFlushHandler([flushSession, flushWindowState], () => app.quit()),
   );
 
   void bootstrap();
