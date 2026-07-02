@@ -40,7 +40,7 @@
     "prepare": "lefthook install || true"
   },
   "dependencies": {
-    "electron-updater": "6.8.3",
+    "electron-updater": "6.8.9",
     "jsonc-parser": "3.3.1",
     "papaparse": "5.5.4",
     "zod": "4.4.3"
@@ -68,7 +68,7 @@
     "clsx": "2.1.1",
     "dotenv-cli": "11.0.0",
     "electron": "42.3.3",
-    "electron-builder": "26.8.1",
+    "electron-builder": "26.15.6",
     "electron-vite": "5.0.0",
     "fast-check": "4.8.0",
     "happy-dom": "20.10.6",
