@@ -7,6 +7,7 @@ export * from "./coercion";
 export * from "./automapping";
 export * from "./completion";
 export * from "./prepare";
+export * from "./prepare-names";
 export * from "./session";
 // Adapter interface types only (no concrete adapters / no papaparse).
 export type {
