@@ -287,4 +287,50 @@ describe("prepare store stage machine", () => {
     expect(usePrepareStore.getState().stage).toEqual({ kind: "idle" });
     expect(usePrepareStore.getState().split.file).toBeNull();
   });
+
+  it("clears a stale error when a run starts", async () => {
+    mockApi({
+      ...permissiveAnalyzers(),
+      runSplit: async () => ({ ok: true, files: [{ path: "/d/p1.csv", rowCount: 3 }] }),
+    });
+    await proposeTo(["/d/plain.csv"]);
+    usePrepareStore.getState().confirmOp();
+    usePrepareStore.setState({ error: "stale" });
+    await usePrepareStore.getState().runSplit();
+    expect(usePrepareStore.getState().error).toBeNull();
+  });
+
+  it("re-analyzes the remaining files when one of several is removed", async () => {
+    mockApi(permissiveAnalyzers());
+    await proposeTo(["/d/a-output.csv", "/d/b-output.csv"]);
+    usePrepareStore.getState().confirmOp();
+    await usePrepareStore.getState().removeJoinFile("output", "/d/a-output.csv");
+
+    const state = usePrepareStore.getState();
+    expect(state.stage).toMatchObject({ kind: "configure", op: "join-output" });
+    expect(state.join.output.files.map((f) => f.path)).toEqual(["/d/b-output.csv"]);
+    expect(state.busy).toBe(false);
+  });
+
+  it("pickJoinFiles: cancel keeps state; a later pick merges with existing files", async () => {
+    mockApi({
+      ...permissiveAnalyzers(),
+      pickJoinFiles: async () => ({ ok: false, canceled: true }),
+    });
+    await proposeTo(["/d/a-output.csv"]);
+    usePrepareStore.getState().confirmOp();
+    await usePrepareStore.getState().pickJoinFiles("output");
+    expect(usePrepareStore.getState().join.output.files).toHaveLength(1);
+    expect(usePrepareStore.getState().busy).toBe(false);
+
+    mockApi({
+      ...permissiveAnalyzers(),
+      pickJoinFiles: async () => joinOk(["/d/b-output.csv"]),
+    });
+    await usePrepareStore.getState().pickJoinFiles("output");
+    expect(usePrepareStore.getState().join.output.files.map((f) => f.path)).toEqual([
+      "/d/a-output.csv",
+      "/d/b-output.csv",
+    ]);
+  });
 });

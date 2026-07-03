@@ -242,7 +242,7 @@ export const usePrepareStore = create<PrepareStore>((set, get) => {
   }
 
   async function replaceSplitSource(path: string): Promise<void> {
-    set({ busy: true });
+    set({ busy: true, error: null });
     const response = await window.api.analyzeSplitFile(path);
     if (response.canceled) {
       set({ busy: false });
@@ -362,13 +362,13 @@ export const usePrepareStore = create<PrepareStore>((set, get) => {
     async runSplit() {
       const { split } = get();
       if (!split.file) return;
-      set({ busy: true });
+      set({ busy: true, error: null });
       const result = await window.api.runSplit({ path: split.file.path, parts: split.parts });
       set({ busy: false, split: { ...get().split, result } });
     },
 
     async pickJoinFiles(kind) {
-      set({ busy: true });
+      set({ busy: true, error: null });
       const existing = get().join[kind].files.map((f) => f.path);
       const response = await window.api.pickJoinFiles(kind);
       if (response.canceled) {
@@ -418,11 +418,13 @@ export const usePrepareStore = create<PrepareStore>((set, get) => {
     async runJoin(kind) {
       const paths = get().join[kind].files.map((f) => f.path);
       if (paths.length === 0) return;
-      set({ busy: true });
+      set({ busy: true, error: null });
       const result = await window.api.runJoin({ kind, paths });
-      set({ busy: false });
-      if (result.canceled) return;
-      set({ join: { ...get().join, [kind]: { ...get().join[kind], result } } });
+      if (result.canceled) {
+        set({ busy: false });
+        return;
+      }
+      set({ busy: false, join: { ...get().join, [kind]: { ...get().join[kind], result } } });
     },
 
     reset() {
