@@ -57,7 +57,7 @@ export function ConfirmStage({
                 key={proposal.op}
                 className={cn(
                   "relative block cursor-pointer rounded-lg border border-border bg-background/35 p-3 transition-colors hover:bg-muted",
-                  "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                  "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-solid has-[:focus-visible]:outline-ring has-[:focus-visible]:outline-offset-2",
                   selected && "border-accent bg-accent/10 ring-1 ring-accent",
                   busy && "pointer-events-none opacity-50",
                 )}
@@ -65,6 +65,7 @@ export function ConfirmStage({
                 <input
                   type="radio"
                   name="prepare-operation"
+                  value={proposal.op}
                   className="sr-only"
                   checked={selected}
                   onChange={() => selectOp(proposal.op)}
