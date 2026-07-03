@@ -88,6 +88,7 @@ describe("PrepareView", () => {
     expect(screen.getByText(/Data contract · 1 input field → 1 output field/)).toBeInTheDocument();
     // Delta a: use radio instead of radiogroup
     expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Prepare data" })).toHaveFocus();
   });
 
   it("browse feeds the proposal flow", async () => {
@@ -180,6 +181,7 @@ describe("PrepareView", () => {
     await screen.findByRole("button", { name: "Start over" });
     await user.click(screen.getByRole("button", { name: "Start over" }));
     expect(screen.getByText("Drop files here")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Drop files here/ })).toHaveFocus();
   });
 
   it("blocks joins containing files with errors", async () => {

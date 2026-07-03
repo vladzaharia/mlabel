@@ -34,6 +34,7 @@ export function ConfirmStage({
           variant="ghost"
           size="icon-xs"
           aria-label="Start over"
+          disabled={busy}
           onClick={reset}
           className="shrink-0 text-muted-foreground hover:text-foreground"
         >

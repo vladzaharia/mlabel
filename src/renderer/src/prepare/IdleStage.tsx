@@ -1,11 +1,18 @@
+import { useEffect, useRef } from "react";
 import { Upload } from "lucide-react";
 import { usePrepareStore } from "../store/prepare-store";
 
 /** Idle stage: one large drop-or-browse affordance; the card handles drops. */
-export function IdleStage(): React.JSX.Element {
+export function IdleStage({ focusOnMount = false }: { focusOnMount?: boolean }): React.JSX.Element {
   const busy = usePrepareStore((s) => s.busy);
   const error = usePrepareStore((s) => s.error);
   const browseFiles = usePrepareStore((s) => s.browseFiles);
+
+  const dropButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (focusOnMount) dropButtonRef.current?.focus({ preventScroll: true });
+  }, [focusOnMount]);
 
   return (
     <div className="p-4">
@@ -15,6 +22,7 @@ export function IdleStage(): React.JSX.Element {
         </div>
       )}
       <button
+        ref={dropButtonRef}
         type="button"
         disabled={busy}
         onClick={() => void browseFiles()}

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { AppConfig } from "@core";
 import { useStore } from "../store/store";
 import { usePrepareStore } from "../store/prepare-store";
@@ -16,6 +17,13 @@ export function PrepareView(): React.JSX.Element {
   const stage = usePrepareStore((s) => s.stage);
   const dropPaths = usePrepareStore((s) => s.dropPaths);
   const headingRef = useHeadingFocus();
+
+  const [hasLeftIdle, setHasLeftIdle] = useState(false);
+
+  // Refocus the drop zone when the user returns to Idle; first mount keeps the h1.
+  useEffect(() => {
+    if (stage.kind !== "idle") setHasLeftIdle(true);
+  }, [stage.kind]);
 
   function handleDrop(event: React.DragEvent): void {
     event.preventDefault();
@@ -49,7 +57,7 @@ export function PrepareView(): React.JSX.Element {
           aria-label="Prepare workspace"
           className="glass-card overflow-hidden rounded-xl border border-border shadow-sm"
         >
-          {stage.kind === "idle" && <IdleStage />}
+          {stage.kind === "idle" && <IdleStage focusOnMount={hasLeftIdle} />}
           {stage.kind === "confirm" && <ConfirmStage stage={stage} />}
           {stage.kind === "configure" && stage.op === "split" && <SplitConfigure />}
           {stage.kind === "configure" && stage.op === "join-output" && (
