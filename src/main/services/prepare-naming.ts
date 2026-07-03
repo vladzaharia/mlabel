@@ -1,25 +1,15 @@
 import { basename, dirname, extname, join } from "node:path";
 import type { JoinKind } from "@core";
-
-/** `-partN-of-M` marker appended by splits (stripped before re-deriving names). */
-const PART_SUFFIX = /-part\d+-of-\d+$/;
-
-function stem(path: string): string {
-  return basename(path, extname(path));
-}
+import { PART_SUFFIX, partFileNames } from "@core";
 
 /**
  * Deterministic split targets next to the source: `data.csv` × 3 →
- * `data-part1-of-3.csv` …; an existing part suffix is stripped first so
- * re-splitting a part doesn't stack suffixes.
+ * `data-part1-of-3.csv` …; naming pattern lives in core (`partFileNames`)
+ * so the renderer preview and the writer can never disagree.
  */
 export function splitTargetPaths(inputPath: string, parts: number): string[] {
   const dir = dirname(inputPath);
-  const ext = extname(inputPath);
-  const base = stem(inputPath).replace(PART_SUFFIX, "");
-  return Array.from({ length: parts }, (_, i) =>
-    join(dir, `${base}-part${String(i + 1)}-of-${String(parts)}${ext}`),
-  );
+  return partFileNames(inputPath, parts).map((name) => join(dir, name));
 }
 
 /**
@@ -29,7 +19,7 @@ export function splitTargetPaths(inputPath: string, parts: number): string[] {
  */
 export function defaultJoinFileName(kind: JoinKind, firstPath: string): string {
   const ext = extname(firstPath);
-  const base = stem(firstPath)
+  const base = basename(firstPath, ext)
     .replace(/-(output|remaining)$/, "")
     .replace(PART_SUFFIX, "");
   return `${base}-${kind}-joined${ext}`;
