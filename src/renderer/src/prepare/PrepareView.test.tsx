@@ -164,9 +164,9 @@ describe("PrepareView", () => {
     const user = userEvent.setup();
     render(<PrepareView />);
     dropFiles(["input.csv"]);
-    await waitFor(() => screen.getByRole("button", { name: /Continue with Split source/ }));
+    await screen.findByRole("button", { name: /Continue with Split source/ });
     await user.click(screen.getByRole("button", { name: /Continue with Split source/ }));
-    await waitFor(() => screen.getByRole("button", { name: /change operation/i }));
+    await screen.findByRole("button", { name: /change operation/i });
 
     await user.click(screen.getByRole("button", { name: /change operation/i }));
     // Delta e: use getAllByRole("radio") with length check
@@ -177,12 +177,13 @@ describe("PrepareView", () => {
     const user = userEvent.setup();
     render(<PrepareView />);
     dropFiles(["input.csv"]);
-    await waitFor(() => screen.getByRole("button", { name: "Start over" }));
+    await screen.findByRole("button", { name: "Start over" });
     await user.click(screen.getByRole("button", { name: "Start over" }));
     expect(screen.getByText("Drop files here")).toBeInTheDocument();
   });
 
   it("blocks joins containing files with errors", async () => {
+    const user = userEvent.setup();
     const bad: PrepareFileInfo = {
       path: "/d/bad-output.csv",
       rowCount: 2,
@@ -199,9 +200,8 @@ describe("PrepareView", () => {
     dropFiles(["bad-output.csv"]);
 
     // Delta f: use getAllByRole("radio") instead of getByRole("radiogroup")
-    await waitFor(() => screen.getAllByRole("radio"));
+    await waitFor(() => expect(screen.getAllByRole("radio")).toHaveLength(3));
     // Hinted recommendation still preselects join-output despite errors.
-    const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /Continue with Join outputs/ }));
 
     await waitFor(() => expect(screen.getByText(/Missing column/)).toBeInTheDocument());
