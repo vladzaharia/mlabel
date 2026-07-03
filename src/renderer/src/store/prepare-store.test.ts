@@ -53,8 +53,8 @@ function mockApi(overrides: Partial<IpcApi>): IpcApi {
 
 /** Analyzers that accept anything: split ok on first path, joins ok on all paths. */
 function permissiveAnalyzers(): {
-  analyzeSplitFile: ReturnType<typeof vi.fn>;
-  analyzeJoinFiles: ReturnType<typeof vi.fn>;
+  analyzeSplitFile: IpcApi["analyzeSplitFile"];
+  analyzeJoinFiles: IpcApi["analyzeJoinFiles"];
 } {
   return {
     analyzeSplitFile: vi.fn(async (path: string) => ({ ok: true, file: fileInfo(path, 6) })),
