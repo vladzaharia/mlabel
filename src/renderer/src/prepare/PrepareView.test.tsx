@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { loadConfig } from "@core/config";
 import type { AppConfig, IpcApi, PrepareFileInfo } from "@core";
@@ -23,7 +23,7 @@ function fileInfo(path: string, rowCount = 4, ok = true): PrepareFileInfo {
   return { path, rowCount, ok, issues: [] };
 }
 
-function mockApi(overrides: Partial<IpcApi> = {}): void {
+function mockApi(overrides: Partial<IpcApi> = {}): IpcApi {
   const base: IpcApi = {
     ping: async () => "pong",
     getTheme: async () => false,
@@ -53,49 +53,49 @@ function mockApi(overrides: Partial<IpcApi> = {}): void {
   };
   const api: IpcApi = { ...base, ...overrides };
   Object.defineProperty(window, "api", { value: api, configurable: true });
+  return api;
 }
 
-describe("PrepareView tabs semantics", () => {
+function dropFiles(names: string[]): void {
+  const files = names.map((name) => new File([""], name));
+  const target = screen
+    .getByText(/Drop files here|Drop .* files to join|Drop source file/)
+    .closest("section");
+  if (!target) throw new Error("drop surface missing");
+  fireEvent.drop(target, { dataTransfer: { files } });
+}
+
+describe("PrepareView action selector", () => {
   beforeEach(() => {
     usePrepareStore.getState().reset();
     useStore.setState({ config: sampleConfig(), phase: "prepare" });
   });
   afterEach(() => cleanup());
 
-  it("renders exactly 3 tabs", () => {
+  it("renders exactly 3 action buttons and no selected action by default", () => {
     render(<PrepareView />);
-    expect(screen.getAllByRole("tab")).toHaveLength(3);
-  });
-
-  it("aria-selected follows the store tab", () => {
-    render(<PrepareView />);
-    const splitTab = screen.getByRole("tab", { name: "Split input" });
-    expect(splitTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: "Join outputs" })).toHaveAttribute(
-      "aria-selected",
+    expect(screen.getByRole("button", { name: /Split source/ })).toHaveAttribute(
+      "aria-pressed",
       "false",
     );
+    expect(screen.getByRole("button", { name: /Join outputs/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByRole("button", { name: /Join remaining/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByText(/Drop files to auto-detect/)).toBeInTheDocument();
   });
 
-  it("arrow key moves selection and shows the next panel", async () => {
+  it("clicking an action selects it and shows its panel", async () => {
     const user = userEvent.setup();
     render(<PrepareView />);
-    const splitTab = screen.getByRole("tab", { name: "Split input" });
-    splitTab.focus();
-    await user.keyboard("{ArrowRight}");
-    expect(screen.getByRole("tab", { name: "Join outputs" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    const joinOutputs = screen.getByRole("button", { name: /Join outputs/ });
+    await user.click(joinOutputs);
+    expect(joinOutputs).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Join output files")).toBeInTheDocument();
-  });
-
-  it("tabpanel is labelled by the active tab", () => {
-    render(<PrepareView />);
-    const panel = screen.getByRole("tabpanel");
-    const splitTab = screen.getByRole("tab", { name: "Split input" });
-    // The panel's aria-labelledby should reference the active trigger's id.
-    expect(panel.getAttribute("aria-labelledby")).toBe(splitTab.id);
   });
 });
 
@@ -106,22 +106,27 @@ describe("PrepareView", () => {
   });
   afterEach(() => cleanup());
 
-  it("shows the schema summary and switches tabs", async () => {
+  it("shows the data contract and switches actions", async () => {
     const user = userEvent.setup();
     render(<PrepareView />);
-    expect(screen.getByText(/Input schema: id/)).toBeInTheDocument();
+    expect(screen.getByText(/Data contract: Input schema 1 field/)).toBeInTheDocument();
+    expect(screen.queryByText("Split an input file")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Split source/ }));
     expect(screen.getByText("Split an input file")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: "Join outputs" }));
+    await user.click(screen.getByRole("button", { name: /Join outputs/ }));
     expect(screen.getByText("Join output files")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: "Join remaining" }));
+    await user.click(screen.getByRole("button", { name: /Join remaining/ }));
     expect(screen.getByText("Join remaining files")).toBeInTheDocument();
   });
 
   it("walks the split happy path: pick → preview → run → results", async () => {
     const user = userEvent.setup();
+    const revealPath = vi.fn(async () => {});
     mockApi({
+      revealPath,
       pickSplitFile: async () => ({ ok: true, file: fileInfo("/d/input.csv", 5) }),
       runSplit: async () => ({
         ok: true,
@@ -133,7 +138,8 @@ describe("PrepareView", () => {
     });
     render(<PrepareView />);
 
-    await user.click(screen.getByRole("button", { name: /select input file/i }));
+    await user.click(screen.getByRole("button", { name: /Split source/ }));
+    await user.click(screen.getByRole("button", { name: /choose source/i }));
     await waitFor(() => expect(screen.getByText("input.csv")).toBeInTheDocument());
     expect(screen.getByText("5 rows")).toBeInTheDocument();
     expect(screen.getByText("3, 2 rows per file")).toBeInTheDocument();
@@ -141,6 +147,60 @@ describe("PrepareView", () => {
     await user.click(screen.getByRole("button", { name: /split into 2 files/i }));
     await waitFor(() => expect(screen.getByText("input-part1-of-2.csv")).toBeInTheDocument());
     expect(screen.getByText("input-part2-of-2.csv")).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("button", { name: /show in/i })[0]!);
+    expect(revealPath).toHaveBeenCalledWith("/d/input-part1-of-2.csv");
+  });
+
+  it("infers output joins from dropped output files", async () => {
+    mockApi({
+      pathForFile: (file) => `/d/${file.name}`,
+      analyzeJoinFiles: async ({ paths }) => ({
+        ok: true,
+        files: paths.map((path) => fileInfo(path)),
+        crossFileIssues: [],
+        totalRows: paths.length,
+      }),
+    });
+    render(<PrepareView />);
+
+    dropFiles(["a-output.csv", "b-output.csv"]);
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Join outputs/ })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      ),
+    );
+    expect(screen.getByText("a-output.csv")).toBeInTheDocument();
+  });
+
+  it("shows a resolver for ambiguous drops", async () => {
+    const user = userEvent.setup();
+    mockApi({
+      pathForFile: (file) => `/d/${file.name}`,
+      analyzeSplitFile: async (path) => ({ ok: true, file: fileInfo(path) }),
+      analyzeJoinFiles: async ({ paths }) => ({
+        ok: true,
+        files: paths.map((path) => fileInfo(path)),
+        crossFileIssues: [],
+        totalRows: paths.length,
+      }),
+    });
+    render(<PrepareView />);
+
+    dropFiles(["a.csv", "b.csv"]);
+
+    await waitFor(() =>
+      expect(screen.getByText("Choose how to use these files")).toBeInTheDocument(),
+    );
+    await user.click(screen.getAllByRole("button", { name: /Join outputs/ })[1]!);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Join outputs/ })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      ),
+    );
   });
 
   it("disables the join button when a file has errors", async () => {
@@ -152,6 +212,7 @@ describe("PrepareView", () => {
       issues: [{ kind: "missing", severity: "error", field: "label", message: "Missing column." }],
     };
     usePrepareStore.setState({
+      selectedAction: "join-output",
       tab: "join-output",
       join: {
         output: { files: [bad], crossFileIssues: [], totalRows: 2, result: null },
@@ -164,8 +225,8 @@ describe("PrepareView", () => {
     expect(screen.getByText(/Missing column/)).toBeInTheDocument();
     const joinButton = screen.getByRole("button", { name: /join 1 file/i });
     expect(joinButton).toBeDisabled();
-    // Sanity: tab strip still interactive.
-    await user.click(screen.getByRole("tab", { name: "Split input" }));
+    // Sanity: action selector still interactive.
+    await user.click(screen.getByRole("button", { name: /Split source/ }));
     expect(screen.getByText("Split an input file")).toBeInTheDocument();
   });
 });

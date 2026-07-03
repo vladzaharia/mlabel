@@ -126,7 +126,7 @@ export function App(): React.JSX.Element {
       {phase === "labeling" && <LabelingView onDone={() => void handleDone()} />}
       {phase === "prepare" && (
         <DraggableShell>
-          <main className="flex flex-1 flex-col">
+          <main className="flex min-h-0 flex-1 flex-col">
             <PrepareView />
           </main>
         </DraggableShell>

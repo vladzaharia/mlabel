@@ -1,25 +1,20 @@
-import { CheckCircle2, Combine, Loader2, Plus } from "lucide-react";
+import { Combine, Loader2, Plus } from "lucide-react";
 import type { JoinKind } from "@core";
 import { usePrepareStore } from "../store/prepare-store";
 import { Button } from "../components/ui/button";
-import { CardShell } from "../components/CardShell";
 import { IssueList } from "../components/IssueList";
 import { FileStatusRow } from "./FileStatusRow";
+import { PrepareOperationPanel, PrepareSection } from "./PrepareOperationPanel";
+import { PrepareResultList } from "./PrepareResultList";
 
-function baseName(path: string): string {
-  return path.split(/[/\\]/).pop() ?? path;
-}
-
-const COPY: Record<JoinKind, { title: string; description: string; help: string }> = {
+const COPY: Record<JoinKind, { title: string; description: string }> = {
   output: {
     title: "Join output files",
     description: "Combine labeled *-output files into one result.",
-    help: "Each file's columns must match the output schema exactly, and every row must be a complete, valid label. Duplicate rows are flagged before joining.",
   },
   remaining: {
     title: "Join remaining files",
     description: "Combine *-remaining files into one input you can re-split or label.",
-    help: "Each file's columns must match the input schema exactly. The joined file works anywhere an input file does — label it directly or split it again.",
   },
 };
 
@@ -39,79 +34,133 @@ export function JoinPanel({ kind }: { kind: JoinKind }): React.JSX.Element {
     crossFileIssues.some((i) => i.severity === "error");
 
   return (
-    <CardShell
-      displayName={COPY[kind].title}
+    <PrepareOperationPanel
+      title={COPY[kind].title}
       description={COPY[kind].description}
-      help={COPY[kind].help}
+      Icon={Combine}
     >
-      {files.length === 0 && (
-        <div className="flex flex-col items-center gap-3 py-4">
-          <Button variant="outline" disabled={busy} onClick={() => void pickJoinFiles(kind)}>
-            {busy && <Loader2 size={14} aria-hidden="true" className="animate-spin" />}
-            Select files…
-          </Button>
-          <p className="text-muted-foreground text-xs">…or drop files onto the window.</p>
+      {files.length === 0 && <EmptyJoinState kind={kind} />}
+
+      {error && (
+        <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger-text">
+          {error}
         </div>
       )}
 
-      {error && <p className="text-xs text-danger-text">{error}</p>}
-
       {files.length > 0 && (
         <>
-          <div className="space-y-2">
-            {files.map((file) => (
-              <FileStatusRow
-                key={file.path}
-                file={file}
-                onRemove={() => void removeJoinFile(kind, file.path)}
+          <PrepareSection eyebrow="Step 1" title="Selected files">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void pickJoinFiles(kind)}
+                >
+                  <Plus size={14} aria-hidden="true" /> Add files…
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {files.map((file) => (
+                  <FileStatusRow
+                    key={file.path}
+                    file={file}
+                    onRemove={() => void removeJoinFile(kind, file.path)}
+                  />
+                ))}
+              </div>
+            </div>
+          </PrepareSection>
+
+          <PrepareSection eyebrow="Step 2" title="Validation">
+            {crossFileIssues.length > 0 && <IssueList issues={crossFileIssues} />}
+
+            <div className="grid gap-2 sm:grid-cols-3">
+              <StatPill
+                label="Files"
+                value={`${String(files.length)} file${files.length === 1 ? "" : "s"}`}
               />
-            ))}
-          </div>
+              <StatPill
+                label="Rows"
+                value={`${String(totalRows)} row${totalRows === 1 ? "" : "s"}`}
+              />
+              <StatPill
+                label="Duplicates"
+                value={`${String(duplicateCount)} row${duplicateCount === 1 ? "" : "s"}`}
+                tone={duplicateCount > 0 ? "warning" : "default"}
+              />
+            </div>
+          </PrepareSection>
 
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={() => void pickJoinFiles(kind)}
-          >
-            <Plus size={14} aria-hidden="true" /> Add files…
-          </Button>
-
-          {crossFileIssues.length > 0 && <IssueList issues={crossFileIssues} />}
-
-          <p className="text-muted-foreground text-xs">
-            {files.length} file{files.length === 1 ? "" : "s"} · {totalRows} row
-            {totalRows === 1 ? "" : "s"}
-            {duplicateCount > 0 && (
-              <span className="text-warning-text">
-                {" "}
-                · {duplicateCount} duplicate row{duplicateCount === 1 ? "" : "s"}
-              </span>
-            )}
-          </p>
-
-          <Button disabled={busy || blocked} onClick={() => void runJoin(kind)}>
-            {busy && <Loader2 size={14} aria-hidden="true" className="animate-spin" />}
-            <Combine size={14} aria-hidden="true" /> Join {files.length} file
-            {files.length === 1 ? "" : "s"}…
-          </Button>
+          <PrepareSection eyebrow="Step 3" title="Create joined file">
+            <div className="flex justify-end">
+              <Button disabled={busy || blocked} onClick={() => void runJoin(kind)}>
+                {busy && <Loader2 size={14} aria-hidden="true" className="animate-spin" />}
+                <Combine size={14} aria-hidden="true" /> Join {files.length} file
+                {files.length === 1 ? "" : "s"}…
+              </Button>
+            </div>
+          </PrepareSection>
 
           {result && !result.ok && !result.canceled && (
-            <p className="text-xs text-danger-text">{result.error}</p>
+            <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger-text">
+              {result.error}
+            </div>
           )}
           {result?.ok && result.path && (
-            <div className="flex items-center gap-2 rounded-lg border border-progress/30 bg-progress/5 p-3 text-xs">
-              <CheckCircle2 size={13} aria-hidden="true" className="text-progress-text shrink-0" />
-              <span className="min-w-0 flex-1 truncate" title={result.path}>
-                {baseName(result.path)}
-              </span>
-              <span className="text-muted-foreground tabular-nums">
-                {result.rowCount} row{result.rowCount === 1 ? "" : "s"}
-              </span>
-            </div>
+            <PrepareResultList
+              title="Join complete"
+              files={[{ path: result.path, rowCount: result.rowCount }]}
+              summary={`${String(result.rowCount ?? 0)} row${result.rowCount === 1 ? "" : "s"}${
+                (result.duplicateCount ?? 0) > 0
+                  ? ` · ${String(result.duplicateCount)} duplicate${
+                      result.duplicateCount === 1 ? "" : "s"
+                    }`
+                  : ""
+              }`}
+            />
           )}
         </>
       )}
-    </CardShell>
+    </PrepareOperationPanel>
+  );
+}
+
+function EmptyJoinState({ kind }: { kind: JoinKind }): React.JSX.Element {
+  return (
+    <div className="rounded-lg border border-border bg-muted/25 px-4 py-3">
+      <p className="text-sm font-medium">
+        No {kind === "output" ? "output" : "remaining"} files selected
+      </p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Drop files in the drop zone above, or select this action to browse.
+      </p>
+    </div>
+  );
+}
+
+function StatPill({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "warning";
+}): React.JSX.Element {
+  return (
+    <div
+      className={
+        tone === "warning"
+          ? "rounded-lg border border-warning/30 bg-warning/5 px-3 py-2"
+          : "rounded-lg border border-border bg-muted/30 px-3 py-2"
+      }
+    >
+      <p className="text-[11px] font-medium uppercase text-muted-foreground">{label}</p>
+      <p className={tone === "warning" ? "mt-0.5 text-sm text-warning-text" : "mt-0.5 text-sm"}>
+        {value}
+      </p>
+    </div>
   );
 }

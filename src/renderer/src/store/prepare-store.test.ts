@@ -144,10 +144,58 @@ describe("prepare store", () => {
     expect(analyze).not.toHaveBeenCalled();
   });
 
-  it("routes dropped paths by the active tab", async () => {
-    const analyzeSplit = vi.fn(async () => ({ ok: true, file: fileInfo("/d/x.csv") }));
+  it("routes output-suffixed drops to the output join", async () => {
     const analyzeJoin = vi.fn(async ({ paths }: { paths: string[] }) => ({
       ok: true,
+      files: paths.map((p) => fileInfo(p)),
+      crossFileIssues: [],
+      totalRows: paths.length,
+    }));
+    mockApi({ analyzeJoinFiles: analyzeJoin as unknown as IpcApi["analyzeJoinFiles"] });
+
+    await usePrepareStore.getState().addDroppedPaths(["/d/a-output.csv", "/d/b-output.csv"]);
+    expect(usePrepareStore.getState().tab).toBe("join-output");
+    expect(usePrepareStore.getState().selectedAction).toBe("join-output");
+    expect(analyzeJoin).toHaveBeenCalledWith({
+      kind: "output",
+      paths: ["/d/a-output.csv", "/d/b-output.csv"],
+    });
+  });
+
+  it("routes remaining-suffixed drops to the remaining join", async () => {
+    const analyzeJoin = vi.fn(async ({ paths }: { paths: string[] }) => ({
+      ok: true,
+      files: paths.map((p) => fileInfo(p)),
+      crossFileIssues: [],
+      totalRows: paths.length,
+    }));
+    mockApi({ analyzeJoinFiles: analyzeJoin as unknown as IpcApi["analyzeJoinFiles"] });
+
+    await usePrepareStore
+      .getState()
+      .addDroppedPaths(["/d/a-part1-of-2-remaining.csv", "/d/a-part2-of-2-remaining.csv"]);
+    expect(usePrepareStore.getState().tab).toBe("join-remaining");
+    expect(usePrepareStore.getState().selectedAction).toBe("join-remaining");
+    expect(analyzeJoin).toHaveBeenCalledWith({
+      kind: "remaining",
+      paths: ["/d/a-part1-of-2-remaining.csv", "/d/a-part2-of-2-remaining.csv"],
+    });
+  });
+
+  it("routes a single unsuffixed drop to split", async () => {
+    const analyzeSplit = vi.fn(async () => ({ ok: true, file: fileInfo("/d/x.csv") }));
+    mockApi({ analyzeSplitFile: analyzeSplit as unknown as IpcApi["analyzeSplitFile"] });
+
+    await usePrepareStore.getState().addDroppedPaths(["/d/x.csv"]);
+    expect(usePrepareStore.getState().tab).toBe("split");
+    expect(usePrepareStore.getState().selectedAction).toBe("split");
+    expect(analyzeSplit).toHaveBeenCalledWith("/d/x.csv");
+  });
+
+  it("probes multiple unsuffixed drops and applies the single valid join kind", async () => {
+    const analyzeSplit = vi.fn(async () => ({ ok: true, file: fileInfo("/d/a.csv") }));
+    const analyzeJoin = vi.fn(async ({ kind, paths }: { kind: string; paths: string[] }) => ({
+      ok: kind === "remaining",
       files: paths.map((p) => fileInfo(p)),
       crossFileIssues: [],
       totalRows: paths.length,
@@ -157,11 +205,47 @@ describe("prepare store", () => {
       analyzeJoinFiles: analyzeJoin as unknown as IpcApi["analyzeJoinFiles"],
     });
 
-    await usePrepareStore.getState().addDroppedPaths(["/d/x.csv", "/d/y.csv"]);
-    expect(analyzeSplit).toHaveBeenCalledWith("/d/x.csv");
+    await usePrepareStore.getState().addDroppedPaths(["/d/a.csv", "/d/b.csv"]);
+    expect(usePrepareStore.getState().tab).toBe("join-remaining");
+    expect(usePrepareStore.getState().selectedAction).toBe("join-remaining");
+    expect(usePrepareStore.getState().pendingDrop).toBeNull();
+  });
 
-    usePrepareStore.getState().setTab("join-remaining");
-    await usePrepareStore.getState().addDroppedPaths(["/d/a.csv", "/d/a.csv", "/d/b.csv"]);
+  it("keeps ambiguous drops pending until the user chooses a task", async () => {
+    const analyzeSplit = vi.fn(async () => ({ ok: true, file: fileInfo("/d/a.csv") }));
+    const analyzeJoin = vi.fn(async ({ kind, paths }: { kind: string; paths: string[] }) => ({
+      ok: true,
+      files: paths.map((p) => fileInfo(p)),
+      crossFileIssues: [],
+      totalRows: kind === "output" ? 2 : 3,
+    }));
+    mockApi({
+      analyzeSplitFile: analyzeSplit as unknown as IpcApi["analyzeSplitFile"],
+      analyzeJoinFiles: analyzeJoin as unknown as IpcApi["analyzeJoinFiles"],
+    });
+
+    await usePrepareStore.getState().addDroppedPaths(["/d/a.csv", "/d/b.csv"]);
+    expect(usePrepareStore.getState().pendingDrop?.summaries).toHaveLength(3);
+    expect(usePrepareStore.getState().busy).toBe(false);
+
+    await usePrepareStore.getState().resolvePendingDrop("join-output");
+    expect(usePrepareStore.getState().pendingDrop).toBeNull();
+    expect(usePrepareStore.getState().tab).toBe("join-output");
+    expect(usePrepareStore.getState().selectedAction).toBe("join-output");
+  });
+
+  it("allows explicit task drops to bypass inference", async () => {
+    const analyzeJoin = vi.fn(async ({ paths }: { paths: string[] }) => ({
+      ok: true,
+      files: paths.map((p) => fileInfo(p)),
+      crossFileIssues: [],
+      totalRows: paths.length,
+    }));
+    mockApi({ analyzeJoinFiles: analyzeJoin as unknown as IpcApi["analyzeJoinFiles"] });
+
+    await usePrepareStore
+      .getState()
+      .addDroppedPathsToTab("join-remaining", ["/d/a.csv", "/d/a.csv", "/d/b.csv"]);
     expect(analyzeJoin).toHaveBeenCalledWith({
       kind: "remaining",
       paths: ["/d/a.csv", "/d/b.csv"],
