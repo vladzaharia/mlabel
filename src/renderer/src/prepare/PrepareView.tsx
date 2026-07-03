@@ -1,90 +1,94 @@
+import type { AppConfig } from "@core";
 import { useStore } from "../store/store";
 import { usePrepareStore } from "../store/prepare-store";
-import { SplitPanel } from "./SplitPanel";
-import { JoinPanel } from "./JoinPanel";
-import { PrepareDropSurface } from "./PrepareDropSurface";
-import { PrepareTaskMap } from "./PrepareTaskMap";
+import { IdleStage } from "./IdleStage";
+import { ConfirmStage } from "./ConfirmStage";
+import { SplitConfigure } from "./SplitConfigure";
+import { JoinConfigure } from "./JoinConfigure";
 import { useHeadingFocus } from "../a11y/useHeadingFocus";
 
-/** Prepare mode: split one input into parts, or join output/remaining files. */
+/**
+ * Prepare mode, drop-first: files land anywhere on the card, MLabel proposes
+ * the operation (Confirm stage), the user approves, then configures and runs.
+ */
 export function PrepareView(): React.JSX.Element {
   const config = useStore((s) => s.config);
-  const tab = usePrepareStore((s) => s.tab);
-  const selectedAction = usePrepareStore((s) => s.selectedAction);
+  const stage = usePrepareStore((s) => s.stage);
+  const dropPaths = usePrepareStore((s) => s.dropPaths);
   const headingRef = useHeadingFocus();
 
-  const inputColumns = config?.input.fields.map((f) => f.name).join(", ") ?? "";
-  const outputColumns = config?.output.fields.map((f) => f.name).join(", ") ?? "";
+  function handleDrop(event: React.DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const paths = [...event.dataTransfer.files].map((file) => window.api.pathForFile(file));
+    void dropPaths(paths);
+  }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div
+      className="min-h-0 flex-1 overflow-y-auto"
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={handleDrop}
+    >
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-5 pb-8 pt-2 sm:px-6">
-        <header className="flex flex-col gap-2">
-          <div className="min-w-0">
-            <h1
-              ref={headingRef}
-              tabIndex={-1}
-              className="text-xl font-semibold tracking-tight outline-none"
-            >
-              Prepare data
-            </h1>
-            <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-              Split source files or merge prepared labeling results.
-            </p>
-          </div>
+        <header className="min-w-0">
+          <h1
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-xl font-semibold tracking-tight outline-none"
+          >
+            Prepare data
+          </h1>
+          <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+            Split a source file into parts for your labelers, or merge their finished work back
+            together.
+          </p>
         </header>
 
-        <PrepareTaskMap />
-        <PrepareDropSurface />
-        <DataContract
-          inputColumns={inputColumns}
-          inputCount={config?.input.fields.length ?? 0}
-          outputColumns={outputColumns}
-          outputCount={config?.output.fields.length ?? 0}
-        />
-
-        {selectedAction === null && <NoActionSelected />}
-        {selectedAction !== null && tab === "split" && <SplitPanel />}
-        {selectedAction !== null && tab === "join-output" && <JoinPanel kind="output" />}
-        {selectedAction !== null && tab === "join-remaining" && <JoinPanel kind="remaining" />}
+        <section
+          aria-label="Prepare workspace"
+          className="glass-card overflow-hidden rounded-xl border border-border shadow-sm"
+        >
+          {stage.kind === "idle" && <IdleStage />}
+          {stage.kind === "confirm" && <ConfirmStage stage={stage} />}
+          {stage.kind === "configure" && stage.op === "split" && <SplitConfigure />}
+          {stage.kind === "configure" && stage.op === "join-output" && (
+            <JoinConfigure kind="output" />
+          )}
+          {stage.kind === "configure" && stage.op === "join-remaining" && (
+            <JoinConfigure kind="remaining" />
+          )}
+          <ContractFooter config={config} />
+        </section>
       </div>
     </div>
   );
 }
 
-function NoActionSelected(): React.JSX.Element {
+function ContractFooter({ config }: { config: AppConfig | null }): React.JSX.Element {
+  const inputFields = config?.input.fields ?? [];
+  const outputFields = config?.output.fields ?? [];
   return (
-    <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-      Drop files to auto-detect the operation, or choose an action above to browse for files.
-    </div>
-  );
-}
-
-function DataContract({
-  inputColumns,
-  inputCount,
-  outputColumns,
-  outputCount,
-}: {
-  inputColumns: string;
-  inputCount: number;
-  outputColumns: string;
-  outputCount: number;
-}): React.JSX.Element {
-  return (
-    <details className="rounded-lg border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-      <summary className="select-none font-medium text-foreground">
-        Data contract: Input schema {inputCount} field{inputCount === 1 ? "" : "s"} · Output schema{" "}
-        {outputCount} field{outputCount === 1 ? "" : "s"}
+    <details className="border-t border-border px-4 py-2 text-xs text-muted-foreground">
+      <summary className="flex cursor-pointer select-none items-center justify-between gap-2">
+        <span>
+          Data contract · {inputFields.length} input field{inputFields.length === 1 ? "" : "s"} →{" "}
+          {outputFields.length} output field{outputFields.length === 1 ? "" : "s"}
+        </span>
+        <span className="rounded-md border border-border px-1.5 py-0.5">Details</span>
       </summary>
-      <div className="mt-2 grid gap-2 md:grid-cols-2">
+      <div className="mt-2 grid gap-2 pb-1 md:grid-cols-2">
         <div className="min-w-0 rounded-md bg-background/35 p-2">
           <p className="font-medium text-foreground">Input schema</p>
-          <p className="mt-1 max-h-20 overflow-auto break-words">{inputColumns || "None"}</p>
+          <p className="mt-1 max-h-20 overflow-auto break-words">
+            {inputFields.map((f) => f.name).join(", ") || "None"}
+          </p>
         </div>
         <div className="min-w-0 rounded-md bg-background/35 p-2">
           <p className="font-medium text-foreground">Output schema</p>
-          <p className="mt-1 max-h-20 overflow-auto break-words">{outputColumns || "None"}</p>
+          <p className="mt-1 max-h-20 overflow-auto break-words">
+            {outputFields.map((f) => f.name).join(", ") || "None"}
+          </p>
         </div>
       </div>
     </details>

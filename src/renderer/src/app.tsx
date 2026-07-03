@@ -81,7 +81,7 @@ export function App(): React.JSX.Element {
     if (!config) return;
     if (phase === "prepare") {
       const paths = [...event.dataTransfer.files].map((file) => window.api.pathForFile(file));
-      void usePrepareStore.getState().addDroppedPaths(paths);
+      void usePrepareStore.getState().dropPaths(paths);
       return;
     }
     const file = event.dataTransfer.files[0];

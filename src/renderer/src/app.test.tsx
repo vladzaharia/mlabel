@@ -130,7 +130,7 @@ describe("App startup flow", () => {
     // Simulate menu pushing "prepare" mode.
     listeners[0]?.("prepare");
     await waitFor(() => expect(screen.getByText("Drop files here")).toBeInTheDocument());
-    expect(screen.getByText(/Drop files to auto-detect/)).toBeInTheDocument();
+    expect(screen.getByText(/proposes the right operation/)).toBeInTheDocument();
   });
 
   it("announces the phase in the live region after startup resolves", async () => {
