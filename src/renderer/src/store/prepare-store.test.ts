@@ -1,10 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { IpcApi, PrepareFileInfo } from "@core";
+import type { IpcApi, JoinAnalyzeResponse, PrepareFileInfo } from "@core";
 import { usePrepareStore } from "./prepare-store";
 
 function fileInfo(path: string, rowCount = 4, ok = true): PrepareFileInfo {
   return { path, rowCount, ok, issues: [] };
 }
+
+function joinOk(paths: readonly string[]): JoinAnalyzeResponse {
+  return {
+    ok: true,
+    files: paths.map((path) => fileInfo(path)),
+    crossFileIssues: [],
+    totalRows: paths.length,
+  };
+}
+
+const joinBad: JoinAnalyzeResponse = { ok: false, error: "wrong columns" };
 
 function mockApi(overrides: Partial<IpcApi>): IpcApi {
   const base: IpcApi = {
@@ -40,229 +51,240 @@ function mockApi(overrides: Partial<IpcApi>): IpcApi {
   return api;
 }
 
-describe("prepare store", () => {
+/** Analyzers that accept anything: split ok on first path, joins ok on all paths. */
+function permissiveAnalyzers(): {
+  analyzeSplitFile: ReturnType<typeof vi.fn>;
+  analyzeJoinFiles: ReturnType<typeof vi.fn>;
+} {
+  return {
+    analyzeSplitFile: vi.fn(async (path: string) => ({ ok: true, file: fileInfo(path, 6) })),
+    analyzeJoinFiles: vi.fn(async ({ paths }: { paths: string[] }) => joinOk(paths)),
+  };
+}
+
+async function proposeTo(paths: string[]): Promise<void> {
+  await usePrepareStore.getState().dropPaths(paths);
+}
+
+describe("prepare store stage machine", () => {
   beforeEach(() => {
     usePrepareStore.getState().reset();
   });
 
-  it("analyzes a picked split file and clamps parts to its row count", async () => {
-    mockApi({ pickSplitFile: async () => ({ ok: true, file: fileInfo("/d/in.csv", 3) }) });
-    usePrepareStore.getState().setSplitParts(99); // no file yet → clamps to minimum
-    await usePrepareStore.getState().pickSplitFile();
-    const { split, busy } = usePrepareStore.getState();
-    expect(busy).toBe(false);
-    expect(split.file?.path).toBe("/d/in.csv");
-    expect(split.parts).toBe(2);
-
-    usePrepareStore.getState().setSplitParts(99);
-    expect(usePrepareStore.getState().split.parts).toBe(3);
-    usePrepareStore.getState().setSplitParts(0);
-    expect(usePrepareStore.getState().split.parts).toBe(2);
+  it("starts idle", () => {
+    expect(usePrepareStore.getState().stage).toEqual({ kind: "idle" });
   });
 
-  it("keeps state untouched when the picker is canceled", async () => {
-    mockApi({ pickSplitFile: async () => ({ ok: false, canceled: true }) });
-    await usePrepareStore.getState().pickSplitFile();
-    expect(usePrepareStore.getState().split.file).toBeNull();
+  it("dropPaths from idle builds three proposals and enters confirm", async () => {
+    const fns = permissiveAnalyzers();
+    mockApi(fns);
+    await proposeTo(["/d/a.csv", "/d/b.csv"]);
+
+    const stage = usePrepareStore.getState().stage;
+    expect(stage.kind).toBe("confirm");
+    if (stage.kind !== "confirm") return;
+    expect(stage.paths).toEqual(["/d/a.csv", "/d/b.csv"]);
+    expect(stage.proposals.map((p) => p.op)).toEqual(["split", "join-output", "join-remaining"]);
+    expect(fns.analyzeSplitFile).toHaveBeenCalledTimes(1);
+    expect(fns.analyzeJoinFiles).toHaveBeenCalledTimes(2);
     expect(usePrepareStore.getState().busy).toBe(false);
   });
 
-  it("stores the split result and clears it when inputs change", async () => {
+  it("recommends join-output when every filename hints -output", async () => {
+    mockApi(permissiveAnalyzers());
+    await proposeTo(["/d/a-output.csv", "/d/b-part1-of-2-output.csv"]);
+    const stage = usePrepareStore.getState().stage;
+    if (stage.kind !== "confirm") throw new Error("expected confirm");
+    expect(stage.recommended).toBe("join-output");
+    expect(stage.selected).toBe("join-output");
+  });
+
+  it("recommends join-remaining when every filename hints -remaining", async () => {
+    mockApi(permissiveAnalyzers());
+    await proposeTo(["/d/a-remaining.csv", "/d/b-remaining.csv"]);
+    const stage = usePrepareStore.getState().stage;
+    if (stage.kind !== "confirm") throw new Error("expected confirm");
+    expect(stage.recommended).toBe("join-remaining");
+  });
+
+  it("recommends split for a single unhinted file", async () => {
+    mockApi(permissiveAnalyzers());
+    await proposeTo(["/d/plain.csv"]);
+    const stage = usePrepareStore.getState().stage;
+    if (stage.kind !== "confirm") throw new Error("expected confirm");
+    expect(stage.recommended).toBe("split");
+  });
+
+  it("falls back to the unique valid op for mixed unhinted drops", async () => {
     mockApi({
-      pickSplitFile: async () => ({ ok: true, file: fileInfo("/d/in.csv") }),
-      runSplit: async () => ({ ok: true, files: [{ path: "/d/in-part1-of-2.csv", rowCount: 2 }] }),
+      analyzeSplitFile: async () => ({ ok: false, error: "no" }),
+      analyzeJoinFiles: async ({ kind, paths }) => (kind === "output" ? joinOk(paths) : joinBad),
     });
-    await usePrepareStore.getState().pickSplitFile();
+    await proposeTo(["/d/a.csv", "/d/b.csv"]);
+    const stage = usePrepareStore.getState().stage;
+    if (stage.kind !== "confirm") throw new Error("expected confirm");
+    expect(stage.recommended).toBe("join-output");
+  });
+
+  it("recommends nothing when several ops are valid and nothing is hinted", async () => {
+    mockApi(permissiveAnalyzers());
+    await proposeTo(["/d/a.csv", "/d/b.csv"]);
+    const stage = usePrepareStore.getState().stage;
+    if (stage.kind !== "confirm") throw new Error("expected confirm");
+    expect(stage.recommended).toBeNull();
+    expect(stage.selected).toBeNull();
+  });
+
+  it("confirmOp applies the retained analysis without re-analyzing", async () => {
+    const fns = permissiveAnalyzers();
+    mockApi(fns);
+    await proposeTo(["/d/plain.csv"]);
+    usePrepareStore.getState().confirmOp();
+
+    const state = usePrepareStore.getState();
+    expect(state.stage).toMatchObject({ kind: "configure", op: "split" });
+    expect(state.split.file?.path).toBe("/d/plain.csv");
+    expect(fns.analyzeSplitFile).toHaveBeenCalledTimes(1); // still just the proposal call
+  });
+
+  it("confirmOp populates the join slice for a join op", async () => {
+    mockApi(permissiveAnalyzers());
+    await proposeTo(["/d/a-output.csv", "/d/b-output.csv"]);
+    usePrepareStore.getState().confirmOp();
+
+    const state = usePrepareStore.getState();
+    expect(state.stage).toMatchObject({ kind: "configure", op: "join-output" });
+    expect(state.join.output.files.map((f) => f.path)).toEqual([
+      "/d/a-output.csv",
+      "/d/b-output.csv",
+    ]);
+    expect(state.join.output.totalRows).toBe(2);
+  });
+
+  it("selectOp switches the selection; confirmOp honors it", async () => {
+    mockApi(permissiveAnalyzers());
+    await proposeTo(["/d/plain.csv"]);
+    usePrepareStore.getState().selectOp("join-remaining");
+    usePrepareStore.getState().confirmOp();
+    expect(usePrepareStore.getState().stage).toMatchObject({
+      kind: "configure",
+      op: "join-remaining",
+    });
+  });
+
+  it("changeOp returns to confirm with the same proposals", async () => {
+    mockApi(permissiveAnalyzers());
+    await proposeTo(["/d/plain.csv"]);
+    const before = usePrepareStore.getState().stage;
+    if (before.kind !== "confirm") throw new Error("expected confirm");
+    usePrepareStore.getState().confirmOp();
+    usePrepareStore.getState().changeOp();
+    const after = usePrepareStore.getState().stage;
+    if (after.kind !== "confirm") throw new Error("expected confirm");
+    expect(after.proposals).toBe(before.proposals); // same reference — retained, not rebuilt
+  });
+
+  it("dropPaths during confirm unions with the pending paths", async () => {
+    const fns = permissiveAnalyzers();
+    mockApi(fns);
+    await proposeTo(["/d/a.csv"]);
+    await proposeTo(["/d/b.csv", "/d/a.csv"]);
+    const stage = usePrepareStore.getState().stage;
+    if (stage.kind !== "confirm") throw new Error("expected confirm");
+    expect(stage.paths).toEqual(["/d/a.csv", "/d/b.csv"]);
+  });
+
+  it("dropPaths during split-configure replaces the source", async () => {
+    const fns = permissiveAnalyzers();
+    mockApi(fns);
+    await proposeTo(["/d/first.csv"]);
+    usePrepareStore.getState().confirmOp();
+    await usePrepareStore.getState().dropPaths(["/d/second.csv"]);
+
+    const state = usePrepareStore.getState();
+    expect(state.stage).toMatchObject({ kind: "configure", op: "split" });
+    expect(state.split.file?.path).toBe("/d/second.csv");
+  });
+
+  it("dropPaths during join-configure adds to the file set", async () => {
+    const fns = permissiveAnalyzers();
+    mockApi(fns);
+    await proposeTo(["/d/a-output.csv"]);
+    usePrepareStore.getState().confirmOp();
+    await usePrepareStore.getState().dropPaths(["/d/b-output.csv"]);
+
+    const state = usePrepareStore.getState();
+    expect(state.stage).toMatchObject({ kind: "configure", op: "join-output" });
+    expect(state.join.output.files.map((f) => f.path)).toEqual([
+      "/d/a-output.csv",
+      "/d/b-output.csv",
+    ]);
+  });
+
+  it("removing the last join file returns to idle", async () => {
+    mockApi(permissiveAnalyzers());
+    await proposeTo(["/d/a-output.csv"]);
+    usePrepareStore.getState().confirmOp();
+    await usePrepareStore.getState().removeJoinFile("output", "/d/a-output.csv");
+
+    const state = usePrepareStore.getState();
+    expect(state.stage).toEqual({ kind: "idle" });
+    expect(state.join.output.files).toEqual([]);
+  });
+
+  it("browseFiles cancel keeps the idle stage and clears busy", async () => {
+    mockApi({ pickPrepareFiles: async () => ({ canceled: true, paths: [] }) });
+    await usePrepareStore.getState().browseFiles();
+    expect(usePrepareStore.getState().stage).toEqual({ kind: "idle" });
+    expect(usePrepareStore.getState().busy).toBe(false);
+  });
+
+  it("browseFiles feeds picked paths into the proposal flow", async () => {
+    mockApi({
+      ...permissiveAnalyzers(),
+      pickPrepareFiles: async () => ({ canceled: false, paths: ["/d/x.csv"] }),
+    });
+    await usePrepareStore.getState().browseFiles();
+    expect(usePrepareStore.getState().stage.kind).toBe("confirm");
+  });
+
+  it("clamps split parts to the source row count and clears stale results", async () => {
+    mockApi({
+      ...permissiveAnalyzers(),
+      runSplit: async () => ({ ok: true, files: [{ path: "/d/p1.csv", rowCount: 3 }] }),
+    });
+    await proposeTo(["/d/plain.csv"]); // fileInfo rowCount = 6
+    usePrepareStore.getState().confirmOp();
+
+    usePrepareStore.getState().setSplitParts(99);
+    expect(usePrepareStore.getState().split.parts).toBe(6);
+    usePrepareStore.getState().setSplitParts(0);
+    expect(usePrepareStore.getState().split.parts).toBe(2);
+
     await usePrepareStore.getState().runSplit();
     expect(usePrepareStore.getState().split.result?.ok).toBe(true);
-
     usePrepareStore.getState().setSplitParts(3);
     expect(usePrepareStore.getState().split.result).toBeNull();
   });
 
-  it("applies a pick into an empty join list directly", async () => {
+  it("runJoin stores the result and ignores canceled saves", async () => {
     mockApi({
-      pickJoinFiles: async () => ({
-        ok: true,
-        files: [fileInfo("/d/a-output.csv")],
-        crossFileIssues: [],
-        totalRows: 4,
-      }),
+      ...permissiveAnalyzers(),
+      runJoin: async () => ({ ok: false, canceled: true }),
     });
-    await usePrepareStore.getState().pickJoinFiles("output");
-    const join = usePrepareStore.getState().join.output;
-    expect(join.files.map((f) => f.path)).toEqual(["/d/a-output.csv"]);
-    expect(join.totalRows).toBe(4);
-  });
-
-  it("re-analyzes the merged, deduplicated list when adding to existing files", async () => {
-    const analyze = vi.fn(async ({ paths }: { paths: string[] }) => ({
-      ok: true,
-      files: paths.map((p) => fileInfo(p)),
-      crossFileIssues: [],
-      totalRows: paths.length * 4,
-    }));
-    mockApi({
-      pickJoinFiles: async () => ({
-        ok: true,
-        files: [fileInfo("/d/a-output.csv"), fileInfo("/d/b-output.csv")],
-        crossFileIssues: [],
-        totalRows: 8,
-      }),
-      analyzeJoinFiles: analyze as unknown as IpcApi["analyzeJoinFiles"],
-    });
-    usePrepareStore.setState({
-      join: {
-        output: {
-          files: [fileInfo("/d/a-output.csv")],
-          crossFileIssues: [],
-          totalRows: 4,
-          result: null,
-        },
-        remaining: { files: [], crossFileIssues: [], totalRows: 0, result: null },
-      },
-    });
-
-    await usePrepareStore.getState().pickJoinFiles("output");
-    expect(analyze).toHaveBeenCalledWith({
-      kind: "output",
-      paths: ["/d/a-output.csv", "/d/b-output.csv"],
-    });
-    expect(usePrepareStore.getState().join.output.files).toHaveLength(2);
-  });
-
-  it("removing the last join file clears the list without an IPC call", async () => {
-    const analyze = vi.fn();
-    mockApi({ analyzeJoinFiles: analyze as unknown as IpcApi["analyzeJoinFiles"] });
-    usePrepareStore.setState({
-      join: {
-        output: { files: [fileInfo("/d/a.csv")], crossFileIssues: [], totalRows: 4, result: null },
-        remaining: { files: [], crossFileIssues: [], totalRows: 0, result: null },
-      },
-    });
-    await usePrepareStore.getState().removeJoinFile("output", "/d/a.csv");
-    expect(usePrepareStore.getState().join.output.files).toEqual([]);
-    expect(analyze).not.toHaveBeenCalled();
-  });
-
-  it("routes output-suffixed drops to the output join", async () => {
-    const analyzeJoin = vi.fn(async ({ paths }: { paths: string[] }) => ({
-      ok: true,
-      files: paths.map((p) => fileInfo(p)),
-      crossFileIssues: [],
-      totalRows: paths.length,
-    }));
-    mockApi({ analyzeJoinFiles: analyzeJoin as unknown as IpcApi["analyzeJoinFiles"] });
-
-    await usePrepareStore.getState().addDroppedPaths(["/d/a-output.csv", "/d/b-output.csv"]);
-    expect(usePrepareStore.getState().tab).toBe("join-output");
-    expect(usePrepareStore.getState().selectedAction).toBe("join-output");
-    expect(analyzeJoin).toHaveBeenCalledWith({
-      kind: "output",
-      paths: ["/d/a-output.csv", "/d/b-output.csv"],
-    });
-  });
-
-  it("routes remaining-suffixed drops to the remaining join", async () => {
-    const analyzeJoin = vi.fn(async ({ paths }: { paths: string[] }) => ({
-      ok: true,
-      files: paths.map((p) => fileInfo(p)),
-      crossFileIssues: [],
-      totalRows: paths.length,
-    }));
-    mockApi({ analyzeJoinFiles: analyzeJoin as unknown as IpcApi["analyzeJoinFiles"] });
-
-    await usePrepareStore
-      .getState()
-      .addDroppedPaths(["/d/a-part1-of-2-remaining.csv", "/d/a-part2-of-2-remaining.csv"]);
-    expect(usePrepareStore.getState().tab).toBe("join-remaining");
-    expect(usePrepareStore.getState().selectedAction).toBe("join-remaining");
-    expect(analyzeJoin).toHaveBeenCalledWith({
-      kind: "remaining",
-      paths: ["/d/a-part1-of-2-remaining.csv", "/d/a-part2-of-2-remaining.csv"],
-    });
-  });
-
-  it("routes a single unsuffixed drop to split", async () => {
-    const analyzeSplit = vi.fn(async () => ({ ok: true, file: fileInfo("/d/x.csv") }));
-    mockApi({ analyzeSplitFile: analyzeSplit as unknown as IpcApi["analyzeSplitFile"] });
-
-    await usePrepareStore.getState().addDroppedPaths(["/d/x.csv"]);
-    expect(usePrepareStore.getState().tab).toBe("split");
-    expect(usePrepareStore.getState().selectedAction).toBe("split");
-    expect(analyzeSplit).toHaveBeenCalledWith("/d/x.csv");
-  });
-
-  it("probes multiple unsuffixed drops and applies the single valid join kind", async () => {
-    const analyzeSplit = vi.fn(async () => ({ ok: true, file: fileInfo("/d/a.csv") }));
-    const analyzeJoin = vi.fn(async ({ kind, paths }: { kind: string; paths: string[] }) => ({
-      ok: kind === "remaining",
-      files: paths.map((p) => fileInfo(p)),
-      crossFileIssues: [],
-      totalRows: paths.length,
-    }));
-    mockApi({
-      analyzeSplitFile: analyzeSplit as unknown as IpcApi["analyzeSplitFile"],
-      analyzeJoinFiles: analyzeJoin as unknown as IpcApi["analyzeJoinFiles"],
-    });
-
-    await usePrepareStore.getState().addDroppedPaths(["/d/a.csv", "/d/b.csv"]);
-    expect(usePrepareStore.getState().tab).toBe("join-remaining");
-    expect(usePrepareStore.getState().selectedAction).toBe("join-remaining");
-    expect(usePrepareStore.getState().pendingDrop).toBeNull();
-  });
-
-  it("keeps ambiguous drops pending until the user chooses a task", async () => {
-    const analyzeSplit = vi.fn(async () => ({ ok: true, file: fileInfo("/d/a.csv") }));
-    const analyzeJoin = vi.fn(async ({ kind, paths }: { kind: string; paths: string[] }) => ({
-      ok: true,
-      files: paths.map((p) => fileInfo(p)),
-      crossFileIssues: [],
-      totalRows: kind === "output" ? 2 : 3,
-    }));
-    mockApi({
-      analyzeSplitFile: analyzeSplit as unknown as IpcApi["analyzeSplitFile"],
-      analyzeJoinFiles: analyzeJoin as unknown as IpcApi["analyzeJoinFiles"],
-    });
-
-    await usePrepareStore.getState().addDroppedPaths(["/d/a.csv", "/d/b.csv"]);
-    expect(usePrepareStore.getState().pendingDrop?.summaries).toHaveLength(3);
-    expect(usePrepareStore.getState().busy).toBe(false);
-
-    await usePrepareStore.getState().resolvePendingDrop("join-output");
-    expect(usePrepareStore.getState().pendingDrop).toBeNull();
-    expect(usePrepareStore.getState().tab).toBe("join-output");
-    expect(usePrepareStore.getState().selectedAction).toBe("join-output");
-  });
-
-  it("allows explicit task drops to bypass inference", async () => {
-    const analyzeJoin = vi.fn(async ({ paths }: { paths: string[] }) => ({
-      ok: true,
-      files: paths.map((p) => fileInfo(p)),
-      crossFileIssues: [],
-      totalRows: paths.length,
-    }));
-    mockApi({ analyzeJoinFiles: analyzeJoin as unknown as IpcApi["analyzeJoinFiles"] });
-
-    await usePrepareStore
-      .getState()
-      .addDroppedPathsToTab("join-remaining", ["/d/a.csv", "/d/a.csv", "/d/b.csv"]);
-    expect(analyzeJoin).toHaveBeenCalledWith({
-      kind: "remaining",
-      paths: ["/d/a.csv", "/d/b.csv"],
-    });
-  });
-
-  it("keeps join state when the save dialog is canceled", async () => {
-    mockApi({ runJoin: async () => ({ ok: false, canceled: true }) });
-    usePrepareStore.setState({
-      join: {
-        output: { files: [fileInfo("/d/a.csv")], crossFileIssues: [], totalRows: 4, result: null },
-        remaining: { files: [], crossFileIssues: [], totalRows: 0, result: null },
-      },
-    });
+    await proposeTo(["/d/a-output.csv"]);
+    usePrepareStore.getState().confirmOp();
     await usePrepareStore.getState().runJoin("output");
     expect(usePrepareStore.getState().join.output.result).toBeNull();
-    expect(usePrepareStore.getState().join.output.files).toHaveLength(1);
+    expect(usePrepareStore.getState().busy).toBe(false);
+  });
+
+  it("reset returns to idle from any stage", async () => {
+    mockApi(permissiveAnalyzers());
+    await proposeTo(["/d/plain.csv"]);
+    usePrepareStore.getState().confirmOp();
+    usePrepareStore.getState().reset();
+    expect(usePrepareStore.getState().stage).toEqual({ kind: "idle" });
+    expect(usePrepareStore.getState().split.file).toBeNull();
   });
 });

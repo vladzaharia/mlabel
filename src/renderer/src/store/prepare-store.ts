@@ -12,13 +12,16 @@ import type {
 /**
  * Prepare-mode state, kept separate from the labeling store so the labeling
  * session (and its autosave subscription) is never disturbed.
+ *
+ * Drop-first stage machine: Idle (drop/browse) → Confirm (three analyzed
+ * proposals, heuristic pre-selection, explicit user confirmation — always
+ * shown, even for unambiguous drops) → Configure (per-op steps + run).
  */
 
-export type PrepareTab = "split" | "join-output" | "join-remaining";
-export type PrepareAction = PrepareTab | null;
+export type PrepareOp = "split" | "join-output" | "join-remaining";
 
-export interface DropResolutionSummary {
-  tab: PrepareTab;
+export interface OpProposal {
+  op: PrepareOp;
   label: string;
   ok: boolean;
   fileCount: number;
@@ -26,12 +29,22 @@ export interface DropResolutionSummary {
   errors: number;
   warnings: number;
   message?: string;
+  /** Raw analyses retained so Confirm → Configure needs no re-analysis. */
+  split?: SplitAnalyzeResponse;
+  join?: JoinAnalyzeResponse;
 }
 
-export interface PendingDropResolution {
+export interface ConfirmData {
   paths: string[];
-  summaries: DropResolutionSummary[];
+  proposals: OpProposal[];
+  recommended: PrepareOp | null;
+  selected: PrepareOp | null;
 }
+
+export type PrepareStage =
+  | { kind: "idle" }
+  | ({ kind: "confirm" } & ConfirmData)
+  | { kind: "configure"; op: PrepareOp; from: ConfirmData };
 
 interface JoinState {
   files: PrepareFileInfo[];
@@ -47,39 +60,46 @@ interface SplitState {
 }
 
 interface PrepareState {
-  selectedAction: PrepareAction;
-  tab: PrepareTab;
+  stage: PrepareStage;
   busy: boolean;
   error: string | null;
-  pendingDrop: PendingDropResolution | null;
   split: SplitState;
   join: Record<JoinKind, JoinState>;
 }
 
 interface PrepareActions {
-  setTab: (tab: PrepareTab) => void;
-  pickSplitFile: () => Promise<void>;
-  analyzeSplitPath: (path: string) => Promise<void>;
-  clearSplitFile: () => void;
+  /** Open the mode-agnostic picker and feed the result into the proposal flow. */
+  browseFiles: () => Promise<void>;
+  /** Route dropped paths by stage: propose (idle/confirm), replace source (split), add files (join). */
+  dropPaths: (paths: string[]) => Promise<void>;
+  selectOp: (op: PrepareOp) => void;
+  /** Enter Configure for the selected op using the retained analysis. */
+  confirmOp: () => void;
+  /** Back from Configure to the retained Confirm stage. */
+  changeOp: () => void;
   setSplitParts: (parts: number) => void;
   runSplit: () => Promise<void>;
   pickJoinFiles: (kind: JoinKind) => Promise<void>;
   removeJoinFile: (kind: JoinKind, path: string) => Promise<void>;
   runJoin: (kind: JoinKind) => Promise<void>;
-  /** Infer how dropped files should be prepared; asks for resolution when ambiguous. */
-  addDroppedPaths: (paths: string[]) => Promise<void>;
-  /** Apply dropped files to a known prepare task, bypassing inference. */
-  addDroppedPathsToTab: (tab: PrepareTab, paths: string[]) => Promise<void>;
-  setSelectedAction: (action: PrepareAction) => void;
-  resolvePendingDrop: (tab: PrepareTab) => Promise<void>;
-  clearPendingDrop: () => void;
   reset: () => void;
 }
 
 export type PrepareStore = PrepareState & PrepareActions;
 
-export function tabKind(tab: PrepareTab): JoinKind | null {
-  return tab === "join-output" ? "output" : tab === "join-remaining" ? "remaining" : null;
+export function opLabel(op: PrepareOp): string {
+  switch (op) {
+    case "split":
+      return "Split source";
+    case "join-output":
+      return "Join outputs";
+    case "join-remaining":
+      return "Join remaining";
+  }
+}
+
+export function opKind(op: PrepareOp): JoinKind | null {
+  return op === "join-output" ? "output" : op === "join-remaining" ? "remaining" : null;
 }
 
 const emptyJoin = (): JoinState => ({
@@ -90,11 +110,9 @@ const emptyJoin = (): JoinState => ({
 });
 
 const initialState = (): PrepareState => ({
-  selectedAction: null,
-  tab: "split",
+  stage: { kind: "idle" },
   busy: false,
   error: null,
-  pendingDrop: null,
   split: { file: null, parts: 2, result: null },
   join: { output: emptyJoin(), remaining: emptyJoin() },
 });
@@ -119,34 +137,16 @@ function joinKindFromName(path: string): JoinKind | null {
   return match[1] === "output" ? "output" : "remaining";
 }
 
-function tabForKind(kind: JoinKind): PrepareTab {
-  return kind === "output" ? "join-output" : "join-remaining";
-}
-
-function labelForTab(tab: PrepareTab): string {
-  switch (tab) {
-    case "split":
-      return "Split source";
-    case "join-output":
-      return "Join outputs";
-    case "join-remaining":
-      return "Join remaining";
-  }
-}
-
 function countIssues(issues: readonly ValidationIssue[]): { errors: number; warnings: number } {
   const errors = issues.filter((i) => i.severity === "error").length;
   return { errors, warnings: issues.length - errors };
 }
 
-function summarizeSplit(
-  paths: readonly string[],
-  response: SplitAnalyzeResponse,
-): DropResolutionSummary {
+function splitProposal(paths: readonly string[], response: SplitAnalyzeResponse): OpProposal {
   const issues = countIssues(response.file?.issues ?? []);
   return {
-    tab: "split",
-    label: labelForTab("split"),
+    op: "split",
+    label: opLabel("split"),
     ok: Boolean(response.file?.ok),
     fileCount: response.file ? 1 : 0,
     totalRows: response.file?.rowCount ?? 0,
@@ -159,43 +159,69 @@ function summarizeSplit(
             paths.length - 1,
           )} other file${paths.length === 2 ? "" : "s"}.`
         : undefined),
+    split: response,
   };
 }
 
-function summarizeJoin(tab: PrepareTab, response: JoinAnalyzeResponse): DropResolutionSummary {
+function joinProposal(op: PrepareOp, response: JoinAnalyzeResponse): OpProposal {
   const fileIssues = (response.files ?? []).flatMap((file) => file.issues);
   const crossIssues = response.crossFileIssues ?? [];
   const issues = countIssues([...fileIssues, ...crossIssues]);
   return {
-    tab,
-    label: labelForTab(tab),
+    op,
+    label: opLabel(op),
     ok: response.ok,
     fileCount: response.files?.length ?? 0,
     totalRows: response.totalRows ?? 0,
     errors: issues.errors,
     warnings: issues.warnings,
     message: response.error,
+    join: response,
   };
 }
 
+/**
+ * Deterministic recommendation: unanimous filename hints win, then a lone
+ * unhinted file suggests a split, then a uniquely valid analysis; otherwise
+ * no pre-selection (the user must pick before Continue enables).
+ */
+function recommendOp(paths: readonly string[], proposals: readonly OpProposal[]): PrepareOp | null {
+  const hints = paths.map(joinKindFromName);
+  const first = hints[0];
+  if (first && hints.every((h) => h === first)) {
+    return first === "output" ? "join-output" : "join-remaining";
+  }
+  if (paths.length === 1 && hints.every((h) => h === null)) return "split";
+  const valid = proposals.filter((p) => p.ok);
+  return valid.length === 1 ? valid[0]!.op : null;
+}
+
 export const usePrepareStore = create<PrepareStore>((set, get) => {
-  function applySplitAnalyze(response: SplitAnalyzeResponse): void {
-    if (response.canceled) {
-      set({ busy: false });
-      return;
-    }
+  async function buildProposals(paths: string[]): Promise<OpProposal[]> {
+    const [split, output, remaining] = await Promise.all([
+      window.api.analyzeSplitFile(paths[0]!),
+      window.api.analyzeJoinFiles({ kind: "output", paths }),
+      window.api.analyzeJoinFiles({ kind: "remaining", paths }),
+    ]);
+    return [
+      splitProposal(paths, split),
+      joinProposal("join-output", output),
+      joinProposal("join-remaining", remaining),
+    ];
+  }
+
+  async function propose(paths: string[]): Promise<void> {
+    set({ busy: true, error: null });
+    const proposals = await buildProposals(paths);
+    const recommended = recommendOp(paths, proposals);
     set({
       busy: false,
-      error: response.error ?? null,
-      split: {
-        file: response.file ?? null,
-        parts: clampParts(get().split.parts, response.file?.rowCount ?? 2),
-        result: null,
-      },
+      stage: { kind: "confirm", paths, proposals, recommended, selected: recommended },
     });
   }
 
-  function applyJoinAnalyze(kind: JoinKind, response: JoinAnalyzeResponse): void {
+  async function analyzeJoinPaths(kind: JoinKind, paths: string[]): Promise<void> {
+    const response = await window.api.analyzeJoinFiles({ kind, paths });
     if (response.canceled) {
       set({ busy: false });
       return;
@@ -215,76 +241,111 @@ export const usePrepareStore = create<PrepareStore>((set, get) => {
     });
   }
 
-  async function analyzeJoinPaths(kind: JoinKind, paths: string[]): Promise<void> {
-    if (paths.length === 0) {
-      set({ busy: false, join: { ...get().join, [kind]: emptyJoin() } });
-      return;
-    }
-    applyJoinAnalyze(kind, await window.api.analyzeJoinFiles({ kind, paths }));
-  }
-
-  async function applyDroppedPathsToTab(tab: PrepareTab, paths: string[]): Promise<void> {
-    const clean = unique(paths);
-    if (clean.length === 0) return;
-    set({ selectedAction: tab, tab, error: null, pendingDrop: null });
-    const kind = tabKind(tab);
-    if (!kind) {
-      await get().analyzeSplitPath(clean[0]!);
-      return;
-    }
+  async function replaceSplitSource(path: string): Promise<void> {
     set({ busy: true });
-    const existing = get().join[kind].files.map((f) => f.path);
-    await analyzeJoinPaths(kind, unique([...existing, ...clean]));
-  }
-
-  async function buildDropResolution(paths: string[]): Promise<PendingDropResolution> {
-    const [split, output, remaining] = await Promise.all([
-      window.api.analyzeSplitFile(paths[0]!),
-      window.api.analyzeJoinFiles({ kind: "output", paths }),
-      window.api.analyzeJoinFiles({ kind: "remaining", paths }),
-    ]);
-    return {
-      paths,
-      summaries: [
-        summarizeSplit(paths, split),
-        summarizeJoin("join-output", output),
-        summarizeJoin("join-remaining", remaining),
-      ],
-    };
+    const response = await window.api.analyzeSplitFile(path);
+    if (response.canceled) {
+      set({ busy: false });
+      return;
+    }
+    set({
+      busy: false,
+      error: response.error ?? null,
+      split: {
+        file: response.file ?? null,
+        parts: clampParts(get().split.parts, response.file?.rowCount ?? 2),
+        result: null,
+      },
+    });
   }
 
   return {
     ...initialState(),
 
-    setTab(tab) {
-      set({ selectedAction: tab, tab, error: null, pendingDrop: null });
+    async browseFiles() {
+      set({ busy: true, error: null });
+      const picked = await window.api.pickPrepareFiles();
+      if (picked.canceled || picked.paths.length === 0) {
+        set({ busy: false });
+        return;
+      }
+      await propose(unique(picked.paths));
     },
 
-    setSelectedAction(action) {
+    async dropPaths(paths) {
+      const clean = unique(paths);
+      if (clean.length === 0) return;
+      const { stage } = get();
+
+      if (stage.kind === "configure") {
+        const kind = opKind(stage.op);
+        if (!kind) {
+          await replaceSplitSource(clean[0]!);
+          return;
+        }
+        set({ busy: true, error: null });
+        const existing = get().join[kind].files.map((f) => f.path);
+        await analyzeJoinPaths(kind, unique([...existing, ...clean]));
+        return;
+      }
+
+      const base = stage.kind === "confirm" ? stage.paths : [];
+      await propose(unique([...base, ...clean]));
+    },
+
+    selectOp(op) {
+      const { stage } = get();
+      if (stage.kind !== "confirm") return;
+      set({ stage: { ...stage, selected: op } });
+    },
+
+    confirmOp() {
+      const { stage } = get();
+      if (stage.kind !== "confirm" || !stage.selected) return;
+      const proposal = stage.proposals.find((p) => p.op === stage.selected);
+      if (!proposal) return;
+      const from: ConfirmData = {
+        paths: stage.paths,
+        proposals: stage.proposals,
+        recommended: stage.recommended,
+        selected: stage.selected,
+      };
+
+      if (proposal.op === "split") {
+        const file = proposal.split?.file ?? null;
+        set({
+          stage: { kind: "configure", op: "split", from },
+          error: proposal.split?.error ?? null,
+          split: {
+            file,
+            parts: clampParts(get().split.parts, file?.rowCount ?? 2),
+            result: null,
+          },
+        });
+        return;
+      }
+
+      const kind = opKind(proposal.op);
+      if (!kind) return;
       set({
-        selectedAction: action,
-        tab: action ?? get().tab,
-        error: null,
-        pendingDrop: null,
+        stage: { kind: "configure", op: proposal.op, from },
+        error: proposal.join?.error ?? null,
+        join: {
+          ...get().join,
+          [kind]: {
+            files: proposal.join?.files ?? [],
+            crossFileIssues: proposal.join?.crossFileIssues ?? [],
+            totalRows: proposal.join?.totalRows ?? 0,
+            result: null,
+          },
+        },
       });
     },
 
-    async pickSplitFile() {
-      set({ busy: true, pendingDrop: null });
-      applySplitAnalyze(await window.api.pickSplitFile());
-    },
-
-    async analyzeSplitPath(path) {
-      set({ busy: true, pendingDrop: null });
-      applySplitAnalyze(await window.api.analyzeSplitFile(path));
-    },
-
-    clearSplitFile() {
-      set({
-        split: { file: null, parts: get().split.parts, result: null },
-        error: null,
-        pendingDrop: null,
-      });
+    changeOp() {
+      const { stage } = get();
+      if (stage.kind !== "configure") return;
+      set({ error: null, stage: { kind: "confirm", ...stage.from } });
     },
 
     setSplitParts(parts) {
@@ -307,7 +368,7 @@ export const usePrepareStore = create<PrepareStore>((set, get) => {
     },
 
     async pickJoinFiles(kind) {
-      set({ busy: true, pendingDrop: null });
+      set({ busy: true });
       const existing = get().join[kind].files.map((f) => f.path);
       const response = await window.api.pickJoinFiles(kind);
       if (response.canceled) {
@@ -315,79 +376,53 @@ export const usePrepareStore = create<PrepareStore>((set, get) => {
         return;
       }
       const picked = (response.files ?? []).map((f) => f.path);
-      const merged = [...new Set([...existing, ...picked])];
+      const merged = unique([...existing, ...picked]);
       // A pick into an empty list is already the full analysis; otherwise the
       // union of old + new files must be re-analyzed as one set.
-      if (existing.length === 0) applyJoinAnalyze(kind, response);
-      else await analyzeJoinPaths(kind, merged);
+      if (existing.length === 0) {
+        set({
+          busy: false,
+          error: response.error ?? null,
+          join: {
+            ...get().join,
+            [kind]: {
+              files: response.files ?? [],
+              crossFileIssues: response.crossFileIssues ?? [],
+              totalRows: response.totalRows ?? 0,
+              result: null,
+            },
+          },
+        });
+        return;
+      }
+      await analyzeJoinPaths(kind, merged);
     },
 
     async removeJoinFile(kind, path) {
-      set({ busy: true, pendingDrop: null });
       const rest = get()
         .join[kind].files.map((f) => f.path)
         .filter((p) => p !== path);
+      if (rest.length === 0) {
+        set({
+          busy: false,
+          error: null,
+          stage: { kind: "idle" },
+          join: { ...get().join, [kind]: emptyJoin() },
+        });
+        return;
+      }
+      set({ busy: true });
       await analyzeJoinPaths(kind, rest);
     },
 
     async runJoin(kind) {
       const paths = get().join[kind].files.map((f) => f.path);
       if (paths.length === 0) return;
-      set({ busy: true, pendingDrop: null });
+      set({ busy: true });
       const result = await window.api.runJoin({ kind, paths });
       set({ busy: false });
       if (result.canceled) return;
       set({ join: { ...get().join, [kind]: { ...get().join[kind], result } } });
-    },
-
-    async addDroppedPaths(paths) {
-      const clean = unique(paths);
-      if (clean.length === 0) return;
-
-      const { selectedAction } = get();
-      if (selectedAction) {
-        await applyDroppedPathsToTab(selectedAction, clean);
-        return;
-      }
-
-      const hintedKinds = clean.map(joinKindFromName);
-      const explicitKinds = hintedKinds.filter((k): k is JoinKind => Boolean(k));
-      const allHintedSame =
-        explicitKinds.length === clean.length && explicitKinds.every((k) => k === explicitKinds[0]);
-
-      if (allHintedSame) {
-        await applyDroppedPathsToTab(tabForKind(explicitKinds[0]!), clean);
-        return;
-      }
-
-      if (clean.length === 1 && explicitKinds.length === 0) {
-        await applyDroppedPathsToTab("split", clean);
-        return;
-      }
-
-      set({ busy: true, pendingDrop: null, error: null });
-      const resolution = await buildDropResolution(clean);
-      const joinOptions = resolution.summaries.filter((s) => s.tab !== "split" && s.ok);
-      if (explicitKinds.length === 0 && joinOptions.length === 1) {
-        set({ busy: false });
-        await applyDroppedPathsToTab(joinOptions[0]!.tab, clean);
-        return;
-      }
-      set({ busy: false, pendingDrop: resolution });
-    },
-
-    async addDroppedPathsToTab(tab, paths) {
-      await applyDroppedPathsToTab(tab, paths);
-    },
-
-    async resolvePendingDrop(tab) {
-      const pending = get().pendingDrop;
-      if (!pending) return;
-      await applyDroppedPathsToTab(tab, pending.paths);
-    },
-
-    clearPendingDrop() {
-      set({ pendingDrop: null });
     },
 
     reset() {
