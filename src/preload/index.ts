@@ -60,6 +60,7 @@ const api = {
   getRecent: () => ipcRenderer.invoke(IPC_INVOKE.getRecent),
 
   pickSplitFile: () => ipcRenderer.invoke(IPC_INVOKE.pickSplitFile),
+  pickPrepareFiles: () => ipcRenderer.invoke(IPC_INVOKE.pickPrepareFiles),
   analyzeSplitFile: (path: string) => ipcRenderer.invoke(IPC_INVOKE.analyzeSplitFile, path),
   runSplit: (request: SplitRequest) => ipcRenderer.invoke(IPC_INVOKE.runSplit, request),
   pickJoinFiles: (kind: JoinKind) => ipcRenderer.invoke(IPC_INVOKE.pickJoinFiles, kind),

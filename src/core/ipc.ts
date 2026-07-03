@@ -7,6 +7,7 @@ import type {
   JoinKind,
   JoinRequest,
   JoinRunResponse,
+  PrepareFilePickResponse,
   RecentPaths,
   SessionData,
   SplitAnalyzeResponse,
@@ -92,6 +93,8 @@ export interface IpcApi {
   pickSplitFile: () => Promise<SplitAnalyzeResponse>;
   /** Analyze a specific input path (drag-drop). */
   analyzeSplitFile: (path: string) => Promise<SplitAnalyzeResponse>;
+  /** Pick any prepare files (mode-agnostic); analysis happens via the analyze methods. */
+  pickPrepareFiles: () => Promise<PrepareFilePickResponse>;
   /** Split the file into N contiguous parts next to the source. */
   runSplit: (request: SplitRequest) => Promise<SplitRunResponse>;
   /** Pick one or more files of the given kind and analyze them for a join. */
@@ -119,6 +122,7 @@ export const IPC_INVOKE = {
   openExternal: "shell:open-external",
   revealPath: "shell:reveal-path",
   pickSplitFile: "prepare:split-pick",
+  pickPrepareFiles: "prepare:files-pick",
   analyzeSplitFile: "prepare:split-analyze",
   runSplit: "prepare:split-run",
   pickJoinFiles: "prepare:join-pick",

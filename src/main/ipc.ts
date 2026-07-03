@@ -19,6 +19,7 @@ import {
   analyzeJoinFiles,
   analyzeSplitFile,
   pickJoinFiles,
+  pickPrepareFiles,
   pickSplitFile,
   runJoin,
   runSplit,
@@ -49,6 +50,7 @@ export function registerIpc(): void {
   ipcMain.handle(IPC_INVOKE.getRecent, () => getRecent());
 
   ipcMain.handle(IPC_INVOKE.pickSplitFile, () => pickSplitFile());
+  ipcMain.handle(IPC_INVOKE.pickPrepareFiles, () => pickPrepareFiles());
   ipcMain.handle(IPC_INVOKE.analyzeSplitFile, (_event, path: string) => analyzeSplitFile(path));
   ipcMain.handle(IPC_INVOKE.runSplit, (_event, request: SplitRequest) => runSplit(request));
   ipcMain.handle(IPC_INVOKE.pickJoinFiles, (_event, kind: JoinKind) => pickJoinFiles(kind));

@@ -33,6 +33,7 @@ export type {
   JoinRunResponse,
   LabelMap,
   PrepareFileInfo,
+  PrepareFilePickResponse,
   RecentPaths,
   RecordView,
   SessionData,

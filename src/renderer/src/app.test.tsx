@@ -42,6 +42,7 @@ function mockApi(overrides: Partial<IpcApi> = {}): void {
     getRecent: async () => ({}),
     pickSplitFile: async () => ({ ok: false, canceled: true }),
     analyzeSplitFile: async () => ({ ok: false, canceled: true }),
+    pickPrepareFiles: async () => ({ canceled: true, paths: [] }),
     runSplit: async () => ({ ok: false }),
     pickJoinFiles: async () => ({ ok: false, canceled: true }),
     analyzeJoinFiles: async () => ({ ok: false }),

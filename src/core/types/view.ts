@@ -136,6 +136,12 @@ export interface JoinRunResponse {
   error?: string;
 }
 
+/** Result of the mode-agnostic Prepare file picker (dialog only, no analysis). */
+export interface PrepareFilePickResponse {
+  canceled: boolean;
+  paths: string[];
+}
+
 /**
  * Auto-update progress, pushed from main → renderer. `available-external` is the
  * portable-build case: it can't self-install, so it carries a direct download URL

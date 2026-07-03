@@ -7,6 +7,7 @@ import type {
   JoinKind,
   JoinRequest,
   JoinRunResponse,
+  PrepareFilePickResponse,
   SplitAnalyzeResponse,
   SplitRequest,
   SplitRunResponse,
@@ -59,6 +60,16 @@ export async function pickSplitFile(): Promise<SplitAnalyzeResponse> {
   });
   if (result.canceled || result.filePaths.length === 0) return { ok: false, canceled: true };
   return analyzeSplitFile(result.filePaths[0]!);
+}
+
+export async function pickPrepareFiles(): Promise<PrepareFilePickResponse> {
+  const result = await dialog.showOpenDialog({
+    title: "Select files to prepare",
+    properties: ["openFile", "multiSelections"],
+    filters: DATA_FILTERS,
+  });
+  if (result.canceled || result.filePaths.length === 0) return { canceled: true, paths: [] };
+  return { canceled: false, paths: result.filePaths };
 }
 
 export async function runSplit(request: SplitRequest): Promise<SplitRunResponse> {
