@@ -15,7 +15,7 @@
  * hue and chroma change per theme.
  *
  * Light and dark are deliberate, NOT inversions:
- *   • Light surfaces carry HIGH alpha so they read as clean planes over the OS
+ *   • Light surfaces carry high alpha so they read as clean planes over the OS
  *     window material (macOS vibrancy / Windows acrylic) instead of a muddy wash,
  *     and the accent is DEEPER/denser to hold presence on near-white.
  *   • Dark surfaces are rich (never dead), and the accent is LIGHTER/luminous.
@@ -33,19 +33,19 @@
  */
 :root,
 [data-theme="cobalt"] {
-  --background: oklch(0.985 0.004 258 / 0.8);
+  --background: oklch(0.985 0.004 258 / 0.92);
   --foreground: oklch(0.24 0.026 262);
-  --muted: oklch(0.955 0.006 258 / 0.7);
+  --muted: oklch(0.955 0.006 258 / 0.9);
   --muted-foreground: oklch(0.31 0.024 260);
   --border: oklch(0.45 0.03 262 / 0.14);
-  --card: oklch(0.995 0.003 258 / 0.72);
+  --card: oklch(0.995 0.003 258 / 0.94);
   --card-foreground: oklch(0.24 0.026 262);
-  --chrome: oklch(0.97 0.005 258 / 0.62);
+  --chrome: oklch(0.97 0.005 258 / 0.9);
   --popover: oklch(0.995 0.003 258 / 0.92);
   --popover-foreground: oklch(0.24 0.026 262);
   --accent: oklch(0.55 0.2 265);
   --accent-foreground: oklch(0.99 0.008 258);
-  --ring: oklch(0.55 0.2 265 / 0.45);
+  --ring: oklch(0.55 0.2 265);
   --progress: oklch(0.7 0.16 155);
   --progress-foreground: oklch(0.27 0.06 155);
   --danger: oklch(0.58 0.2 25);
@@ -76,7 +76,7 @@
   --popover-foreground: oklch(0.93 0.012 258);
   --accent: oklch(0.7 0.18 266);
   --accent-foreground: oklch(0.16 0.028 264);
-  --ring: oklch(0.7 0.18 266 / 0.55);
+  --ring: oklch(0.7 0.18 266);
   --progress: oklch(0.76 0.16 155);
   --progress-foreground: oklch(0.2 0.05 155);
   --danger: oklch(0.68 0.18 25);
@@ -94,19 +94,19 @@
 
 /* Parchment Parlour — soft sage-tinted paper, dusty sage accent. */
 [data-theme="parchment"] {
-  --background: oklch(0.975 0.014 98 / 0.8);
+  --background: oklch(0.975 0.014 98 / 0.92);
   --foreground: oklch(0.27 0.02 90);
-  --muted: oklch(0.95 0.018 96 / 0.7);
+  --muted: oklch(0.95 0.018 96 / 0.9);
   --muted-foreground: oklch(0.3 0.022 95);
   --border: oklch(0.45 0.04 95 / 0.16);
-  --card: oklch(0.99 0.01 100 / 0.72);
+  --card: oklch(0.99 0.01 100 / 0.94);
   --card-foreground: oklch(0.27 0.02 90);
-  --chrome: oklch(0.965 0.015 97 / 0.62);
+  --chrome: oklch(0.965 0.015 97 / 0.9);
   --popover: oklch(0.99 0.01 100 / 0.92);
   --popover-foreground: oklch(0.27 0.02 90);
   --accent: oklch(0.51 0.09 130);
   --accent-foreground: oklch(0.99 0.01 110);
-  --ring: oklch(0.51 0.09 130 / 0.5);
+  --ring: oklch(0.51 0.09 130);
   --progress: oklch(0.66 0.14 150);
   --progress-foreground: oklch(0.3 0.07 150);
   --danger: oklch(0.57 0.19 28);
@@ -136,7 +136,7 @@
   --popover-foreground: oklch(0.93 0.014 100);
   --accent: oklch(0.8 0.1 132);
   --accent-foreground: oklch(0.2 0.04 130);
-  --ring: oklch(0.8 0.1 132 / 0.55);
+  --ring: oklch(0.8 0.1 132);
   --progress: oklch(0.78 0.14 150);
   --progress-foreground: oklch(0.2 0.05 150);
   --danger: oklch(0.68 0.17 28);
@@ -154,19 +154,19 @@
 
 /* Frostbound Fjord — glacial cool neutral, azure accent, cyan info. */
 [data-theme="fjord"] {
-  --background: oklch(0.985 0.006 230 / 0.8);
+  --background: oklch(0.985 0.006 230 / 0.92);
   --foreground: oklch(0.24 0.022 235);
-  --muted: oklch(0.955 0.008 232 / 0.7);
+  --muted: oklch(0.955 0.008 232 / 0.9);
   --muted-foreground: oklch(0.31 0.02 233);
   --border: oklch(0.45 0.03 235 / 0.14);
-  --card: oklch(0.995 0.004 230 / 0.72);
+  --card: oklch(0.995 0.004 230 / 0.94);
   --card-foreground: oklch(0.24 0.022 235);
-  --chrome: oklch(0.97 0.006 232 / 0.62);
+  --chrome: oklch(0.97 0.006 232 / 0.9);
   --popover: oklch(0.995 0.004 230 / 0.92);
   --popover-foreground: oklch(0.24 0.022 235);
   --accent: oklch(0.51 0.15 235);
   --accent-foreground: oklch(0.99 0.008 230);
-  --ring: oklch(0.51 0.15 235 / 0.45);
+  --ring: oklch(0.51 0.15 235);
   --progress: oklch(0.66 0.14 165);
   --progress-foreground: oklch(0.3 0.07 165);
   --danger: oklch(0.58 0.19 25);
@@ -196,7 +196,7 @@
   --popover-foreground: oklch(0.93 0.012 230);
   --accent: oklch(0.72 0.14 235);
   --accent-foreground: oklch(0.16 0.02 240);
-  --ring: oklch(0.72 0.14 235 / 0.55);
+  --ring: oklch(0.72 0.14 235);
   --progress: oklch(0.8 0.14 165);
   --progress-foreground: oklch(0.2 0.05 165);
   --danger: oklch(0.68 0.18 25);
@@ -214,19 +214,19 @@
 
 /* Velvet Vespers — violet dusk; moody and regal. */
 [data-theme="vespers"] {
-  --background: oklch(0.985 0.006 300 / 0.8);
+  --background: oklch(0.985 0.006 300 / 0.92);
   --foreground: oklch(0.25 0.024 300);
-  --muted: oklch(0.955 0.008 300 / 0.7);
+  --muted: oklch(0.955 0.008 300 / 0.9);
   --muted-foreground: oklch(0.31 0.022 300);
   --border: oklch(0.45 0.03 300 / 0.14);
-  --card: oklch(0.995 0.004 305 / 0.72);
+  --card: oklch(0.995 0.004 305 / 0.94);
   --card-foreground: oklch(0.25 0.024 300);
-  --chrome: oklch(0.97 0.006 300 / 0.62);
+  --chrome: oklch(0.97 0.006 300 / 0.9);
   --popover: oklch(0.995 0.004 305 / 0.92);
   --popover-foreground: oklch(0.25 0.024 300);
   --accent: oklch(0.53 0.2 300);
   --accent-foreground: oklch(0.99 0.008 305);
-  --ring: oklch(0.53 0.2 300 / 0.45);
+  --ring: oklch(0.53 0.2 300);
   --progress: oklch(0.66 0.14 158);
   --progress-foreground: oklch(0.3 0.07 158);
   --danger: oklch(0.58 0.2 22);
@@ -256,7 +256,7 @@
   --popover-foreground: oklch(0.93 0.014 300);
   --accent: oklch(0.72 0.18 300);
   --accent-foreground: oklch(0.16 0.03 300);
-  --ring: oklch(0.72 0.18 300 / 0.55);
+  --ring: oklch(0.72 0.18 300);
   --progress: oklch(0.8 0.14 158);
   --progress-foreground: oklch(0.2 0.05 158);
   --danger: oklch(0.68 0.18 22);
@@ -465,5 +465,24 @@ label:has(input) {
   .dialog-overlay {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Forced colours (Windows High Contrast)
+ *
+ * The OS replaces author colours wholesale, which strips the focus ring along
+ * with everything else — leaving keyboard users with no visible focus at all.
+ * `Highlight` is the system's own focus colour, so it survives.
+ * -------------------------------------------------------------------------- */
+@media (forced-colors: active) {
+  *:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .glass,
+  .glass-card {
+    backdrop-filter: none;
   }
 }

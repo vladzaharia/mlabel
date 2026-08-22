@@ -40,6 +40,8 @@ export interface SessionData {
   inputPath: string;
   index: number;
   labels: Record<number, LabelMap>;
+  /** Answers given once up front, applied to every exported row. */
+  prefill?: LabelMap;
   /** Content fingerprint of the source file when this session was last saved. */
   source?: SourceFingerprint;
 }
@@ -69,6 +71,8 @@ export interface InputLoadResponse {
 
 export interface ExportRequest {
   labels: Record<number, LabelMap>;
+  /** Session answers, merged into every row. See `resolveLabelValues`. */
+  prefill?: LabelMap;
   /**
    * Replace artifacts left by an earlier run. Absent, an export that would
    * clobber existing files fails instead, so a re-export can't silently destroy

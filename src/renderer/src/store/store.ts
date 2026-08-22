@@ -1,5 +1,13 @@
 import { create } from "zustand";
-import { evaluateRecord, reviveLabelMap, sessionHasChanges } from "@core";
+import {
+  evaluateRecord,
+  resolveLabelValues,
+  reviveLabelMap,
+  sessionAnswered,
+  sessionFields,
+  sessionHasChanges,
+  stampLabelTime,
+} from "@core";
 import type {
   AppConfig,
   CoercedValue,
@@ -21,6 +29,7 @@ export type Phase =
   | "config-invalid"
   | "need-input"
   | "input-invalid"
+  | "need-prefill"
   | "labeling"
   | "prepare"
   | "done";
@@ -60,6 +69,8 @@ interface AppState {
 
   index: number;
   labels: Record<number, LabelMap>;
+  /** Answers given once per file, merged into every exported row. */
+  prefill: LabelMap;
   exportResult: ExportResponse | null;
   exportError: string | null;
 
@@ -103,8 +114,13 @@ interface AppActions {
   clearExportError: () => void;
 
   setLabel: (index: number, field: string, value: CoercedValue | null) => void;
+  setPrefill: (field: string, value: CoercedValue | null) => void;
+  /** Leave the setup step for the labeling screen. */
+  startLabeling: () => void;
   next: () => void;
   prev: () => void;
+  /** Jump to the nearest record that still needs work, in either direction. */
+  gotoIncomplete: (direction: 1 | -1) => void;
 
   submitDone: () => Promise<void>;
   backToLabeling: () => void;
@@ -159,6 +175,7 @@ export const useStore = create<AppStore>((set, get) => ({
 
   index: 0,
   labels: {},
+  prefill: {},
   exportResult: null,
   exportError: null,
 
@@ -252,7 +269,13 @@ export const useStore = create<AppStore>((set, get) => ({
       announce("Prepare mode", "polite");
     } else {
       // Label mode: go to labeling if records loaded, else input picker.
-      set({ phase: records.length > 0 ? "labeling" : "need-input", mode: "label" });
+      const resumePhase =
+        records.length === 0
+          ? "need-input"
+          : needsPrefill(config, get().prefill)
+            ? "need-prefill"
+            : "labeling";
+      set({ phase: resumePhase, mode: "label" });
       announce("Labeling mode", "polite");
     }
   },
@@ -280,7 +303,7 @@ export const useStore = create<AppStore>((set, get) => ({
   async pickInput() {
     set({ busy: true });
     try {
-      applyInputResponse(set, await window.api.pickInput());
+      applyInputResponse(set, await window.api.pickInput(), get().config, get().prefill);
     } catch (err) {
       set({ busy: false, error: describeError(err) });
     }
@@ -289,7 +312,7 @@ export const useStore = create<AppStore>((set, get) => ({
   async loadInputPath(path) {
     set({ busy: true });
     try {
-      applyInputResponse(set, await window.api.loadInput(path));
+      applyInputResponse(set, await window.api.loadInput(path), get().config, get().prefill);
     } catch (err) {
       set({ busy: false, error: describeError(err) });
     }
@@ -308,6 +331,8 @@ export const useStore = create<AppStore>((set, get) => ({
     }
     set({
       labels,
+      // Keep whatever was answered before if the saved session predates prefill.
+      prefill: resume.prefill ?? get().prefill,
       index: Math.min(resume.index, Math.max(0, records.length - 1)),
       pendingResume: null,
       pendingResumeStale: false,
@@ -330,8 +355,22 @@ export const useStore = create<AppStore>((set, get) => ({
   },
 
   setLabel(index, field, value) {
-    const labels = get().labels;
-    set({ labels: { ...labels, [index]: { ...labels[index], [field]: value } } });
+    const { labels, prefill, config } = get();
+    const updated: LabelMap = { ...labels[index], [field]: value };
+    // Stamped inside the same set() as the edit, so autosave still fires once
+    // per keystroke rather than twice.
+    const stamped = config
+      ? stampLabelTime(updated, prefill, config.output.fields, () => new Date())
+      : updated;
+    set({ labels: { ...labels, [index]: stamped } });
+  },
+
+  setPrefill(field, value) {
+    set({ prefill: { ...get().prefill, [field]: value } });
+  },
+
+  startLabeling() {
+    if (get().phase === "need-prefill") set({ phase: "labeling" });
   },
 
   next() {
@@ -344,11 +383,30 @@ export const useStore = create<AppStore>((set, get) => ({
     if (index > 0) set({ index: index - 1 });
   },
 
+  /**
+   * Finding the gaps is otherwise O(n) manual stepping with no signal on
+   * arrival — the difference between a guided sweep and a bad afternoon.
+   */
+  gotoIncomplete(direction) {
+    const { records, labels, prefill, config, index } = get();
+    if (!config) return;
+    for (let i = index + direction; i >= 0 && i < records.length; i += direction) {
+      const record = records[i];
+      if (!record) continue;
+      const values = labels[record.index] ?? record.labelValues;
+      const merged = resolveLabelValues(values, prefill, config.output.fields);
+      if (evaluateRecord(merged, config.output.fields).status !== "complete") {
+        set({ index: i });
+        return;
+      }
+    }
+  },
+
   async submitDone() {
     set({ busy: true, exportError: null });
     let result: ExportResponse;
     try {
-      result = await window.api.exportLabels({ labels: get().labels });
+      result = await window.api.exportLabels({ labels: get().labels, prefill: get().prefill });
     } catch (err) {
       set({ busy: false, exportError: describeError(err) });
       return;
@@ -381,6 +439,7 @@ export const useStore = create<AppStore>((set, get) => ({
     set({
       phase: "need-config",
       mode: "label",
+      prefill: {},
       config: null,
       configPath: null,
       configIssues: [],
@@ -406,7 +465,21 @@ function describeError(err: unknown): string {
 
 type SetFn = (partial: Partial<AppStore>) => void;
 
-function applyInputResponse(set: SetFn, response: InputLoadResponse): void {
+/** True when the config asks session questions that are not yet answered. */
+function needsPrefill(config: AppConfig | null, prefill: LabelMap): boolean {
+  if (!config) return false;
+  return (
+    sessionFields(config.output.fields).length > 0 &&
+    !sessionAnswered(prefill, config.output.fields)
+  );
+}
+
+function applyInputResponse(
+  set: SetFn,
+  response: InputLoadResponse,
+  config: AppConfig | null,
+  prefill: LabelMap,
+): void {
   if (response.canceled) {
     set({ busy: false });
     return;
@@ -452,7 +525,9 @@ function applyInputResponse(set: SetFn, response: InputLoadResponse): void {
     // The previous file's export outcome says nothing about this one.
     exportError: null,
     exportResult: null,
-    phase: "labeling",
+    // The setup step only appears when the config asks something that has not
+    // been answered yet, so a config without session fields never sees it.
+    phase: needsPrefill(config, prefill) ? "need-prefill" : "labeling",
   });
 }
 
@@ -463,7 +538,8 @@ export function selectCompletedCount(state: AppStore): number {
   let n = 0;
   for (const record of records) {
     const values = labels[record.index] ?? record.labelValues;
-    if (evaluateRecord(values, config.output.fields).status === "complete") n += 1;
+    const merged = resolveLabelValues(values, state.prefill, config.output.fields);
+    if (evaluateRecord(merged, config.output.fields).status === "complete") n += 1;
   }
   return n;
 }
@@ -474,15 +550,19 @@ export const selectCurrentRecord = (state: AppStore): RecordView | undefined =>
 // --- Autosave: write-through on every labeling-relevant state change. ---
 // Using the two-arg subscriber so we can bail out when only unrelated state
 // (e.g. updateStatus, themeMode) changes — avoiding unnecessary IPC traffic.
+/** Phases where a session is live and worth persisting. */
+const LABELING_PHASES = new Set<Phase>(["need-prefill", "labeling"]);
+
 useStore.subscribe((state, prev) => {
-  // Guard on phase === "labeling" before issuing saveSession. submitDone() sets
+  // Guard on an active labeling phase before issuing saveSession. submitDone() sets
   // phase: "done" synchronously before calling clearSession(); the export
   // round-trip drains in-flight saves before clearSession reaches the main
   // queue, making a saveSession/clearSession reorder practically impossible.
-  if (state.phase !== "labeling" || !state.configPath || !state.inputPath) return;
+  if (!LABELING_PHASES.has(state.phase) || !state.configPath || !state.inputPath) return;
   // Only IPC when something meaningful to the session actually changed.
   if (
     state.labels === prev.labels &&
+    state.prefill === prev.prefill &&
     state.index === prev.index &&
     state.configPath === prev.configPath &&
     state.inputPath === prev.inputPath
@@ -493,6 +573,7 @@ useStore.subscribe((state, prev) => {
     inputPath: state.inputPath,
     index: state.index,
     labels: state.labels,
+    prefill: state.prefill,
   });
 });
 

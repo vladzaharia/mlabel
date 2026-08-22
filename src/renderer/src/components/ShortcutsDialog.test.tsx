@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+import { buildConfig } from "@test/fixtures/config";
+import { useStore } from "../store/store";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 
 describe("ShortcutsDialog", () => {
@@ -9,7 +11,7 @@ describe("ShortcutsDialog", () => {
     render(<ShortcutsDialog open={true} onOpenChange={() => {}} />);
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText(/Previous \/ next record/)).toBeInTheDocument();
-    expect(screen.getByText(/Pick Nth option/)).toBeInTheDocument();
+    expect(screen.getByText(/Pick the Nth choice/)).toBeInTheDocument();
     expect(screen.getByText(/Save & export/)).toBeInTheDocument();
     expect(screen.getByText(/Switch to Label mode/)).toBeInTheDocument();
     expect(screen.getByText(/Switch to Prepare mode/)).toBeInTheDocument();
@@ -45,5 +47,47 @@ describe("ShortcutsDialog", () => {
       expect(screen.getByText(/Ctrl\+Shift\+L/)).toBeInTheDocument();
       expect(screen.getByText(/Ctrl\+Shift\+P/)).toBeInTheDocument();
     });
+  });
+});
+
+describe("ShortcutsDialog: config-declared chords", () => {
+  afterEach(() => cleanup());
+
+  // An author who adds a chord shouldn't also have to remember to document it;
+  // the one place a labeler looks stays truthful by reading the config.
+  it("lists the shortcuts the loaded config declares", () => {
+    const config = buildConfig({
+      output: [
+        {
+          name: "sentiment",
+          kind: "choice",
+          displayName: "Sentiment",
+          choices: [{ value: "negative", label: "Negative" }],
+        },
+      ],
+    });
+    const withChords = {
+      ...config,
+      output: {
+        ...config.output,
+        fields: config.output.fields.map((f) =>
+          f.type === "enum"
+            ? { ...f, shortcut: "mod+s", choices: [{ ...f.choices[0]!, shortcut: "n" }] }
+            : f,
+        ),
+      },
+    } as typeof config;
+
+    useStore.setState({ config: withChords });
+    render(<ShortcutsDialog open onOpenChange={() => {}} />);
+
+    expect(screen.getByText("Focus Sentiment")).toBeInTheDocument();
+    expect(screen.getByText("Sentiment: Negative")).toBeInTheDocument();
+  });
+
+  it("shows nothing extra when the config declares no chords", () => {
+    useStore.setState({ config: buildConfig() });
+    render(<ShortcutsDialog open onOpenChange={() => {}} />);
+    expect(screen.queryByText(/^Focus /)).not.toBeInTheDocument();
   });
 });

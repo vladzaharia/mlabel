@@ -100,8 +100,16 @@ export function LabelingView({ onDone }: { onDone: () => void }): React.JSX.Elem
             </button>
           </div>
         )}
-        <InputContent />
-        <OutputForm />
+        {/*
+          Side by side once there is room, stacked when there isn't. The old
+          single column capped the label form at 28vh — 157px at the minimum
+          window height — so roughly 40% of a typical form sat behind a nested
+          scrollbar competing with the input pane for the wheel.
+        */}
+        <div className="flex flex-1 flex-col overflow-hidden xl:flex-row">
+          <InputContent />
+          <OutputForm />
+        </div>
       </main>
       <BottomBar onHelp={() => setHelpOpen((o) => !o)} />
       <ResumeDialog />

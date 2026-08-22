@@ -3,6 +3,7 @@ import { Checkbox, RadioGroup, Select, Slider } from "radix-ui";
 import type { OutputField, ValueTypeKind } from "@core/config";
 import { titleOf } from "@core/config";
 import { isRequired } from "@core";
+import { SEVERITY } from "../components/Severity";
 import type { CoercedValue } from "@core";
 import { cn } from "../lib/utils";
 
@@ -171,18 +172,28 @@ export function RadioWidget({
       value={typeof value === "string" ? value : ""}
       onValueChange={(v) => onChange(v)}
     >
-      {field.choices.map((option) => (
-        <RadioGroup.Item
-          key={option.name}
-          value={option.name}
-          className="group flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:border-accent data-[state=checked]:bg-accent/10"
-        >
-          <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-muted-foreground group-data-[state=checked]:border-accent">
-            <RadioGroup.Indicator className="h-1.5 w-1.5 rounded-full bg-accent" />
-          </span>
-          {titleOf(option.name, option.display)}
-        </RadioGroup.Item>
-      ))}
+      {field.choices.map((option) => {
+        // A choice may carry its own tone for when it is the selected one —
+        // picking "negative" can read as a warning without implying an error.
+        const selectedTone = option.selectedStyle?.tone;
+        const isSelected = value === option.name;
+        return (
+          <RadioGroup.Item
+            key={option.name}
+            value={option.name}
+            className={cn(
+              "group flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:border-accent data-[state=checked]:bg-accent/10",
+              isSelected && selectedTone && SEVERITY[selectedTone].frameClass,
+              isSelected && selectedTone && SEVERITY[selectedTone].textClass,
+            )}
+          >
+            <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-muted-foreground group-data-[state=checked]:border-accent">
+              <RadioGroup.Indicator className="h-1.5 w-1.5 rounded-full bg-accent" />
+            </span>
+            {titleOf(option.name, option.display)}
+          </RadioGroup.Item>
+        );
+      })}
     </RadioGroup.Root>
   );
 }

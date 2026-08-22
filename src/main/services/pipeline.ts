@@ -1,6 +1,7 @@
 import {
   coerceValue,
   evaluateRecord,
+  resolveLabelValues,
   seedLabelValues,
   type AppConfig,
   type CoercedValue,
@@ -76,6 +77,8 @@ export function buildExport(
   inputValues: Map<number, Record<string, CoercedValue>>,
   labels: Record<number, LabelMap>,
   registry: AdapterRegistry,
+  /** Answers given once up front, written onto every row. */
+  prefill?: LabelMap,
 ): ExportArtifacts {
   const outputFields: readonly OutputField[] = config.output.fields;
   const completeRecords: LabeledRecord[] = [];
@@ -84,7 +87,13 @@ export function buildExport(
   for (const record of document.records) {
     const values = inputValues.get(record.index) ?? {};
     const seeded = seedLabelValues(values, outputFields);
-    const merged = mergeLabels(seeded, labels[record.index]);
+    // Session answers merge in through the same helper the progress bar uses,
+    // so what the labeler was told is complete is exactly what gets written.
+    const merged = resolveLabelValues(
+      mergeLabels(seeded, labels[record.index]),
+      prefill,
+      outputFields,
+    );
     if (evaluateRecord(merged, outputFields).status === "complete") {
       completeRecords.push({
         index: record.index,

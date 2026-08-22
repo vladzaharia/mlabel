@@ -17,8 +17,8 @@ function SeverityBadge({ kind }: { kind: SeverityKind }): React.JSX.Element {
 
 describe("SEVERITY map", () => {
   it("error → AlertTriangle icon + text-danger-text class", () => {
-    expect(SEVERITY.error.Icon).toBe(AlertTriangle);
-    expect(SEVERITY.error.textClass).toBe("text-danger-text");
+    expect(SEVERITY.danger.Icon).toBe(AlertTriangle);
+    expect(SEVERITY.danger.textClass).toBe("text-danger-text");
   });
 
   it("warning → AlertTriangle icon + text-warning-text class", () => {
@@ -38,7 +38,7 @@ describe("SEVERITY map", () => {
 });
 
 describe("SeverityBadge render", () => {
-  it.each(["error", "warning", "success", "info"] as SeverityKind[])(
+  it.each(["danger", "warning", "success", "info", "accent", "muted"] as SeverityKind[])(
     "%s: renders icon accessible with kind label and correct textClass on wrapper",
     (kind) => {
       render(<SeverityBadge kind={kind} />);

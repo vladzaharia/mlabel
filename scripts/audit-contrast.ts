@@ -45,6 +45,19 @@ function buildPairs(tokens: TokenMap): Pair[] {
   // Informational (non-required) pairs: ring/border/progress-on-chrome
   // Light-theme chromatic colors on alpha-glass surfaces cannot physically
   // achieve 3.0 over both white AND black backdrops simultaneously.
+  // A focus ring you can't see makes keyboard-first operation guesswork, so it
+  // is enforced rather than merely reported. It measured 1.15-1.22:1 in every
+  // light palette before the alpha came off it.
+  if (tokens["ring"] && tokens["background"]) {
+    required.push({
+      label: "ring / background",
+      fg: "ring",
+      bg: "background",
+      required: true,
+      threshold: WCAG_AA_NON_TEXT,
+    });
+  }
+
   const informational: Pair[] = [];
   const addInfo = (fg: string, bg: string): void => {
     if (tokens[fg] && tokens[bg]) {
@@ -58,7 +71,6 @@ function buildPairs(tokens: TokenMap): Pair[] {
     }
   };
   addInfo("progress", "chrome");
-  addInfo("ring", "background");
   addInfo("border", "background");
   addInfo("border", "card");
 

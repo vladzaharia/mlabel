@@ -122,3 +122,22 @@ describe("DoneScreen", () => {
     expect(screen.getByRole("button", { name: /Label another file/ })).toBeDisabled();
   });
 });
+
+describe("DoneScreen: label another file", () => {
+  afterEach(() => cleanup());
+
+  // It used to open a native picker immediately, so the only way to change
+  // config between files was to finish, pick a file, then back out again.
+  it("returns to the file screen instead of opening a picker", async () => {
+    const user = userEvent.setup();
+    const backToInput = vi.fn();
+    const pickInput = vi.fn(async () => {});
+    seed({ backToInput, pickInput });
+
+    render(<DoneScreen />);
+    await user.click(screen.getByRole("button", { name: /label another file/i }));
+
+    expect(backToInput).toHaveBeenCalledOnce();
+    expect(pickInput).not.toHaveBeenCalled();
+  });
+});

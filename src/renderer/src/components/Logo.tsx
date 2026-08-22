@@ -25,8 +25,8 @@ export function Logo({
           y2="232"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stopColor="#2E63FF" />
-          <stop offset="1" stopColor="#6A45FF" />
+          <stop stopColor="var(--accent)" />
+          <stop offset="1" stopColor="var(--accent)" />
         </linearGradient>
         <linearGradient
           id="mlabel-check"
@@ -36,8 +36,8 @@ export function Logo({
           y2="184"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stopColor="#22D37D" />
-          <stop offset="1" stopColor="#10B765" />
+          <stop stopColor="var(--progress)" />
+          <stop offset="1" stopColor="var(--progress)" />
         </linearGradient>
       </defs>
 

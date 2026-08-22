@@ -9,6 +9,10 @@ export * from "./completion";
 export * from "./prepare";
 export * from "./prepare-names";
 export * from "./session";
+export * from "./labels";
+export * from "./conditions";
+export * from "./decorations";
+export * from "./shortcuts";
 // Adapter interface types only (no concrete adapters / no papaparse).
 export type {
   AdapterInput,

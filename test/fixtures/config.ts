@@ -31,7 +31,8 @@ export type InputSpec =
 
 /**
  * What a captured field *is*, independent of which widget renders it.
- * `copied` means "carried over from the same-named input column".
+ * `copied` carries over from the same-named input column; `session` is asked
+ * once up front; `timestamp` is stamped by the app.
  */
 export type OutputKind =
   | "text"

@@ -189,3 +189,77 @@ describe("useKeyboardShortcuts: an open dialog owns the keyboard", () => {
     expect(useStore.getState().index).toBe(1);
   });
 });
+
+describe("useKeyboardShortcuts: Enter and gap navigation", () => {
+  const onDone = vi.fn();
+
+  beforeEach(() => {
+    const labels: Record<number, LabelMap> = {};
+    for (const record of records) labels[record.index] = { ...record.labelValues };
+    // Record 1 is finished; 0 and 2 are not, so a sweep must skip past 1.
+    labels[1] = { id: "1", verdict: "good", score: 5 };
+    useStore.setState({ config, records, index: 0, labels, prefill: {}, phase: "labeling" });
+    render(<Harness onDone={onDone} />);
+  });
+
+  afterEach(() => {
+    cleanup();
+    onDone.mockReset();
+  });
+
+  it("advances the record on Enter", () => {
+    press(window, "Enter");
+    expect(useStore.getState().index).toBe(1);
+  });
+
+  // Enter on a focused button already activates it; advancing as well would
+  // mean "Previous record" went back one and forward one.
+  it("leaves Enter alone when a button has focus", () => {
+    const button = document.createElement("button");
+    document.body.append(button);
+    press(button, "Enter");
+    expect(useStore.getState().index).toBe(0);
+    button.remove();
+  });
+
+  it("leaves Enter alone in a textarea, where it means a newline", () => {
+    const textarea = document.createElement("textarea");
+    document.body.append(textarea);
+    press(textarea, "Enter");
+    expect(useStore.getState().index).toBe(0);
+    textarea.remove();
+  });
+
+  it("does not advance on an IME commit", () => {
+    press(window, "Enter", { isComposing: true } as KeyboardEventInit);
+    expect(useStore.getState().index).toBe(0);
+  });
+
+  it("does not advance on Shift+Enter", () => {
+    press(window, "Enter", { shiftKey: true });
+    expect(useStore.getState().index).toBe(0);
+  });
+
+  it("still exports on cmd+Enter rather than advancing", () => {
+    press(window, "Enter", { metaKey: true });
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(useStore.getState().index).toBe(0);
+  });
+
+  it("skips finished records when sweeping forward", () => {
+    press(window, "ArrowRight", { shiftKey: true });
+    expect(useStore.getState().index).toBe(2);
+  });
+
+  it("sweeps backward too", () => {
+    useStore.setState({ index: 2 });
+    press(window, "ArrowLeft", { shiftKey: true });
+    expect(useStore.getState().index).toBe(0);
+  });
+
+  it("stays put when there is no gap left in that direction", () => {
+    useStore.setState({ index: 2 });
+    press(window, "ArrowRight", { shiftKey: true });
+    expect(useStore.getState().index).toBe(2);
+  });
+});

@@ -121,6 +121,7 @@ export async function exportLabels(request: ExportRequest): Promise<ExportRespon
     input.inputValues,
     request.labels,
     registry,
+    request.prefill,
   );
 
   const dir = dirname(input.inputPath);

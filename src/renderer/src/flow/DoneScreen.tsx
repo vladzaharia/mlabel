@@ -6,7 +6,7 @@ import { baseName, isMac } from "../lib/utils";
 
 export function DoneScreen(): React.JSX.Element {
   const result = useStore((s) => s.exportResult);
-  const pickInput = useStore((s) => s.pickInput);
+  const backToInput = useStore((s) => s.backToInput);
   const backToLabeling = useStore((s) => s.backToLabeling);
   const busy = useStore((s) => s.busy);
   const headingRef = useHeadingFocus();
@@ -54,7 +54,7 @@ export function DoneScreen(): React.JSX.Element {
           <Button variant="ghost" onClick={backToLabeling}>
             Keep editing
           </Button>
-          <Button variant="success" disabled={busy} onClick={() => void pickInput()}>
+          <Button variant="success" disabled={busy} onClick={backToInput}>
             {busy && <Loader2 size={14} aria-hidden="true" className="animate-spin" />}
             Label another file
           </Button>

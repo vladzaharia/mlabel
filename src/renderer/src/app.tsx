@@ -4,6 +4,7 @@ import { useStore } from "./store/store";
 import type { Phase } from "./store/store";
 import { usePrepareStore } from "./store/prepare-store";
 import { LabelingView } from "./labeling/LabelingView";
+import { PrefillScreen } from "./flow/PrefillScreen";
 import { StartScreen } from "./flow/StartScreen";
 import { ConfigIssueScreen, InputIssueScreen } from "./flow/IssueScreen";
 import { DoneScreen } from "./flow/DoneScreen";
@@ -11,7 +12,7 @@ import { PrepareView } from "./prepare/PrepareView";
 import { UpdateIndicator } from "./chrome/UpdateIndicator";
 import { Button } from "./components/ui/button";
 import { Toaster } from "./components/ui/sonner";
-import { chromePadding, cn } from "./lib/utils";
+import { baseName, chromePadding, cn } from "./lib/utils";
 import { LiveAnnouncer } from "./a11y/LiveAnnouncer";
 import { announce } from "./a11y/announcer";
 
@@ -29,6 +30,9 @@ function phaseAnnouncement(
       return { message: "Choose data to label", politeness: "polite" };
     case "input-invalid":
       return { message: "Input invalid", politeness: "assertive" };
+    case "need-prefill":
+      // The PrefillScreen h1 receives focus; AT reads the heading directly.
+      return null;
     case "labeling":
       // The LabelingView h1 receives focus; AT reads the heading directly.
       return null;
@@ -110,7 +114,7 @@ export function App(): React.JSX.Element {
         </DraggableShell>
       )}
       {phase === "need-input" && (
-        <DraggableShell onBack={backToConfig} backLabel="Config">
+        <DraggableShell onBack={backToConfig} backLabel="Change config…" showConfig>
           <main className="flex flex-1 flex-col">
             <StartScreen kind="input" />
           </main>
@@ -121,6 +125,11 @@ export function App(): React.JSX.Element {
           <main className="flex flex-1 flex-col">
             <InputIssueScreen />
           </main>
+        </DraggableShell>
+      )}
+      {phase === "need-prefill" && (
+        <DraggableShell onBack={backToInput} backLabel="Back">
+          <PrefillScreen />
         </DraggableShell>
       )}
       {phase === "labeling" && <LabelingView onDone={() => void handleDone()} />}
@@ -152,28 +161,52 @@ function BootSplash(): React.JSX.Element {
   );
 }
 
-/** Keeps the frameless window draggable on the non-labeling screens, with an
- *  optional top-left back button (e.g. to switch configs). */
+/**
+ * Keeps the frameless window draggable on the non-labeling screens, with an
+ * optional back affordance.
+ *
+ * When a config is loaded this shows *which* one, next to a real button to
+ * change it. Before, the only route back was a ghost `xs` chevron in the
+ * traffic-light gutter — the weakest control in the app performing its most
+ * destructive action, on a screen that never said which config was in force.
+ */
 function DraggableShell({
   children,
   onBack,
   backLabel = "Config",
+  showConfig = false,
 }: {
   children: ReactNode;
   onBack?: () => void;
   backLabel?: string;
+  /** Show the loaded config's name beside the back button. */
+  showConfig?: boolean;
 }): React.JSX.Element {
+  const configPath = useStore((s) => s.configPath);
+  const configName = configPath ? baseName(configPath) : null;
+
   return (
     <>
-      <div className={cn("drag flex h-11 shrink-0 items-center", chromePadding())}>
+      <div className={cn("drag flex h-11 shrink-0 items-center gap-2", chromePadding())}>
+        {showConfig && configName && (
+          <span
+            title={configPath ?? undefined}
+            className="no-drag max-w-56 truncate rounded-md border border-accent/40 bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent"
+          >
+            {configName}
+          </span>
+        )}
         {onBack && (
           <Button
-            variant="ghost"
+            variant={showConfig ? "outline" : "ghost"}
             size="xs"
             onClick={onBack}
-            className="no-drag font-normal text-muted-foreground hover:text-foreground"
+            className={cn(
+              "no-drag",
+              !showConfig && "font-normal text-muted-foreground hover:text-foreground",
+            )}
           >
-            <ChevronLeft size={15} aria-hidden="true" /> {backLabel}
+            {!showConfig && <ChevronLeft size={15} aria-hidden="true" />} {backLabel}
           </Button>
         )}
         <div className="no-drag ml-auto">

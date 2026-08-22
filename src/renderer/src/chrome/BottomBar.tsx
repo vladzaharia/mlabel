@@ -26,7 +26,8 @@ export function BottomBar({ onHelp }: BottomBarProps): React.JSX.Element {
         <button
           type="button"
           onClick={prev}
-          disabled={index <= 0}
+          aria-disabled={index <= 0}
+          onKeyDown={(e) => index <= 0 && e.key === "Enter" && e.preventDefault()}
           aria-label="Previous record"
           className="no-drag flex h-full w-12 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
         >
@@ -38,7 +39,8 @@ export function BottomBar({ onHelp }: BottomBarProps): React.JSX.Element {
         <button
           type="button"
           onClick={next}
-          disabled={index >= total - 1}
+          aria-disabled={index >= total - 1}
+          onKeyDown={(e) => index >= total - 1 && e.key === "Enter" && e.preventDefault()}
           aria-label="Next record"
           className="no-drag flex h-full w-12 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
         >

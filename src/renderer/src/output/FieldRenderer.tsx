@@ -106,7 +106,7 @@ export function FieldRenderer({
   // must sit OUTSIDE the <label> to avoid nested interactive content.
   if (field.type === "boolean") {
     return (
-      <div className="flex items-center gap-2.5">
+      <div id={fieldId} className="flex items-center gap-2.5">
         <label className="flex items-center gap-2.5">
           {widget}
           <span className="flex flex-col">
@@ -126,7 +126,10 @@ export function FieldRenderer({
 
   if (display?.titlePosition === "left") {
     return (
-      <div className="flex gap-4">
+      // The id is how a config-declared shortcut finds this field's widget —
+      // simpler and more robust than a ref registry, which the React Compiler
+      // would have to be kept honest about.
+      <div id={fieldId} className="flex gap-4">
         <div className="w-40 shrink-0 pt-1.5">
           {label}
           {description}
@@ -140,7 +143,7 @@ export function FieldRenderer({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div id={fieldId} className="flex flex-col gap-1.5">
       {label}
       {description}
       {widget}

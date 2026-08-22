@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, Save } from "lucide-react";
+import { CheckCircle2, Save } from "lucide-react";
 import { useStore, selectCompletedCount, selectCurrentRecord } from "../store/store";
 import { Button } from "../components/ui/button";
 import { chromePadding, cn } from "../lib/utils";
@@ -30,10 +30,8 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
   const config = useStore((s) => s.config);
   const inputPath = useStore((s) => s.inputPath);
   const record = useStore(selectCurrentRecord);
-  const index = useStore((s) => s.index);
   const total = useStore((s) => s.records.length);
   const completed = useStore(selectCompletedCount);
-  const next = useStore((s) => s.next);
   const labeling = useStore((s) => s.phase === "labeling");
 
   const fraction = total > 0 ? completed / total : 0;
@@ -59,14 +57,6 @@ export function TitleBar({ onDone }: { onDone: () => void }): React.JSX.Element 
               <span className="font-medium text-foreground">{completed}</span> of {total} labeled
             </span>
           )}
-          <Button
-            size="xs"
-            onClick={next}
-            disabled={index >= total - 1}
-            className="no-drag shadow-sm"
-          >
-            Next <ChevronRight size={13} aria-hidden="true" />
-          </Button>
           <Button size="xs" variant="success" onClick={onDone} className="no-drag mr-0.5 shadow-sm">
             <Save size={13} aria-hidden="true" /> Save
           </Button>

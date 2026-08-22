@@ -15,7 +15,7 @@ export function FileStatusRow({
 }): React.JSX.Element {
   const errors = file.issues.filter((i) => i.severity === "error").length;
   const warnings = file.issues.length - errors;
-  const severity = file.ok ? (warnings > 0 ? SEVERITY.warning : SEVERITY.success) : SEVERITY.error;
+  const severity = file.ok ? (warnings > 0 ? SEVERITY.warning : SEVERITY.success) : SEVERITY.danger;
   const StatusIcon = severity.Icon;
   const statusText = file.ok
     ? warnings > 0
