@@ -2,25 +2,17 @@ import { describe, expect, it } from "vitest";
 import { loadConfig } from "@core/config";
 import { createDefaultRegistry } from "@core/adapters";
 import type { AppConfig } from "@core";
+import { configText } from "@test/fixtures/config";
 import { buildExport, buildRecordViews } from "./pipeline";
 
-const CONFIG_TEXT = `{
-  "input": {
-    "fields": [
-      { "name": "id", "type": { "type": "text" }, "title": true },
-      { "name": "text", "type": { "type": "text" } },
-      { "name": "score", "type": { "type": "number" } }
-    ],
-    "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id", "text", "score"] }] }]
-  },
-  "output": {
-    "fields": [
-      { "name": "id", "control": "hidden" },
-      { "name": "verdict", "control": "radio", "options": [{ "value": "good" }, { "value": "bad" }] },
-      { "name": "note", "control": "text", "required": false }
-    ]
-  }
-}`;
+const CONFIG_TEXT = configText({
+  input: [{ name: "id", title: true }, "text", { name: "score", type: { type: "number" } }],
+  output: [
+    { name: "id", kind: "copied" },
+    { name: "verdict", kind: "choice", choices: ["good", "bad"] },
+    { name: "note", required: false },
+  ],
+});
 
 function loadValidConfig(): AppConfig {
   const result = loadConfig(CONFIG_TEXT);

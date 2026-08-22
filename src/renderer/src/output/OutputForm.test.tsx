@@ -1,28 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { loadConfig } from "@core/config";
-import type { AppConfig, RecordView } from "@core";
+import type { RecordView } from "@core";
+import { buildConfig } from "@test/fixtures/config";
 import { useStore } from "../store/store";
 import { OutputForm } from "./OutputForm";
 
-function buildConfig(): AppConfig {
-  const result = loadConfig(`{
-    "input": {
-      "fields": [{ "name": "id", "type": { "type": "text" } }],
-      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
+const config = buildConfig({
+  output: [
+    { name: "id", kind: "copied" },
+    {
+      name: "verdict",
+      kind: "choice",
+      choices: [
+        { value: "good", label: "Good" },
+        { value: "bad", label: "Bad" },
+      ],
     },
-    "output": {
-      "fields": [
-        { "name": "id", "control": "hidden" },
-        { "name": "verdict", "control": "radio", "options": [{ "value": "good", "displayName": "Good" }, { "value": "bad", "displayName": "Bad" }] },
-        { "name": "score", "control": "number", "min": 0, "max": 10, "required": false }
-      ]
-    }
-  }`);
-  if (!result.ok) throw new Error("invalid config");
-  return result.config;
-}
+    { name: "score", kind: "number", min: 0, max: 10, required: false },
+  ],
+});
 
 const records: RecordView[] = [
   {
@@ -36,7 +33,7 @@ const records: RecordView[] = [
 describe("OutputForm", () => {
   beforeEach(() => {
     useStore.setState({
-      config: buildConfig(),
+      config,
       records,
       index: 0,
       labels: { 0: { id: "1", verdict: null, score: null } },

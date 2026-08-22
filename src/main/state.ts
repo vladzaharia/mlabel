@@ -48,6 +48,22 @@ export const appState = {
   setInput(input: LoadedInput): void {
     state.input = input;
   },
+  /**
+   * Drop the loaded document when the renderer leaves a file.
+   *
+   * Two reasons this matters: the parsed document pins the whole source file in
+   * memory for the process lifetime, and a stale one makes `exportLabels` write
+   * the *previous* file's rows under the new file's name.
+   */
+  clearInput(): void {
+    state.input = undefined;
+  },
+  /** Unload the config. The loaded input is meaningless without it, so it goes too. */
+  clearConfig(): void {
+    state.config = undefined;
+    state.configPath = undefined;
+    state.input = undefined;
+  },
   addRevealablePath(path: string): void {
     state.revealablePaths.add(path);
   },

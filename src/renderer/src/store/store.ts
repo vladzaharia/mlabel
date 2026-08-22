@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { evaluateRecord, sessionHasChanges } from "@core";
+import { evaluateRecord, reviveLabelMap, sessionHasChanges } from "@core";
 import type {
   AppConfig,
   CoercedValue,
@@ -184,6 +184,12 @@ export const useStore = create<AppStore>((set, get) => ({
     } else {
       set({ phase: "need-config" });
     }
+
+    // Push once unconditionally. The menu-context subscriber only fires on a
+    // *change*, so a no-config startup never notified main at all — leaving the
+    // native Mode menu enabled and checked while the app sat on the config picker.
+    const { config, mode } = get();
+    void window.api.setMenuContext({ configLoaded: config !== null, mode });
   },
 
   setSystemDark(dark) {
@@ -210,31 +216,37 @@ export const useStore = create<AppStore>((set, get) => ({
   },
 
   async pickConfig() {
-    set({ busy: true });
-    const response = await window.api.pickConfig();
-    if (response.status === "loaded") {
-      set({
-        config: response.config,
-        configPath: response.path,
-        configIssues: [],
-        phase: "need-input",
-        busy: false,
-      });
-    } else if (response.status === "invalid") {
-      set({
-        configIssues: response.issues,
-        configPath: response.path ?? null,
-        phase: "config-invalid",
-        busy: false,
-      });
-    } else {
-      set({ busy: false });
+    set({ busy: true, error: null });
+    try {
+      const response = await window.api.pickConfig();
+      if (response.status === "loaded") {
+        set({
+          config: response.config,
+          configPath: response.path,
+          configIssues: [],
+          phase: "need-input",
+          busy: false,
+        });
+      } else if (response.status === "invalid") {
+        set({
+          configIssues: response.issues,
+          configPath: response.path ?? null,
+          phase: "config-invalid",
+          busy: false,
+        });
+      } else {
+        set({ busy: false });
+      }
+    } catch (err) {
+      set({ busy: false, error: describeError(err) });
     }
   },
 
   setMode(mode) {
-    const { config, records } = get();
-    if (!config) return;
+    const { config, records, busy } = get();
+    // A picker is open. Switching now would leave phase and mode disagreeing
+    // once the pick resolves — the labeling screen with the menu on "Prepare".
+    if (!config || busy) return;
     if (mode === "prepare") {
       set({ phase: "prepare", mode: "prepare" });
       announce("Prepare mode", "polite");
@@ -247,6 +259,7 @@ export const useStore = create<AppStore>((set, get) => ({
 
   /** Return to the input picker; clears any loaded input (labels are autosaved). */
   backToInput() {
+    void window.api.unloadInput();
     set({
       phase: "need-input",
       mode: "label",
@@ -256,28 +269,46 @@ export const useStore = create<AppStore>((set, get) => ({
       labels: {},
       index: 0,
       exportResult: null,
+      exportError: null,
       pendingResume: null,
       pendingResumeStale: false,
       error: null,
+      busy: false,
     });
   },
 
   async pickInput() {
     set({ busy: true });
-    applyInputResponse(set, await window.api.pickInput());
+    try {
+      applyInputResponse(set, await window.api.pickInput());
+    } catch (err) {
+      set({ busy: false, error: describeError(err) });
+    }
   },
 
   async loadInputPath(path) {
     set({ busy: true });
-    applyInputResponse(set, await window.api.loadInput(path));
+    try {
+      applyInputResponse(set, await window.api.loadInput(path));
+    } catch (err) {
+      set({ busy: false, error: describeError(err) });
+    }
   },
 
   applyResume() {
-    const resume = get().pendingResume;
+    const { pendingResume: resume, config, records } = get();
     if (!resume) return;
+    // Re-type on the way in: JSON persistence flattens Dates to strings, and an
+    // un-revived map makes a finished record read as incomplete (see reviveLabelMap).
+    // Without a config there is nothing to revive against, so pass the saved
+    // labels through rather than dropping the resume entirely.
+    const labels: Record<number, LabelMap> = {};
+    for (const [index, saved] of Object.entries(resume.labels)) {
+      labels[Number(index)] = config ? reviveLabelMap(saved, config.output.fields) : saved;
+    }
     set({
-      labels: resume.labels,
-      index: Math.min(resume.index, Math.max(0, get().records.length - 1)),
+      labels,
+      index: Math.min(resume.index, Math.max(0, records.length - 1)),
       pendingResume: null,
       pendingResumeStale: false,
     });
@@ -315,7 +346,13 @@ export const useStore = create<AppStore>((set, get) => ({
 
   async submitDone() {
     set({ busy: true, exportError: null });
-    const result = await window.api.exportLabels({ labels: get().labels });
+    let result: ExportResponse;
+    try {
+      result = await window.api.exportLabels({ labels: get().labels });
+    } catch (err) {
+      set({ busy: false, exportError: describeError(err) });
+      return;
+    }
     set({ busy: false });
     if (result.ok) {
       const n = result.completeCount ?? 0;
@@ -340,6 +377,7 @@ export const useStore = create<AppStore>((set, get) => ({
   /** Return to the config picker to switch configs; clears any loaded input. */
   backToConfig() {
     usePrepareStore.getState().reset();
+    void window.api.unloadConfig();
     set({
       phase: "need-config",
       mode: "label",
@@ -352,12 +390,19 @@ export const useStore = create<AppStore>((set, get) => ({
       labels: {},
       index: 0,
       exportResult: null,
+      exportError: null,
       pendingResume: null,
       pendingResumeStale: false,
       error: null,
+      busy: false,
     });
   },
 }));
+
+/** A rejected IPC call must never strand `busy` — that disables the whole UI. */
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 type SetFn = (partial: Partial<AppStore>) => void;
 
@@ -404,6 +449,9 @@ function applyInputResponse(set: SetFn, response: InputLoadResponse): void {
     labels,
     index: 0,
     error: null,
+    // The previous file's export outcome says nothing about this one.
+    exportError: null,
+    exportResult: null,
     phase: "labeling",
   });
 }
@@ -412,11 +460,10 @@ function applyInputResponse(set: SetFn, response: InputLoadResponse): void {
 export function selectCompletedCount(state: AppStore): number {
   const { config, records, labels } = state;
   if (!config) return 0;
-  const names = new Set(config.input.fields.map((f) => f.name));
   let n = 0;
   for (const record of records) {
     const values = labels[record.index] ?? record.labelValues;
-    if (evaluateRecord(values, config.output.fields, names).status === "complete") n += 1;
+    if (evaluateRecord(values, config.output.fields).status === "complete") n += 1;
   }
   return n;
 }

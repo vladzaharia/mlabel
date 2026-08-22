@@ -7,5 +7,5 @@
     "types": ["vite/client", "@testing-library/jest-dom"],
     "outDir": "./out/types-web"
   },
-  "include": ["src/renderer/**/*", "src/core/**/*", "src/preload/index.d.ts"]
+  "include": ["src/renderer/**/*", "src/core/**/*", "src/preload/index.d.ts", "test/**/*"]
 }

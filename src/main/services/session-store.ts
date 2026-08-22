@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { app } from "electron";
 import type { RecentPaths, SessionData } from "@core";
-import { readJsonSafe, removeFile, writeJsonAtomic } from "./atomic-json";
+import { readJsonSafe, removeFile, writeJsonAtomic } from "./atomic-write";
 import { createWriteQueue } from "./write-queue";
 
 function sessionPath(): string {
@@ -11,6 +11,15 @@ function sessionPath(): string {
 function recentPath(): string {
   return join(app.getPath("userData"), "recent.json");
 }
+
+/**
+ * Shape of the session file this build writes and accepts.
+ *
+ * Bump when the persisted shape changes meaning. Reads are strict-equal, so an
+ * older build refuses a newer file too — important because a newer session may
+ * carry values an older build would silently misinterpret rather than ignore.
+ */
+export const SESSION_VERSION = 1;
 
 // One ordered pipe for session writes. save and clear share the same queue so
 // a save followed immediately by a clear cannot race — they are always
@@ -25,7 +34,7 @@ const sessionQueue = createWriteQueue<SessionData | null>(async (value) => {
 
 /** Persist the current labeling session (fire-and-forget from the renderer). */
 export function saveSession(data: SessionData): void {
-  sessionQueue.push(data);
+  sessionQueue.push({ ...data, version: SESSION_VERSION });
 }
 
 /** Clear the session file and wait until the file is actually gone. */
@@ -39,14 +48,18 @@ export function flushSession(): Promise<void> {
   return sessionQueue.flush();
 }
 
-/** Return the saved session only if it matches the given config + input paths. */
+/**
+ * Return the saved session only if it matches the given config + input paths
+ * *and* was written by a build that shares this session shape.
+ */
 export async function loadSessionFor(
   configPath: string,
   inputPath: string,
 ): Promise<SessionData | null> {
   const saved = await readJsonSafe<SessionData>(sessionPath());
-  if (saved && saved.configPath === configPath && saved.inputPath === inputPath) return saved;
-  return null;
+  if (!saved || saved.version !== SESSION_VERSION) return null;
+  if (saved.configPath !== configPath || saved.inputPath !== inputPath) return null;
+  return saved;
 }
 
 export async function getRecent(): Promise<RecentPaths> {

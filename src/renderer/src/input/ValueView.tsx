@@ -1,7 +1,8 @@
 import { Check, X } from "lucide-react";
-import type { ObjectFieldShape, ValueTypeShape } from "@core/config";
+import type { NestedFieldShape, ValueTypeShape } from "@core/config";
+import { DEFAULT_COLUMN_LAYOUT, titleOf } from "@core/config";
 import type { CoercedValue } from "@core";
-import { Table, Td } from "./ValueTable";
+import { Table, Td, type TableHead } from "./ValueTable";
 
 const Empty = (): React.JSX.Element => <span className="text-muted-foreground/60">—</span>;
 
@@ -9,9 +10,7 @@ function isEmpty(value: CoercedValue | undefined): boolean {
   return value === null || value === undefined || value === "";
 }
 
-function fieldLabel(field: ObjectFieldShape): string {
-  return field.displayName ?? field.name;
-}
+const fieldLabel = (field: NestedFieldShape): string => titleOf(field.name, field.display);
 
 /** Recursively render a coerced input value read-only, per its declared type. */
 export function ValueView({
@@ -26,9 +25,10 @@ export function ValueView({
   switch (type.type) {
     case "text":
       return <span className="whitespace-pre-wrap break-words">{String(value)}</span>;
+    case "integer":
     case "number":
       return <span className="tabular-nums">{String(value)}</span>;
-    case "bool":
+    case "boolean":
       return <BoolPill value={Boolean(value)} />;
     case "date":
       return <span className="tabular-nums">{formatDate(value)}</span>;
@@ -48,7 +48,7 @@ function formatDate(value: CoercedValue | undefined): string {
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString();
 }
 
-function BoolPill({ value }: { value: boolean }): React.JSX.Element {
+function BoolPill({ value, label }: { value: boolean; label?: string }): React.JSX.Element {
   return (
     <span
       className={
@@ -58,7 +58,11 @@ function BoolPill({ value }: { value: boolean }): React.JSX.Element {
       }
     >
       {value ? <Check size={14} aria-hidden="true" /> : <X size={14} aria-hidden="true" />}
-      <span className="sr-only">{value ? "true" : "false"}</span>
+      {label === undefined ? (
+        <span className="sr-only">{value ? "true" : "false"}</span>
+      ) : (
+        <span className="text-xs">{label}</span>
+      )}
     </span>
   );
 }
@@ -70,10 +74,10 @@ function EnumPill({
   type: Extract<ValueTypeShape, { type: "enum" }>;
   value: string;
 }): React.JSX.Element {
-  const option = type.options.find((o) => o.value === value);
+  const choice = type.choices.find((c) => c.name === value);
   return (
     <span className="inline-flex items-center rounded-full bg-accent/12 px-2 py-0.5 text-xs font-medium text-accent">
-      {option?.displayName ?? value}
+      {titleOf(value, choice?.display)}
     </span>
   );
 }
@@ -88,7 +92,7 @@ function ArrayView({
   if (!Array.isArray(value) || value.length === 0) return <Empty />;
   if (type.items.type === "object") {
     const rows = value.map((item) => ({ data: item as Record<string, CoercedValue> }));
-    return <ObjectTable fields={type.items.fields} rows={rows} />;
+    return <ObjectTable objectType={type.items} rows={rows} />;
   }
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -111,22 +115,27 @@ function MapView({
   const entries = Object.entries(value ?? {});
   if (entries.length === 0) return <Empty />;
 
-  if (type.valueType.type === "object") {
-    const fields = type.valueType.fields;
+  if (type.values.type === "object") {
     const rows = entries.map(([key, data]) => ({
       key,
       data: data as Record<string, CoercedValue>,
     }));
-    return <ObjectTable fields={fields} rows={rows} keyHeader="Key" />;
+    return <ObjectTable objectType={type.values} rows={rows} keyHeader="Key" />;
   }
 
   return (
-    <Table head={["Key", "Value"]}>
+    <Table
+      label="Key/value pairs"
+      head={[
+        { id: "key", label: "Key" },
+        { id: "value", label: "Value" },
+      ]}
+    >
       {entries.map(([key, val]) => (
         <tr key={key} className="border-t border-border/60">
           <Td className="font-medium">{key}</Td>
           <Td>
-            <ValueView type={type.valueType} value={val} />
+            <ValueView type={type.values} value={val} />
           </Td>
         </tr>
       ))}
@@ -137,17 +146,25 @@ function MapView({
 function ObjectView({
   fields,
   value,
+  compact,
 }: {
-  fields: ObjectFieldShape[];
+  fields: NestedFieldShape[];
   value: Record<string, CoercedValue>;
+  compact?: boolean;
 }): React.JSX.Element {
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+    <dl
+      className={
+        compact
+          ? "grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-xs"
+          : "grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm"
+      }
+    >
       {fields.map((field) => (
         <div key={field.name} className="contents">
           <dt className="text-muted-foreground">{fieldLabel(field)}</dt>
           <dd>
-            <ValueView type={field.type} value={value?.[field.name]} />
+            <ValueView type={field} value={value?.[field.name]} />
           </dd>
         </div>
       ))}
@@ -155,26 +172,116 @@ function ObjectView({
   );
 }
 
+type ObjectType = Extract<ValueTypeShape, { type: "object" }>;
+
+interface ResolvedColumn {
+  head: TableHead;
+  render: (data: Record<string, CoercedValue>) => React.ReactNode;
+}
+
+/**
+ * Turn an object type into displayed table columns.
+ *
+ * Without a `table` block that is one column per field. With one, several
+ * fields can share a cell — four booleans read far better as `✓ Tox  ✗ PII`
+ * than as four columns of bare glyphs whose meaning lives in a distant header.
+ */
+function resolveColumns(objectType: ObjectType): ResolvedColumn[] {
+  const byName = new Map(objectType.fields.map((f) => [f.name, f]));
+
+  if (!objectType.table) {
+    return objectType.fields.map((field) => ({
+      head: { id: field.name, label: fieldLabel(field) },
+      render: (data) => <ValueView type={field} value={data[field.name]} />,
+    }));
+  }
+
+  return objectType.table.columns.map((column) => {
+    const picked = column.use.flatMap((name) => {
+      const field = byName.get(name);
+      return field ? [field] : [];
+    });
+    const layout = column.layout ?? DEFAULT_COLUMN_LAYOUT;
+    return {
+      head: { id: column.name, label: titleOf(column.name, column.display) },
+      render: (data) => <CompositeCell fields={picked} data={data} layout={layout} />,
+    };
+  });
+}
+
+function CompositeCell({
+  fields,
+  data,
+  layout,
+}: {
+  fields: NestedFieldShape[];
+  data: Record<string, CoercedValue>;
+  layout: "chips" | "stack" | "inline";
+}): React.JSX.Element {
+  // A stacked cell is just an object rendered label-over-value, so it reuses
+  // ObjectView rather than introducing a second way to draw the same thing.
+  if (layout === "stack") return <ObjectView fields={fields} value={data} compact />;
+
+  return (
+    <div className={layout === "chips" ? "flex flex-wrap gap-1.5" : "flex flex-wrap gap-3"}>
+      {fields.map((field) => {
+        const value = data[field.name];
+        const label = fieldLabel(field);
+        // Booleans carry their own label so a tick never floats unattached.
+        if (field.type === "boolean") {
+          return (
+            <span
+              key={field.name}
+              className={layout === "chips" ? "rounded-md bg-muted px-1.5 py-0.5" : undefined}
+            >
+              <BoolPill value={Boolean(value)} label={label} />
+            </span>
+          );
+        }
+        return (
+          <span
+            key={field.name}
+            className={
+              layout === "chips"
+                ? "inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-xs"
+                : "inline-flex items-center gap-1 text-xs"
+            }
+          >
+            <span className="text-muted-foreground">{label}</span>
+            <ValueView type={field} value={value} />
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Shared table renderer for array<object> and (with a key column) map<object>. */
 function ObjectTable({
-  fields,
+  objectType,
   rows,
   keyHeader,
 }: {
-  fields: ObjectFieldShape[];
+  objectType: ObjectType;
   rows: { key?: string; data: Record<string, CoercedValue> }[];
   keyHeader?: string;
 }): React.JSX.Element {
-  const head = keyHeader ? [keyHeader, ...fields.map(fieldLabel)] : fields.map(fieldLabel);
+  const columns = resolveColumns(objectType);
+  const head: TableHead[] =
+    keyHeader === undefined
+      ? columns.map((c) => c.head)
+      : [{ id: "__key", label: keyHeader }, ...columns.map((c) => c.head)];
+
   return (
-    <Table head={head}>
+    <Table
+      label={keyHeader === undefined ? "Table of values" : "Table of keyed values"}
+      head={head}
+    >
       {rows.map((row, i) => (
         <tr key={row.key ?? i} className="border-t border-border/60">
           {keyHeader !== undefined && <Td className="font-semibold">{row.key}</Td>}
-          {fields.map((field) => (
-            <Td key={field.name}>
-              <ValueView type={field.type} value={row.data[field.name]} />
-            </Td>
+          {columns.map((column) => (
+            <Td key={column.head.id}>{column.render(row.data)}</Td>
           ))}
         </tr>
       ))}

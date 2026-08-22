@@ -29,6 +29,13 @@ export interface SourceFingerprint {
 
 /** Persisted labeling session (autosave / resume), keyed by config+input path. */
 export interface SessionData {
+  /**
+   * Shape version. A session whose version this build doesn't recognise is
+   * discarded rather than trusted: the file holds coerced values whose meaning
+   * depends on the schema, and a mismatched read is worse than starting fresh.
+   * Absent (legacy, pre-versioning) counts as unrecognised.
+   */
+  version?: number;
   configPath: string;
   inputPath: string;
   index: number;
@@ -62,6 +69,12 @@ export interface InputLoadResponse {
 
 export interface ExportRequest {
   labels: Record<number, LabelMap>;
+  /**
+   * Replace artifacts left by an earlier run. Absent, an export that would
+   * clobber existing files fails instead, so a re-export can't silently destroy
+   * the previous one's output.
+   */
+  overwrite?: boolean;
 }
 
 export interface ExportResponse {

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,6 +18,7 @@ import {
   loadSessionFor,
   saveSession,
   setRecent,
+  SESSION_VERSION,
 } from "./session-store";
 
 const sample: SessionData = {
@@ -51,7 +52,32 @@ describe("session-store", () => {
   it("round-trips a saved session when config + input paths match", async () => {
     await save(sample);
     const loaded = await loadSessionFor(sample.configPath, sample.inputPath);
-    expect(loaded).toEqual(sample);
+    expect(loaded).toEqual({ ...sample, version: SESSION_VERSION });
+  });
+
+  it("stamps the session version on write so a later build can recognise it", async () => {
+    await save(sample);
+    const raw = JSON.parse(readFileSync(join(dir, "session.json"), "utf8")) as {
+      version?: number;
+    };
+    expect(raw.version).toBe(SESSION_VERSION);
+  });
+
+  // The file holds coerced values whose meaning depends on the schema, so a
+  // session from a shape this build doesn't know is discarded rather than
+  // trusted — a mismatched read is worse than starting fresh. Written directly,
+  // since saveSession always stamps the current version.
+  const writeRaw = (data: unknown): void =>
+    writeFileSync(join(dir, "session.json"), JSON.stringify(data), "utf8");
+
+  it("discards a session written by a newer build", async () => {
+    writeRaw({ ...sample, version: SESSION_VERSION + 1 });
+    expect(await loadSessionFor(sample.configPath, sample.inputPath)).toBeNull();
+  });
+
+  it("discards a legacy session that predates versioning", async () => {
+    writeRaw(sample); // `sample` carries no version
+    expect(await loadSessionFor(sample.configPath, sample.inputPath)).toBeNull();
   });
 
   it("returns null when the config path does not match", async () => {
@@ -110,6 +136,9 @@ describe("session-store", () => {
     await clearSession(); // clears nothing (idempotent)
     saveSession(sample);
     await flushSession();
-    expect(await loadSessionFor(sample.configPath, sample.inputPath)).toEqual(sample);
+    expect(await loadSessionFor(sample.configPath, sample.inputPath)).toEqual({
+      ...sample,
+      version: SESSION_VERSION,
+    });
   });
 });

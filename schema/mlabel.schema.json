@@ -1,271 +1,65 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "$schema": {
-      "type": "string"
+      "$ref": "#/$defs/__schema0"
     },
-    "input": {
-      "type": "object",
-      "properties": {
-        "adapterId": {
-          "default": "csv",
-          "type": "string",
-          "minLength": 1
-        },
-        "adapterConfig": {},
-        "fields": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "^[A-Za-z0-9_.\\- ]+$"
-              },
-              "type": {
-                "$ref": "#/definitions/__schema0"
-              },
-              "displayName": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "help": {
-                "type": "string"
-              },
-              "labelPosition": {
-                "default": "left",
-                "type": "string",
-                "enum": ["left", "above"]
-              },
-              "textSize": {
-                "default": "md",
-                "type": "string",
-                "enum": ["sm", "md", "lg"]
-              },
-              "title": {
-                "default": false,
-                "type": "boolean"
-              }
-            },
-            "required": ["name", "type"]
-          }
-        },
-        "categories": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "^[A-Za-z0-9_.\\- ]+$"
-              },
-              "displayName": {
-                "type": "string",
-                "minLength": 1
-              },
-              "description": {
-                "type": "string"
-              },
-              "help": {
-                "type": "string"
-              },
-              "rows": {
-                "minItems": 1,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "columns": {
-                      "type": "integer",
-                      "exclusiveMinimum": 0,
-                      "maximum": 9007199254740991
-                    },
-                    "fields": {
-                      "minItems": 1,
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "^[A-Za-z0-9_.\\- ]+$"
-                      }
-                    }
-                  },
-                  "required": ["fields"]
-                }
-              }
-            },
-            "required": ["id", "displayName", "rows"]
-          }
-        }
-      },
-      "required": ["fields", "categories"]
-    },
-    "output": {
-      "type": "object",
-      "properties": {
-        "adapterId": {
-          "default": "csv",
-          "type": "string",
-          "minLength": 1
-        },
-        "adapterConfig": {},
-        "fields": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "^[A-Za-z0-9_.\\- ]+$"
-              },
-              "control": {
-                "type": "string",
-                "enum": [
-                  "text",
-                  "textarea",
-                  "number",
-                  "checkbox",
-                  "date",
-                  "radio",
-                  "select",
-                  "slider",
-                  "hidden"
-                ]
-              },
-              "displayName": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "help": {
-                "type": "string"
-              },
-              "labelPosition": {
-                "default": "left",
-                "type": "string",
-                "enum": ["left", "above"]
-              },
-              "textSize": {
-                "default": "md",
-                "type": "string",
-                "enum": ["sm", "md", "lg"]
-              },
-              "required": {
-                "default": true,
-                "type": "boolean"
-              },
-              "options": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "value": {
-                      "type": "string"
-                    },
-                    "displayName": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["value"]
-                }
-              },
-              "min": {
-                "type": "number"
-              },
-              "max": {
-                "type": "number"
-              },
-              "step": {
-                "type": "number",
-                "exclusiveMinimum": 0
-              },
-              "minLength": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 9007199254740991
-              },
-              "maxLength": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 9007199254740991
-              },
-              "regex": {
-                "type": "string"
-              }
-            },
-            "required": ["name", "control"]
-          }
-        },
-        "categories": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "^[A-Za-z0-9_.\\- ]+$"
-              },
-              "displayName": {
-                "type": "string",
-                "minLength": 1
-              },
-              "description": {
-                "type": "string"
-              },
-              "help": {
-                "type": "string"
-              },
-              "rows": {
-                "minItems": 1,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "columns": {
-                      "type": "integer",
-                      "exclusiveMinimum": 0,
-                      "maximum": 9007199254740991
-                    },
-                    "fields": {
-                      "minItems": 1,
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "minLength": 1,
-                        "pattern": "^[A-Za-z0-9_.\\- ]+$"
-                      }
-                    }
-                  },
-                  "required": ["fields"]
-                }
-              }
-            },
-            "required": ["id", "displayName", "rows"]
-          }
-        }
-      },
-      "required": ["fields"]
+    "version": {
+      "$ref": "#/$defs/__schema1"
     },
     "ui": {
+      "$ref": "#/$defs/__schema2"
+    },
+    "network": {
+      "$ref": "#/$defs/__schema4"
+    },
+    "input": {
+      "$ref": "#/$defs/__schema5"
+    },
+    "output": {
+      "$ref": "#/$defs/__schema63"
+    }
+  },
+  "required": ["version", "input", "output"],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string"
+    },
+    "__schema1": {
+      "type": "number",
+      "const": 2
+    },
+    "__schema2": {
       "type": "object",
       "properties": {
         "appTitle": {
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "$ref": "#/$defs/__schema3"
+                }
+              },
+              "required": ["field"],
+              "additionalProperties": false
+            }
+          ]
         }
-      }
+      },
+      "additionalProperties": false
     },
-    "network": {
+    "__schema3": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_ -]*[A-Za-z0-9_-]$|^[A-Za-z0-9_-]$"
+    },
+    "__schema4": {
       "default": {
         "updateChecks": true
       },
@@ -275,144 +69,1730 @@
           "default": true,
           "type": "boolean"
         }
-      }
-    }
-  },
-  "required": ["input", "output"],
-  "definitions": {
-    "__schema0": {
+      },
+      "additionalProperties": false
+    },
+    "__schema5": {
+      "type": "object",
+      "properties": {
+        "adapterId": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "adapterConfig": {
+          "$ref": "#/$defs/__schema7"
+        },
+        "fields": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InputField"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DisplayRule"
+          }
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema61"
+          }
+        }
+      },
+      "required": ["fields"],
+      "additionalProperties": false
+    },
+    "__schema6": {
+      "default": "csv",
+      "type": "string",
+      "minLength": 1
+    },
+    "__schema7": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": {}
+    },
+    "InputField": {
       "oneOf": [
         {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "const": "text"
-            }
-          },
-          "required": ["type"]
+          "$ref": "#/$defs/__schema8"
         },
         {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "const": "number"
-            },
-            "format": {
-              "type": "string",
-              "enum": ["integer", "float"]
-            }
-          },
-          "required": ["type"]
+          "$ref": "#/$defs/__schema14"
         },
         {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "const": "bool"
-            }
-          },
-          "required": ["type"]
+          "$ref": "#/$defs/__schema15"
         },
         {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "const": "date"
-            }
-          },
-          "required": ["type"]
+          "$ref": "#/$defs/__schema16"
         },
         {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "const": "enum"
-            },
-            "options": {
-              "minItems": 1,
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "value": {
-                    "type": "string"
-                  },
-                  "displayName": {
-                    "type": "string"
-                  }
-                },
-                "required": ["value"]
-              }
-            }
-          },
-          "required": ["type", "options"]
+          "$ref": "#/$defs/__schema17"
         },
         {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "const": "object"
-            },
-            "fields": {
-              "minItems": 1,
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "displayName": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "$ref": "#/definitions/__schema0"
-                  }
-                },
-                "required": ["name", "type"]
-              }
-            }
-          },
-          "required": ["type", "fields"]
+          "$ref": "#/$defs/__schema18"
         },
         {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "const": "array"
-            },
-            "items": {
-              "$ref": "#/definitions/__schema0"
-            }
-          },
-          "required": ["type", "items"]
+          "$ref": "#/$defs/__schema22"
         },
         {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "const": "map"
-            },
-            "keyType": {
-              "type": "string",
-              "enum": ["text", "number"]
-            },
-            "valueType": {
-              "$ref": "#/definitions/__schema0"
-            }
-          },
-          "required": ["type", "keyType", "valueType"]
+          "$ref": "#/$defs/__schema46"
+        },
+        {
+          "$ref": "#/$defs/__schema47"
+        }
+      ],
+      "title": "Input field"
+    },
+    "__schema8": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "type": {
+          "type": "string",
+          "const": "text",
+          "description": "A string."
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "pattern": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema9": {
+      "$ref": "#/$defs/__schema10"
+    },
+    "__schema10": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/__schema11"
+        },
+        "description": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "help": {
+          "$ref": "#/$defs/__schema13"
+        },
+        "titlePosition": {
+          "type": "string",
+          "enum": ["left", "above"]
+        },
+        "textSize": {
+          "type": "string",
+          "enum": ["sm", "md", "lg"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "__schema11": {
+      "type": "string"
+    },
+    "__schema12": {
+      "type": "string"
+    },
+    "__schema13": {
+      "type": "string"
+    },
+    "__schema14": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "type": {
+          "type": "string",
+          "const": "integer",
+          "description": "A whole number."
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema15": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "type": {
+          "type": "string",
+          "const": "number",
+          "description": "A number, whole or fractional."
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema16": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "type": {
+          "type": "string",
+          "const": "boolean",
+          "description": "true / false."
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema17": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "type": {
+          "type": "string",
+          "const": "date",
+          "description": "A date; ISO-8601 on the wire."
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema18": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "type": {
+          "type": "string",
+          "const": "enum",
+          "description": "One of a fixed set of `choices`."
+        },
+        "choices": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema19"
+          }
+        }
+      },
+      "required": ["name", "type", "choices"],
+      "additionalProperties": false
+    },
+    "__schema19": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display": {
+          "$ref": "#/$defs/__schema20"
+        },
+        "shortcut": {
+          "type": "string"
+        },
+        "selectedStyle": {
+          "$ref": "#/$defs/__schema21"
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+    "__schema20": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/__schema11"
+        },
+        "description": {
+          "$ref": "#/$defs/__schema12"
+        },
+        "help": {
+          "$ref": "#/$defs/__schema13"
+        }
+      },
+      "additionalProperties": false
+    },
+    "__schema21": {
+      "type": "object",
+      "properties": {
+        "tone": {
+          "type": "string",
+          "enum": ["muted", "info", "success", "warning", "danger", "accent"]
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "__schema22": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "type": {
+          "type": "string",
+          "const": "object",
+          "description": "A record with named `fields`."
+        },
+        "fields": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NestedField"
+          }
+        },
+        "table": {
+          "$ref": "#/$defs/__schema32"
+        }
+      },
+      "required": ["name", "type", "fields"],
+      "additionalProperties": false
+    },
+    "NestedField": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/__schema23"
+        },
+        {
+          "$ref": "#/$defs/__schema26"
+        },
+        {
+          "$ref": "#/$defs/__schema27"
+        },
+        {
+          "$ref": "#/$defs/__schema28"
+        },
+        {
+          "$ref": "#/$defs/__schema29"
+        },
+        {
+          "$ref": "#/$defs/__schema30"
+        },
+        {
+          "$ref": "#/$defs/__schema31"
+        },
+        {
+          "$ref": "#/$defs/__schema35"
+        },
+        {
+          "$ref": "#/$defs/__schema45"
+        }
+      ],
+      "title": "Nested field"
+    },
+    "__schema23": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema25"
+        },
+        "type": {
+          "type": "string",
+          "const": "text",
+          "description": "A string."
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "pattern": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema24": {
+      "type": "string",
+      "minLength": 1
+    },
+    "__schema25": {
+      "$ref": "#/$defs/__schema20"
+    },
+    "__schema26": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema25"
+        },
+        "type": {
+          "type": "string",
+          "const": "integer",
+          "description": "A whole number."
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema27": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema25"
+        },
+        "type": {
+          "type": "string",
+          "const": "number",
+          "description": "A number, whole or fractional."
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema28": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema25"
+        },
+        "type": {
+          "type": "string",
+          "const": "boolean",
+          "description": "true / false."
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema29": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema25"
+        },
+        "type": {
+          "type": "string",
+          "const": "date",
+          "description": "A date; ISO-8601 on the wire."
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema30": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema25"
+        },
+        "type": {
+          "type": "string",
+          "const": "enum",
+          "description": "One of a fixed set of `choices`."
+        },
+        "choices": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema19"
+          }
+        }
+      },
+      "required": ["name", "type", "choices"],
+      "additionalProperties": false
+    },
+    "__schema31": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema25"
+        },
+        "type": {
+          "type": "string",
+          "const": "object",
+          "description": "A record with named `fields`."
+        },
+        "fields": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NestedField"
+          }
+        },
+        "table": {
+          "$ref": "#/$defs/__schema32"
+        }
+      },
+      "required": ["name", "type", "fields"],
+      "additionalProperties": false
+    },
+    "__schema32": {
+      "type": "object",
+      "properties": {
+        "columns": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema33"
+          }
+        }
+      },
+      "required": ["columns"],
+      "additionalProperties": false
+    },
+    "__schema33": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "use": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema34"
+          }
+        },
+        "layout": {
+          "type": "string",
+          "enum": ["chips", "stack", "inline"]
+        },
+        "display": {
+          "$ref": "#/$defs/__schema20"
+        }
+      },
+      "required": ["name", "use"],
+      "additionalProperties": false
+    },
+    "__schema34": {
+      "type": "string",
+      "minLength": 1
+    },
+    "__schema35": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema25"
+        },
+        "type": {
+          "type": "string",
+          "const": "array",
+          "description": "A list of `items`."
+        },
+        "items": {
+          "$ref": "#/$defs/ValueType"
+        }
+      },
+      "required": ["name", "type", "items"],
+      "additionalProperties": false
+    },
+    "ValueType": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/__schema36"
+        },
+        {
+          "$ref": "#/$defs/__schema37"
+        },
+        {
+          "$ref": "#/$defs/__schema38"
+        },
+        {
+          "$ref": "#/$defs/__schema39"
+        },
+        {
+          "$ref": "#/$defs/__schema40"
+        },
+        {
+          "$ref": "#/$defs/__schema41"
+        },
+        {
+          "$ref": "#/$defs/__schema42"
+        },
+        {
+          "$ref": "#/$defs/__schema43"
+        },
+        {
+          "$ref": "#/$defs/__schema44"
+        }
+      ],
+      "title": "Value type"
+    },
+    "__schema36": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "text",
+          "description": "A string."
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "pattern": {
+          "type": "string"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "__schema37": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "integer",
+          "description": "A whole number."
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "__schema38": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "number",
+          "description": "A number, whole or fractional."
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "__schema39": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "boolean",
+          "description": "true / false."
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "__schema40": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "date",
+          "description": "A date; ISO-8601 on the wire."
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "__schema41": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "enum",
+          "description": "One of a fixed set of `choices`."
+        },
+        "choices": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema19"
+          }
+        }
+      },
+      "required": ["type", "choices"],
+      "additionalProperties": false
+    },
+    "__schema42": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "object",
+          "description": "A record with named `fields`."
+        },
+        "fields": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NestedField"
+          }
+        },
+        "table": {
+          "$ref": "#/$defs/__schema32"
+        }
+      },
+      "required": ["type", "fields"],
+      "additionalProperties": false
+    },
+    "__schema43": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "array",
+          "description": "A list of `items`."
+        },
+        "items": {
+          "$ref": "#/$defs/ValueType"
+        }
+      },
+      "required": ["type", "items"],
+      "additionalProperties": false
+    },
+    "__schema44": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "map",
+          "description": "A dictionary of `keys` → `values`."
+        },
+        "keys": {
+          "$ref": "#/$defs/ValueType"
+        },
+        "values": {
+          "$ref": "#/$defs/ValueType"
+        }
+      },
+      "required": ["type", "values"],
+      "additionalProperties": false
+    },
+    "__schema45": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema25"
+        },
+        "type": {
+          "type": "string",
+          "const": "map",
+          "description": "A dictionary of `keys` → `values`."
+        },
+        "keys": {
+          "$ref": "#/$defs/ValueType"
+        },
+        "values": {
+          "$ref": "#/$defs/ValueType"
+        }
+      },
+      "required": ["name", "type", "values"],
+      "additionalProperties": false
+    },
+    "__schema46": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "type": {
+          "type": "string",
+          "const": "array",
+          "description": "A list of `items`."
+        },
+        "items": {
+          "$ref": "#/$defs/ValueType"
+        }
+      },
+      "required": ["name", "type", "items"],
+      "additionalProperties": false
+    },
+    "__schema47": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "type": {
+          "type": "string",
+          "const": "map",
+          "description": "A dictionary of `keys` → `values`."
+        },
+        "keys": {
+          "$ref": "#/$defs/ValueType"
+        },
+        "values": {
+          "$ref": "#/$defs/ValueType"
+        }
+      },
+      "required": ["name", "type", "values"],
+      "additionalProperties": false
+    },
+    "DisplayRule": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "when": {
+          "$ref": "#/$defs/Condition"
+        },
+        "appliesTo": {
+          "$ref": "#/$defs/__schema60"
+        },
+        "style": {
+          "$ref": "#/$defs/__schema21"
+        }
+      },
+      "required": ["name", "when", "style"],
+      "additionalProperties": false,
+      "title": "Display rule"
+    },
+    "Condition": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/__schema48"
+        },
+        {
+          "$ref": "#/$defs/__schema50"
+        },
+        {
+          "$ref": "#/$defs/__schema51"
+        },
+        {
+          "$ref": "#/$defs/__schema52"
+        },
+        {
+          "$ref": "#/$defs/__schema53"
+        },
+        {
+          "$ref": "#/$defs/__schema54"
+        },
+        {
+          "$ref": "#/$defs/__schema55"
+        },
+        {
+          "$ref": "#/$defs/__schema56"
+        },
+        {
+          "$ref": "#/$defs/__schema57"
+        },
+        {
+          "$ref": "#/$defs/__schema58"
+        },
+        {
+          "$ref": "#/$defs/__schema59"
+        }
+      ],
+      "title": "Condition"
+    },
+    "__schema48": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "eq"
+        },
+        "field": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "value": {
+          "$ref": "#/$defs/__schema49"
+        },
+        "otherField": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema49": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
         }
       ]
+    },
+    "__schema50": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "ne"
+        },
+        "field": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "value": {
+          "$ref": "#/$defs/__schema49"
+        },
+        "otherField": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema51": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "gt"
+        },
+        "field": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "value": {
+          "type": "number"
+        },
+        "otherField": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema52": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "gte"
+        },
+        "field": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "value": {
+          "type": "number"
+        },
+        "otherField": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema53": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "lt"
+        },
+        "field": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "value": {
+          "type": "number"
+        },
+        "otherField": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema54": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "lte"
+        },
+        "field": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "value": {
+          "type": "number"
+        },
+        "otherField": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema55": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "in"
+        },
+        "field": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "value": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema49"
+          }
+        }
+      },
+      "required": ["op", "field", "value"],
+      "additionalProperties": false
+    },
+    "__schema56": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "notIn"
+        },
+        "field": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "value": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema49"
+          }
+        }
+      },
+      "required": ["op", "field", "value"],
+      "additionalProperties": false
+    },
+    "__schema57": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "matches"
+        },
+        "field": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["op", "field", "pattern"],
+      "additionalProperties": false
+    },
+    "__schema58": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "empty"
+        },
+        "field": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema59": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "notEmpty"
+        },
+        "field": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema60": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema3"
+      }
+    },
+    "__schema61": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema20"
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["record", "session"]
+        },
+        "rows": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema62"
+          }
+        }
+      },
+      "required": ["name", "rows"],
+      "additionalProperties": false
+    },
+    "__schema62": {
+      "type": "object",
+      "properties": {
+        "perRow": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "use": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        }
+      },
+      "required": ["use"],
+      "additionalProperties": false
+    },
+    "__schema63": {
+      "type": "object",
+      "properties": {
+        "adapterId": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "adapterConfig": {
+          "$ref": "#/$defs/__schema7"
+        },
+        "fields": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OutputField"
+          }
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema61"
+          }
+        }
+      },
+      "required": ["fields"],
+      "additionalProperties": false
+    },
+    "OutputField": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/__schema64"
+        },
+        {
+          "$ref": "#/$defs/__schema69"
+        },
+        {
+          "$ref": "#/$defs/__schema70"
+        },
+        {
+          "$ref": "#/$defs/__schema71"
+        },
+        {
+          "$ref": "#/$defs/__schema72"
+        },
+        {
+          "$ref": "#/$defs/__schema73"
+        },
+        {
+          "$ref": "#/$defs/__schema74"
+        },
+        {
+          "$ref": "#/$defs/__schema75"
+        },
+        {
+          "$ref": "#/$defs/__schema76"
+        }
+      ],
+      "title": "Output field"
+    },
+    "__schema64": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema65"
+        },
+        "fill": {
+          "$ref": "#/$defs/__schema66"
+        },
+        "required": {
+          "$ref": "#/$defs/__schema67"
+        },
+        "shortcut": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "widget": {
+          "type": "string",
+          "enum": ["text", "textarea"]
+        },
+        "type": {
+          "type": "string",
+          "const": "text",
+          "description": "A string."
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "pattern": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema65": {
+      "$ref": "#/$defs/__schema10"
+    },
+    "__schema66": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "user"
+            },
+            {
+              "type": "string",
+              "const": "copy"
+            },
+            {
+              "type": "string",
+              "const": "session"
+            },
+            {
+              "type": "string",
+              "const": "timestamp"
+            }
+          ]
+        }
+      },
+      "required": ["kind"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "user"
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "user"
+              }
+            },
+            "required": ["kind"],
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "copy"
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "copy"
+              },
+              "from": {
+                "$ref": "#/$defs/__schema3"
+              }
+            },
+            "required": ["kind"],
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "session"
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "session"
+              }
+            },
+            "required": ["kind"],
+            "additionalProperties": false
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "timestamp"
+              }
+            },
+            "required": ["kind"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "timestamp"
+              }
+            },
+            "required": ["kind"],
+            "additionalProperties": false
+          }
+        }
+      ]
+    },
+    "__schema67": {
+      "type": "boolean"
+    },
+    "__schema68": {
+      "type": "string",
+      "pattern": "^(?:(?:mod|ctrl|alt|shift|meta)\\+)*[A-Za-z0-9]$"
+    },
+    "__schema69": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema65"
+        },
+        "fill": {
+          "$ref": "#/$defs/__schema66"
+        },
+        "required": {
+          "$ref": "#/$defs/__schema67"
+        },
+        "shortcut": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "widget": {
+          "type": "string",
+          "enum": ["number", "slider"]
+        },
+        "type": {
+          "type": "string",
+          "const": "integer",
+          "description": "A whole number."
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema70": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema65"
+        },
+        "fill": {
+          "$ref": "#/$defs/__schema66"
+        },
+        "required": {
+          "$ref": "#/$defs/__schema67"
+        },
+        "shortcut": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "widget": {
+          "type": "string",
+          "enum": ["number", "slider"]
+        },
+        "type": {
+          "type": "string",
+          "const": "number",
+          "description": "A number, whole or fractional."
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema71": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema65"
+        },
+        "fill": {
+          "$ref": "#/$defs/__schema66"
+        },
+        "required": {
+          "$ref": "#/$defs/__schema67"
+        },
+        "shortcut": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "widget": {
+          "type": "string",
+          "enum": ["checkbox"]
+        },
+        "type": {
+          "type": "string",
+          "const": "boolean",
+          "description": "true / false."
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema72": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema65"
+        },
+        "fill": {
+          "$ref": "#/$defs/__schema66"
+        },
+        "required": {
+          "$ref": "#/$defs/__schema67"
+        },
+        "shortcut": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "widget": {
+          "type": "string",
+          "enum": ["date"]
+        },
+        "type": {
+          "type": "string",
+          "const": "date",
+          "description": "A date; ISO-8601 on the wire."
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema73": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema65"
+        },
+        "fill": {
+          "$ref": "#/$defs/__schema66"
+        },
+        "required": {
+          "$ref": "#/$defs/__schema67"
+        },
+        "shortcut": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "widget": {
+          "type": "string",
+          "enum": ["select", "radio"]
+        },
+        "type": {
+          "type": "string",
+          "const": "enum",
+          "description": "One of a fixed set of `choices`."
+        },
+        "choices": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema19"
+          }
+        }
+      },
+      "required": ["name", "type", "choices"],
+      "additionalProperties": false
+    },
+    "__schema74": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema65"
+        },
+        "fill": {
+          "$ref": "#/$defs/__schema66"
+        },
+        "required": {
+          "$ref": "#/$defs/__schema67"
+        },
+        "shortcut": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "type": {
+          "type": "string",
+          "const": "object",
+          "description": "A record with named `fields`."
+        },
+        "fields": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NestedField"
+          }
+        },
+        "table": {
+          "$ref": "#/$defs/__schema32"
+        }
+      },
+      "required": ["name", "type", "fields"],
+      "additionalProperties": false
+    },
+    "__schema75": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema65"
+        },
+        "fill": {
+          "$ref": "#/$defs/__schema66"
+        },
+        "required": {
+          "$ref": "#/$defs/__schema67"
+        },
+        "shortcut": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "widget": {
+          "type": "string",
+          "enum": ["checkboxes"]
+        },
+        "type": {
+          "type": "string",
+          "const": "array",
+          "description": "A list of `items`."
+        },
+        "items": {
+          "$ref": "#/$defs/ValueType"
+        }
+      },
+      "required": ["name", "type", "items"],
+      "additionalProperties": false
+    },
+    "__schema76": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "display": {
+          "$ref": "#/$defs/__schema65"
+        },
+        "fill": {
+          "$ref": "#/$defs/__schema66"
+        },
+        "required": {
+          "$ref": "#/$defs/__schema67"
+        },
+        "shortcut": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "type": {
+          "type": "string",
+          "const": "map",
+          "description": "A dictionary of `keys` → `values`."
+        },
+        "keys": {
+          "$ref": "#/$defs/ValueType"
+        },
+        "values": {
+          "$ref": "#/$defs/ValueType"
+        }
+      },
+      "required": ["name", "type", "values"],
+      "additionalProperties": false
     }
   }
 }

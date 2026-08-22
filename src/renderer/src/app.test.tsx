@@ -1,56 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { loadConfig } from "@core/config";
-import type { AppConfig, IpcApi } from "@core";
+import type { IpcApi } from "@core";
+import { buildConfig } from "@test/fixtures/config";
+import { installIpcApi } from "@test/fixtures/ipc";
 import { App } from "./app";
 import { useAnnouncer } from "./a11y/announcer";
 import { useStore } from "./store/store";
 
-function sampleConfig(): AppConfig {
-  const result = loadConfig(`{
-    "input": {
-      "fields": [{ "name": "id", "type": { "type": "text" } }],
-      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
-    },
-    "output": { "fields": [{ "name": "label", "control": "text" }] }
-  }`);
-  if (!result.ok) throw new Error("invalid sample config");
-  return result.config;
-}
+const sampleConfig = buildConfig();
 
-function mockApi(overrides: Partial<IpcApi> = {}): void {
-  const base = {
-    ping: async () => "pong" as const,
-    getTheme: async () => true,
-    onThemeChange: () => () => {},
-    onUpdateStatus: () => () => {},
-    onSetMode: () => () => {},
-    setMenuContext: async () => {},
-    installUpdate: async () => {},
-    checkForUpdates: async () => {},
-    openExternal: async () => {},
-    revealPath: async () => {},
-    getStartupConfig: async () => ({ status: "none" as const }),
-    pickConfig: async () => ({ status: "canceled" as const }),
-    pickInput: async () => ({ ok: false, canceled: true }),
-    loadInput: async () => ({ ok: false, canceled: true }),
-    pathForFile: () => "",
-    saveSession: async () => {},
-    clearSession: async () => {},
-    exportLabels: async () => ({ ok: true }),
-    getRecent: async () => ({}),
-    pickSplitFile: async () => ({ ok: false, canceled: true }),
-    analyzeSplitFile: async () => ({ ok: false, canceled: true }),
-    pickPrepareFiles: async () => ({ canceled: true, paths: [] }),
-    runSplit: async () => ({ ok: false }),
-    pickJoinFiles: async () => ({ ok: false, canceled: true }),
-    analyzeJoinFiles: async () => ({ ok: false }),
-    runJoin: async () => ({ ok: false }),
-  } satisfies IpcApi;
-  Object.defineProperty(window, "api", { value: { ...base, ...overrides }, configurable: true });
-  Object.defineProperty(window, "platform", { value: "darwin", configurable: true });
-}
+const mockApi = (overrides: Partial<IpcApi> = {}): void => void installIpcApi(overrides);
 
 describe("App startup flow", () => {
   beforeEach(() => {
@@ -84,7 +44,7 @@ describe("App startup flow", () => {
     mockApi({
       getStartupConfig: async () => ({
         status: "loaded",
-        config: sampleConfig(),
+        config: sampleConfig,
         path: "/x/c.jsonc",
       }),
     });
@@ -100,7 +60,7 @@ describe("App startup flow", () => {
     mockApi({
       getStartupConfig: async () => ({
         status: "loaded",
-        config: sampleConfig(),
+        config: sampleConfig,
         path: "/x/c.jsonc",
       }),
     });
@@ -116,7 +76,7 @@ describe("App startup flow", () => {
     mockApi({
       getStartupConfig: async () => ({
         status: "loaded",
-        config: sampleConfig(),
+        config: sampleConfig,
         path: "/x/c.jsonc",
       }),
       onSetMode: (cb) => {
@@ -166,7 +126,7 @@ describe("App startup flow", () => {
     mockApi({
       getStartupConfig: async () => ({
         status: "loaded",
-        config: sampleConfig(),
+        config: sampleConfig,
         path: "/x/c.jsonc",
       }),
     });

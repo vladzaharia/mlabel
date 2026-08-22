@@ -1,42 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { IpcApi, RecordView, SessionData } from "@core";
+import { installIpcApi } from "@test/fixtures/ipc";
 import { useStore } from "../store/store";
 import { ResumeDialog } from "./ResumeDialog";
 
-function mockApi(overrides: Partial<IpcApi> = {}): IpcApi {
-  const base: IpcApi = {
-    ping: async () => "pong",
-    getTheme: async () => true,
-    onThemeChange: () => () => {},
-    onUpdateStatus: () => () => {},
-    onSetMode: () => () => {},
-    setMenuContext: async () => {},
-    installUpdate: async () => {},
-    checkForUpdates: async () => {},
-    openExternal: async () => {},
-    revealPath: async () => {},
-    getStartupConfig: async () => ({ status: "none" }),
-    pickConfig: async () => ({ status: "canceled" }),
-    pickInput: async () => ({ ok: false, canceled: true }),
-    loadInput: async () => ({ ok: false, canceled: true }),
-    pathForFile: () => "",
-    saveSession: async () => {},
-    clearSession: async () => {},
-    exportLabels: async () => ({ ok: true }),
-    getRecent: async () => ({}),
-    pickSplitFile: async () => ({ ok: false, canceled: true }),
-    analyzeSplitFile: async () => ({ ok: false }),
-    pickPrepareFiles: async () => ({ canceled: true, paths: [] }),
-    runSplit: async () => ({ ok: false }),
-    pickJoinFiles: async () => ({ ok: false, canceled: true }),
-    analyzeJoinFiles: async () => ({ ok: false }),
-    runJoin: async () => ({ ok: false }),
-  };
-  const api = { ...base, ...overrides };
-  Object.defineProperty(window, "api", { value: api, configurable: true });
-  return api;
-}
+const mockApi = (overrides: Partial<IpcApi> = {}): IpcApi => installIpcApi(overrides);
 
 const records: RecordView[] = [
   { index: 0, inputValues: { id: "1" }, labelValues: { id: "1" }, coercionErrors: [] },

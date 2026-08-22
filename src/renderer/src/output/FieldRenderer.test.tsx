@@ -1,37 +1,31 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { loadConfig } from "@core/config";
 import type { OutputField } from "@core/config";
+import { buildConfig } from "@test/fixtures/config";
 import { FieldRenderer } from "./FieldRenderer";
 
-/** Parse a real config so every OutputField carries the Zod-applied defaults. */
+/** Built through the loader so every OutputField carries the schema defaults. */
 function buildFields(): Map<string, OutputField> {
-  const result = loadConfig(`{
-    "input": {
-      "fields": [{ "name": "id", "type": { "type": "text" } }],
-      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
-    },
-    "output": {
-      "fields": [
-        { "name": "note", "control": "text", "labelPosition": "above" },
-        { "name": "essay", "control": "textarea", "labelPosition": "above" },
-        { "name": "score", "control": "number", "min": 0, "max": 10, "labelPosition": "above" },
-        { "name": "when", "control": "date", "labelPosition": "above" },
-        { "name": "flag", "control": "checkbox" },
-        { "name": "flag-help", "control": "checkbox", "help": "Tooltip text here" },
-        { "name": "verdict", "control": "radio", "options": [{ "value": "good", "displayName": "Good" }, { "value": "bad" }] },
-        { "name": "bucket", "control": "select", "options": [{ "value": "a" }, { "value": "b" }] },
-        { "name": "confidence", "control": "slider", "min": 0, "max": 100 },
-        { "name": "code", "control": "text", "regex": "^[A-Z]{3}$", "labelPosition": "above" },
-        { "name": "optional", "control": "text", "required": false, "labelPosition": "above" },
-        { "name": "sideways", "control": "text", "labelPosition": "left" },
-        { "name": "ghost", "control": "hidden" }
-      ]
-    }
-  }`);
-  if (!result.ok) throw new Error("invalid test config");
-  return new Map(result.config.output.fields.map((f) => [f.name, f]));
+  const above = { labelPosition: "above" } as const;
+  const config = buildConfig({
+    output: [
+      { name: "note", ...above },
+      { name: "essay", kind: "textarea", ...above },
+      { name: "score", kind: "number", min: 0, max: 10, ...above },
+      { name: "when", kind: "date", ...above },
+      { name: "flag", kind: "checkbox" },
+      { name: "flag-help", kind: "checkbox", help: "Tooltip text here" },
+      { name: "verdict", kind: "choice", choices: [{ value: "good", label: "Good" }, "bad"] },
+      { name: "bucket", kind: "dropdown", choices: ["a", "b"] },
+      { name: "confidence", kind: "slider", min: 0, max: 100 },
+      { name: "code", pattern: "^[A-Z]{3}$", ...above },
+      { name: "optional", required: false, ...above },
+      { name: "sideways", labelPosition: "left" },
+      { name: "ghost", kind: "timestamp" },
+    ],
+  });
+  return new Map(config.output.fields.map((f) => [f.name, f]));
 }
 
 const fields = buildFields();
@@ -88,9 +82,9 @@ describe("FieldRenderer: rendering each control", () => {
     expect(screen.getByText("42")).toBeInTheDocument();
   });
 
-  it("renders no widget for a hidden field", () => {
-    // Note: FieldRenderer still emits the label chrome for hidden fields; in the
-    // real app OutputForm filters auto-copied (hidden) fields out entirely.
+  it("renders nothing at all for a derived field", () => {
+    // A field the app fills has no widget whatever its type, so FieldRenderer
+    // renders nothing rather than label chrome around an empty space.
     const { container } = render(
       <FieldRenderer field={field("ghost")} value={null} onChange={vi.fn()} />,
     );

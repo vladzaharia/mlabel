@@ -2,12 +2,12 @@ import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { readJsonSafe, removeFile, writeJsonAtomic } from "./atomic-json";
+import { readJsonSafe, removeFile, writeJsonAtomic } from "./atomic-write";
 
 let dir: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "mlabel-atomic-json-"));
+  dir = await mkdtemp(join(tmpdir(), "mlabel-atomic-write-"));
 });
 
 afterEach(async () => {

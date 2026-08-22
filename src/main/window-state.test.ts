@@ -330,7 +330,7 @@ describe("loadWindowState (Electron glue)", () => {
   });
 
   it("returns sanitized state from a valid file", async () => {
-    const { writeJsonAtomic } = await import("./services/atomic-json");
+    const { writeJsonAtomic } = await import("./services/atomic-write");
     const statePath = join(dir, "window-state.json");
     const payload = { width: 900, height: 650, x: 100, y: 50, maximized: false };
     await writeJsonAtomic(statePath, payload, { fsync: false });
@@ -340,7 +340,7 @@ describe("loadWindowState (Electron glue)", () => {
   });
 
   it("returns defaults when file contains garbage", async () => {
-    const { writeJsonAtomic } = await import("./services/atomic-json");
+    const { writeJsonAtomic } = await import("./services/atomic-write");
     const statePath = join(dir, "window-state.json");
     await writeJsonAtomic(statePath, "not-an-object", { fsync: false });
 
@@ -390,7 +390,7 @@ describe("trackWindowState (Electron glue)", () => {
     // Flush ensures the write completes
     await flushWindowState();
 
-    const { readJsonSafe } = await import("./services/atomic-json");
+    const { readJsonSafe } = await import("./services/atomic-write");
     const statePath = join(dir, "window-state.json");
     const saved = await readJsonSafe<WindowState>(statePath);
     expect(saved?.width).toBe(900);
@@ -414,7 +414,7 @@ describe("trackWindowState (Electron glue)", () => {
       // and write the pending state without losing it
       await flushWindowState();
 
-      const { readJsonSafe } = await import("./services/atomic-json");
+      const { readJsonSafe } = await import("./services/atomic-write");
       const statePath = join(dir, "window-state.json");
       const saved = await readJsonSafe<WindowState>(statePath);
       // Verify the debounced resize state was written (not lost)

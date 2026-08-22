@@ -44,7 +44,13 @@ src/renderer/  React 19 UI: chrome bars, category cards, recursive input formatt
 Data flow: `SourceAdapter.parse` → `RawRecord[]` (with opaque provenance) →
 core `coerce` per `ValueType` → `LabeledRecord` (input + label values) → user labels
 in renderer → on Done, `SinkAdapter.serialize` writes `*-output.*` (complete records)
-and `*-remaining.*` (byte-faithful unlabeled/incomplete records).
+and `*-remaining.*` (unlabeled/incomplete records, re-emitted from provenance).
+
+`*-remaining.*` is **value-faithful, not byte-faithful**: values, column order and
+the detected dialect round-trip exactly (property-tested in `csv.test.ts`), but
+incidental formatting — BOM, header whitespace, original quoting style, blank
+lines, trailing newline — does not. It must stay re-loadable as input, which is
+what Prepare's join flow depends on.
 
 ## Commands
 

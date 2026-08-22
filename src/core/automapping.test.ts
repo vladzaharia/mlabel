@@ -1,58 +1,130 @@
 import { describe, expect, it } from "vitest";
-import { hasInputSource, isAutoCopied } from "./automapping";
-import type { OutputControl, OutputField } from "./config/schema";
+import {
+  copySource,
+  fillKind,
+  isDerived,
+  isRequired,
+  isSessionFilled,
+  isUserFilled,
+  seedLabelValues,
+  widgetOf,
+} from "./automapping";
+import { buildConfig } from "@test/fixtures/config";
+import type { OutputField } from "./config/schema";
 
-/** Build a fully-defaulted OutputField (mirrors the Zod-parsed shape). */
-function field(
-  name: string,
-  control: OutputControl,
-  extra: Partial<OutputField> = {},
-): OutputField {
-  return {
-    name,
-    control,
-    labelPosition: "left",
-    textSize: "md",
-    required: true,
-    ...extra,
-  };
-}
+const config = buildConfig({
+  input: ["id", { name: "count", type: { type: "integer" } }],
+  output: [
+    { name: "id", kind: "copied" },
+    { name: "verdict", kind: "choice", choices: ["good", "bad"] },
+    { name: "note", kind: "text", required: false },
+    { name: "rating", kind: "slider", min: 0, max: 10 },
+  ],
+});
 
-const inputNames: ReadonlySet<string> = new Set(["id", "source_text"]);
+const byName = new Map(config.output.fields.map((f) => [f.name, f]));
+const field = (name: string): OutputField => {
+  const f = byName.get(name);
+  if (!f) throw new Error(`no such output field: ${name}`);
+  return f;
+};
 
-describe("isAutoCopied", () => {
-  it("treats a hidden control as auto-copied even without a matching input field", () => {
-    const f = field("not_an_input", "hidden");
-    expect(isAutoCopied(f, inputNames)).toBe(true);
+describe("fillKind", () => {
+  it("defaults to user when the config says nothing", () => {
+    expect(fillKind(field("verdict"))).toBe("user");
   });
 
-  it("treats a visible field whose name matches an input field as auto-copied", () => {
-    const f = field("id", "text");
-    expect(isAutoCopied(f, inputNames)).toBe(true);
-  });
-
-  it("is false for a visible field with no matching input field", () => {
-    const f = field("verdict", "radio", { options: [{ value: "good" }] });
-    expect(isAutoCopied(f, inputNames)).toBe(false);
-  });
-
-  it("is true for a hidden control that also matches an input field", () => {
-    const f = field("source_text", "hidden");
-    expect(isAutoCopied(f, inputNames)).toBe(true);
+  it("reads an explicit fill", () => {
+    expect(fillKind(field("id"))).toBe("copy");
   });
 });
 
-describe("hasInputSource", () => {
-  it("is true only when the name matches an input field", () => {
-    expect(hasInputSource(field("id", "text"), inputNames)).toBe(true);
-    expect(hasInputSource(field("id", "hidden"), inputNames)).toBe(true);
+describe("copySource", () => {
+  it("defaults to the field's own name", () => {
+    expect(copySource(field("id"))).toBe("id");
   });
 
-  it("is false for a hidden control without a matching input field", () => {
-    expect(hasInputSource(field("standalone", "hidden"), inputNames)).toBe(false);
+  it("is undefined for a field nobody copies into", () => {
+    expect(copySource(field("verdict"))).toBeUndefined();
   });
 
-  it("is false for a user-facing field without a matching input field", () => {
-    expect(hasInputSource(field("verdict", "text"), inputNames)).toBe(false);
+  // Impossible under the old name-matching convention, which is the point.
+  it("follows an explicit rename", () => {
+    const renamed = buildConfig({
+      input: ["id"],
+      output: [{ name: "sample_id", kind: "text" }],
+    });
+    const withFill = {
+      ...renamed.output.fields[0]!,
+      fill: { kind: "copy" as const, from: "id" },
+    } as OutputField;
+    expect(copySource(withFill)).toBe("id");
+  });
+});
+
+describe("who fills a field", () => {
+  it("treats an unannotated field as user-filled", () => {
+    expect(isUserFilled(field("verdict"))).toBe(true);
+    expect(isDerived(field("verdict"))).toBe(false);
+  });
+
+  it("treats a copied field as derived, so it renders no widget", () => {
+    expect(isUserFilled(field("id"))).toBe(false);
+    expect(isDerived(field("id"))).toBe(true);
+  });
+
+  it("distinguishes session-scoped fields from per-record ones", () => {
+    expect(isSessionFilled(field("verdict"))).toBe(false);
+  });
+});
+
+describe("isRequired", () => {
+  it("defaults to required for something a person is asked for", () => {
+    expect(isRequired(field("verdict"))).toBe(true);
+  });
+
+  // This is the trap the old default created: a derived field inherited
+  // `required: true`, so an unfilled one made every record incomplete and the
+  // export wrote a header-only file while reporting success.
+  it("defaults to optional for something the app derives", () => {
+    expect(isRequired(field("id"))).toBe(false);
+  });
+
+  it("honours an explicit required", () => {
+    expect(isRequired(field("note"))).toBe(false);
+  });
+});
+
+describe("widgetOf", () => {
+  it("falls back to the type's default widget", () => {
+    expect(widgetOf(field("verdict"))).toBe("radio"); // fixture asks for radio
+    expect(widgetOf(field("note"))).toBe("text");
+  });
+
+  it("honours an explicit widget", () => {
+    expect(widgetOf(field("rating"))).toBe("slider");
+  });
+
+  it("is undefined for a type that renders nothing", () => {
+    expect(widgetOf(field("id"))).toBeUndefined();
+  });
+});
+
+describe("seedLabelValues", () => {
+  it("copies input values into copy-filled fields and leaves the rest unfilled", () => {
+    const seeded = seedLabelValues({ id: "row-1", count: 3 }, config.output.fields);
+    expect(seeded["id"]).toBe("row-1");
+    expect(seeded["verdict"]).toBeUndefined();
+    expect(seeded["note"]).toBeUndefined();
+  });
+
+  it("seeds null when the source column is absent from the record", () => {
+    const seeded = seedLabelValues({}, config.output.fields);
+    expect(seeded["id"]).toBeNull();
+  });
+
+  it("names every output field so the exported column set is stable", () => {
+    const seeded = seedLabelValues({ id: "x" }, config.output.fields);
+    expect(Object.keys(seeded)).toEqual(["id", "verdict", "note", "rating"]);
   });
 });

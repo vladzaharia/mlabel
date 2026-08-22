@@ -6,7 +6,7 @@ import { ThemeSwitcher } from "./ThemeSwitcher";
 
 describe("ThemeSwitcher", () => {
   beforeEach(() => {
-    localStorage.clear();
+    window.localStorage.clear();
     delete document.documentElement.dataset.theme;
     useStore.setState({ colorTheme: "cobalt" });
   });

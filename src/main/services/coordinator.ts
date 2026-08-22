@@ -1,4 +1,5 @@
-import { readFile, stat, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
 import { dialog } from "electron";
 import type {
@@ -11,6 +12,7 @@ import type {
 import { fingerprintsEqual } from "@core";
 import { createDefaultRegistry } from "@core/adapters";
 import { appState, type LoadedInput } from "../state";
+import { removeFile, writeTextAtomic } from "./atomic-write";
 import { loadSessionFor, saveSession, setRecent } from "./session-store";
 import { buildExport, buildRecordViews } from "./pipeline";
 import { fingerprintOf } from "./fingerprint";
@@ -47,11 +49,25 @@ export async function loadInputFromPath(path: string): Promise<InputLoadResponse
   );
 
   const { records, inputValues } = buildRecordViews(config, document);
+  const blockingErrors = issues.filter((i) => i.severity === "error");
+
+  // Commit only a file we actually accepted. Committing first left a rejected
+  // document in main state, so a later export wrote the *previous* file's rows
+  // under the new file's name — and marked a schema-mismatched file as recent.
+  if (blockingErrors.length > 0) {
+    return {
+      ok: false,
+      path,
+      records,
+      headerIssues: issues,
+      error: "The input file does not match the input schema.",
+    };
+  }
+
   const input: LoadedInput = { inputPath: path, document, inputValues, fingerprint };
   appState.setInput(input);
   await setRecent({ config: configPath, input: path });
 
-  const blockingErrors = issues.filter((i) => i.severity === "error");
   const resume = await loadSessionFor(configPath, path);
 
   // Detect staleness: only when the saved session has a fingerprint stamped on it.
@@ -59,16 +75,7 @@ export async function loadInputFromPath(path: string): Promise<InputLoadResponse
   const resumeStale =
     resume?.source !== undefined ? !fingerprintsEqual(resume.source, fingerprint) : undefined;
 
-  return {
-    ok: blockingErrors.length === 0,
-    path,
-    records,
-    headerIssues: issues,
-    resume,
-    resumeStale,
-    error:
-      blockingErrors.length > 0 ? "The input file does not match the input schema." : undefined,
-  };
+  return { ok: true, path, records, headerIssues: issues, resume, resumeStale };
 }
 
 /**
@@ -120,24 +127,45 @@ export async function exportLabels(request: ExportRequest): Promise<ExportRespon
   const ext = extname(input.inputPath);
   const stem = basename(input.inputPath, ext);
   const outputPath = join(dir, `${stem}-output${outputExtension(config)}`);
+  const remainingPath =
+    artifacts.remainingContent === undefined ? undefined : join(dir, `${stem}-remaining${ext}`);
 
-  try {
-    await writeFile(outputPath, artifacts.outputContent, "utf8");
-    appState.addRevealablePath(outputPath);
-    let remainingPath: string | undefined;
-    if (artifacts.remainingContent !== undefined) {
-      remainingPath = join(dir, `${stem}-remaining${ext}`);
-      await writeFile(remainingPath, artifacts.remainingContent, "utf8");
-      appState.addRevealablePath(remainingPath);
+  // Refuse to clobber an earlier run unless asked — the same guard `runSplit`
+  // applies. Re-exporting is easy to do by accident and the old artifacts may
+  // be the only copy of hours of work.
+  if (!request.overwrite) {
+    const existing = [outputPath, remainingPath].filter(
+      (p): p is string => p !== undefined && existsSync(p),
+    );
+    if (existing.length > 0) {
+      return {
+        ok: false,
+        error: `These files already exist: ${existing.map((p) => basename(p)).join(", ")}.`,
+      };
     }
-    return {
-      ok: true,
-      outputPath,
-      remainingPath,
-      completeCount: artifacts.completeCount,
-      remainingCount: artifacts.remainingCount,
-    };
+  }
+
+  // Write both files or neither. A failed second write used to leave a
+  // half-finished export on disk next to an `ok: false` the user couldn't act on.
+  const written: string[] = [];
+  try {
+    await writeTextAtomic(outputPath, artifacts.outputContent);
+    written.push(outputPath);
+    if (remainingPath !== undefined && artifacts.remainingContent !== undefined) {
+      await writeTextAtomic(remainingPath, artifacts.remainingContent);
+      written.push(remainingPath);
+    }
   } catch (err) {
+    await Promise.all(written.map((p) => removeFile(p).catch(() => undefined)));
     return { ok: false, error: `Failed to write output: ${(err as Error).message}` };
   }
+
+  for (const path of written) appState.addRevealablePath(path);
+  return {
+    ok: true,
+    outputPath,
+    remainingPath,
+    completeCount: artifacts.completeCount,
+    remainingCount: artifacts.remainingCount,
+  };
 }

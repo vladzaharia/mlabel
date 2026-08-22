@@ -1,30 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { loadConfig } from "@core/config";
-import type { AppConfig, LabelMap, RecordView } from "@core";
+import type { LabelMap, RecordView } from "@core";
+import { buildConfig } from "@test/fixtures/config";
 import { useStore } from "../store/store";
 import { RadioWidget, SliderWidget } from "../output/widgets";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 
-const config = loadAppConfig();
-
-function loadAppConfig(): AppConfig {
-  const result = loadConfig(`{
-    "input": {
-      "fields": [{ "name": "id", "type": { "type": "text" } }],
-      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
-    },
-    "output": {
-      "fields": [
-        { "name": "id", "control": "hidden" },
-        { "name": "verdict", "control": "radio", "options": [{ "value": "good" }, { "value": "bad" }] },
-        { "name": "score", "control": "slider", "min": 0, "max": 100 }
-      ]
-    }
-  }`);
-  if (!result.ok) throw new Error("invalid test config");
-  return result.config;
-}
+const config = buildConfig({
+  output: [
+    { name: "id", kind: "copied" },
+    { name: "verdict", kind: "choice", choices: ["good", "bad"] },
+    { name: "score", kind: "slider", min: 0, max: 100 },
+  ],
+});
 
 const records: RecordView[] = [0, 1, 2].map((i) => ({
   index: i,
@@ -42,8 +30,10 @@ function Harness({
   onToggleHelp?: () => void;
 }): React.JSX.Element {
   useKeyboardShortcuts({ onDone, onToggleHelp });
-  const radioField = config.output.fields.find((f) => f.name === "verdict")!;
-  const sliderField = config.output.fields.find((f) => f.name === "score")!;
+  // Narrowed by name: the widgets take the variant their type guarantees, which
+  // a `find` over the union can't prove.
+  const radioField = config.output.fields.find((f) => f.type === "enum")!;
+  const sliderField = config.output.fields.find((f) => f.type === "number")!;
   return (
     <div>
       <input aria-label="text field" />
@@ -134,5 +124,68 @@ describe("useKeyboardShortcuts", () => {
     const input = screen.getByLabelText("text field");
     press(input, "?");
     expect(onToggleHelp).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * A modal owns the keyboard while it is open. Radix traps Tab but not a window
+ * listener, so before this guard the resume prompt was live-fire: 1–9 wrote
+ * labels to the record behind it, and ⌘Enter exported *and* cleared the very
+ * session the dialog was asking whether to restore.
+ */
+describe("useKeyboardShortcuts: an open dialog owns the keyboard", () => {
+  const onDone = vi.fn();
+  const onToggleHelp = vi.fn();
+
+  function DialogHarness(): React.JSX.Element {
+    return (
+      <>
+        <Harness onDone={onDone} onToggleHelp={onToggleHelp} />
+        {/* Shaped exactly like a Radix dialog's content element — a native
+            <dialog> would test markup the app never renders. */}
+        {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role */}
+        <div role="dialog" data-state="open" aria-label="Resume?" />
+      </>
+    );
+  }
+
+  beforeEach(() => {
+    const labels: Record<number, LabelMap> = {};
+    for (const record of records) labels[record.index] = { ...record.labelValues };
+    useStore.setState({ config, records, index: 0, labels, phase: "labeling" });
+    render(<DialogHarness />);
+  });
+
+  afterEach(() => {
+    cleanup();
+    onDone.mockReset();
+    onToggleHelp.mockReset();
+  });
+
+  it("does not write a label from a digit key", () => {
+    press(window, "1");
+    expect(useStore.getState().labels[0]?.["verdict"]).toBeNull();
+  });
+
+  it("does not export, which would clear the session being asked about", () => {
+    press(window, "Enter", { metaKey: true });
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it("does not navigate records", () => {
+    press(window, "ArrowRight");
+    expect(useStore.getState().index).toBe(0);
+  });
+
+  it("does not toggle the help dialog", () => {
+    press(window, "?");
+    expect(onToggleHelp).not.toHaveBeenCalled();
+  });
+
+  it("resumes handling once the dialog closes", () => {
+    cleanup();
+    render(<Harness onDone={onDone} onToggleHelp={onToggleHelp} />);
+    press(window, "ArrowRight");
+    expect(useStore.getState().index).toBe(1);
   });
 });

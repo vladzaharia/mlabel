@@ -54,13 +54,17 @@ export function coerceValue(
     case "number": {
       const n = typeof raw === "number" ? raw : Number(String(raw).trim());
       if (Number.isNaN(n)) return fail(path, `Expected a number, got "${String(raw)}".`);
-      if (type.format === "integer" && !Number.isInteger(n)) {
-        return fail(path, `Expected an integer, got "${String(raw)}".`);
-      }
       return ok(n);
     }
 
-    case "bool": {
+    case "integer": {
+      const n = typeof raw === "number" ? raw : Number(String(raw).trim());
+      if (Number.isNaN(n)) return fail(path, `Expected a number, got "${String(raw)}".`);
+      if (!Number.isInteger(n)) return fail(path, `Expected an integer, got "${String(raw)}".`);
+      return ok(n);
+    }
+
+    case "boolean": {
       if (typeof raw === "boolean") return ok(raw);
       const key = String(raw).trim().toLowerCase();
       const mapped = BOOL_MAP[key];
@@ -76,7 +80,7 @@ export function coerceValue(
 
     case "enum": {
       const value = String(raw);
-      const allowed = type.options.map((o) => o.value);
+      const allowed = type.choices.map((c) => c.name);
       if (!allowed.includes(value)) {
         return fail(path, `Expected one of [${allowed.join(", ")}], got "${value}".`);
       }
@@ -93,7 +97,7 @@ export function coerceValue(
       const out: Record<string, CoercedValue> = {};
       const errors: CoercionError[] = [];
       for (const field of type.fields) {
-        const r = coerceValue(field.type, (data as Record<string, unknown>)[field.name], [
+        const r = coerceValue(field, (data as Record<string, unknown>)[field.name], [
           ...path,
           field.name,
         ]);
@@ -128,11 +132,11 @@ export function coerceValue(
       const out: Record<string, CoercedValue> = {};
       const errors: CoercionError[] = [];
       for (const [key, val] of Object.entries(data as Record<string, unknown>)) {
-        if (type.keyType === "number" && Number.isNaN(Number(key))) {
+        if (type.keys?.type === "integer" && Number.isNaN(Number(key))) {
           errors.push({ path: [...path, key], message: `Map key "${key}" is not numeric.` });
           continue;
         }
-        const r = coerceValue(type.valueType, val, [...path, key]);
+        const r = coerceValue(type.values, val, [...path, key]);
         if (r.ok) out[key] = r.value;
         else errors.push(...r.errors);
       }

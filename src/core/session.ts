@@ -1,5 +1,34 @@
+import { coerceValue } from "./coercion";
+import type { OutputField } from "./config/schema";
 import type { CoercedValue } from "./types/values";
 import type { LabelMap, RecordView, SessionData, SourceFingerprint } from "./types/view";
+
+/**
+ * Re-type a label map read back from `session.json`.
+ *
+ * Sessions are persisted with plain `JSON.stringify` and read with plain
+ * `JSON.parse`, so anything JSON can't represent arrives as something else —
+ * a `Date` leaves as an ISO string and comes back a string. `validateOutputValue`
+ * then rejects it (`value instanceof Date`), and a record the labeler had
+ * finished silently reverted to incomplete the moment they resumed.
+ *
+ * Rather than teach the persistence layer about every value kind, re-coerce
+ * through the same `coerceValue` the input pipeline uses. A value that already
+ * survived JSON intact coerces to itself, so this is a no-op for most fields.
+ */
+export function reviveLabelMap(raw: LabelMap, outputFields: readonly OutputField[]): LabelMap {
+  const out: LabelMap = { ...raw };
+  for (const field of outputFields) {
+    const value = raw[field.name];
+    if (value === undefined || value === null) continue;
+    // A field *is* its type, so this is the same coercion the input pipeline runs.
+    const result = coerceValue(field, value);
+    // Keep the original on failure: a value we can't parse is still the user's
+    // data, and dropping it would turn a visible error into silent loss.
+    if (result.ok) out[field.name] = result.value;
+  }
+  return out;
+}
 
 /**
  * Whether two source fingerprints represent the same file content.

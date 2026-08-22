@@ -1,26 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { loadConfig } from "@core/config";
-import type { AppConfig } from "@core";
+import { buildConfig } from "@test/fixtures/config";
 import { useStore, selectCompletedCount } from "../store/store";
 import { TitleBar } from "./TitleBar";
 
-function sampleConfig(): AppConfig {
-  const result = loadConfig(`{
-    "input": {
-      "fields": [{ "name": "id", "type": { "type": "text" } }],
-      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
-    },
-    "output": {
-      "fields": [
-        { "name": "id", "control": "hidden" },
-        { "name": "verdict", "control": "radio", "options": [{ "value": "good" }, { "value": "bad" }] }
-      ]
-    }
-  }`);
-  if (!result.ok) throw new Error("invalid test config");
-  return result.config;
-}
+const config = buildConfig({
+  output: [
+    { name: "id", kind: "copied" },
+    { name: "verdict", kind: "choice", choices: ["good", "bad"] },
+  ],
+});
 
 function makeRecords(n: number) {
   return Array.from({ length: n }, (_, i) => ({
@@ -34,7 +23,7 @@ function makeRecords(n: number) {
 describe("TitleBar", () => {
   beforeEach(() => {
     useStore.setState({
-      config: sampleConfig(),
+      config,
       phase: "labeling",
       records: makeRecords(4),
       index: 0,

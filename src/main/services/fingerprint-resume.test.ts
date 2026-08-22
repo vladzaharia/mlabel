@@ -8,6 +8,7 @@ import { mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { configText } from "@test/fixtures/config";
 
 // ---------------------------------------------------------------------------
 // Electron mock — must happen before importing anything that touches `electron`
@@ -30,20 +31,10 @@ import type { SessionData } from "@core";
 // ---------------------------------------------------------------------------
 // A minimal valid config that will let the CSV adapter parse a two-column file
 // ---------------------------------------------------------------------------
-const CONFIG_TEXT = `{
-  "input": {
-    "fields": [
-      { "name": "id",   "type": { "type": "text" }, "title": true },
-      { "name": "text", "type": { "type": "text" } }
-    ],
-    "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id", "text"] }] }]
-  },
-  "output": {
-    "fields": [
-      { "name": "verdict", "control": "radio", "options": [{ "value": "good" }, { "value": "bad" }] }
-    ]
-  }
-}`;
+const CONFIG_TEXT = configText({
+  input: [{ name: "id", title: true }, "text"],
+  output: [{ name: "verdict", kind: "choice", choices: ["good", "bad"] }],
+});
 
 const CSV_CONTENT = "id,text\n1,hello\n2,world\n";
 const CSV_MODIFIED = "id,text\n1,hello\n2,WORLD\n"; // one byte changed

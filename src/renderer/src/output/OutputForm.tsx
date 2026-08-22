@@ -1,14 +1,13 @@
-import type { GridRow as GridRowConfig } from "@core/config";
-import { isAutoCopied, type CoercedValue, type LabelMap, type OutputField } from "@core";
+import type { Card, CardRow } from "@core/config";
+import { resolveCards, titleOf } from "@core/config";
+import { isUserFilled, type CoercedValue, type LabelMap, type OutputField } from "@core";
 import { useStore, selectCurrentRecord } from "../store/store";
 import { WrapRow } from "../components/WrapRow";
 import { FieldRenderer } from "./FieldRenderer";
 
-/** A category-shaped grouping of output fields (heading optional for implicit). */
-interface OutputSection {
-  displayName?: string;
-  rows: GridRowConfig[];
-}
+/** Fields the labeler answers per record — session answers live on the setup step. */
+const isRecordField = (field: OutputField): boolean =>
+  isUserFilled(field) && field.fill?.kind !== "session";
 
 export function OutputForm(): React.JSX.Element | null {
   const config = useStore((s) => s.config);
@@ -20,11 +19,13 @@ export function OutputForm(): React.JSX.Element | null {
   const fieldsByName = new Map<string, OutputField>(
     (config?.output.fields ?? []).map((f) => [f.name, f]),
   );
-  const inputNames = new Set(config?.input.fields.map((f) => f.name));
-  const sections: OutputSection[] =
-    config?.output.categories ?? implicitSections(config?.output.fields ?? [], inputNames);
+  const recordFields = (config?.output.fields ?? []).filter(isRecordField);
+  const cards: Card[] = resolveCards(
+    config?.output.cards?.filter((c) => c.scope !== "session"),
+    recordFields.map((f) => f.name),
+  );
 
-  if (!config || !record || !hasVisibleField(config.output.fields, inputNames)) return null;
+  if (!config || !record || recordFields.length === 0) return null;
   const current: LabelMap = labels ?? record.labelValues;
   const onChange = (field: string, value: CoercedValue | null): void =>
     setLabel(index, field, value);
@@ -32,19 +33,18 @@ export function OutputForm(): React.JSX.Element | null {
   return (
     <div className="glass shrink-0 border-t border-border">
       <div className="max-h-[28vh] w-full space-y-4 overflow-auto px-6 py-3">
-        {sections.map((section, si) => (
-          <div key={si} className="space-y-2">
-            {section.displayName && (
+        {cards.map((card) => (
+          <div key={card.name} className="space-y-2">
+            {card.display?.title && (
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {section.displayName}
+                {titleOf(card.name, card.display)}
               </h3>
             )}
-            {section.rows.map((row, ri) => (
+            {card.rows.map((row, ri) => (
               <OutputRow
                 key={ri}
                 row={row}
                 fieldsByName={fieldsByName}
-                inputNames={inputNames}
                 values={current}
                 onChange={onChange}
               />
@@ -59,19 +59,17 @@ export function OutputForm(): React.JSX.Element | null {
 function OutputRow({
   row,
   fieldsByName,
-  inputNames,
   values,
   onChange,
 }: {
-  row: GridRowConfig;
+  row: CardRow;
   fieldsByName: Map<string, OutputField>;
-  inputNames: ReadonlySet<string>;
   values: LabelMap;
   onChange: (field: string, value: CoercedValue | null) => void;
 }): React.JSX.Element | null {
-  const fields = row.fields
+  const fields = row.use
     .map((name) => fieldsByName.get(name))
-    .filter((f): f is OutputField => Boolean(f) && !isAutoCopied(f!, inputNames));
+    .filter((f): f is OutputField => f !== undefined && isRecordField(f));
   if (fields.length === 0) return null;
 
   const items = fields.map((field) => ({
@@ -86,20 +84,6 @@ function OutputRow({
   }));
 
   return (
-    <WrapRow columns={row.columns ?? fields.length} itemMinWidthClass="min-w-56" items={items} />
+    <WrapRow columns={row.perRow ?? fields.length} itemMinWidthClass="min-w-56" items={items} />
   );
-}
-
-function hasVisibleField(fields: readonly OutputField[], inputNames: ReadonlySet<string>): boolean {
-  return fields.some((f) => !isAutoCopied(f, inputNames));
-}
-
-/** When no output.categories are configured, show every visible field one per row. */
-function implicitSections(
-  fields: readonly OutputField[],
-  inputNames: ReadonlySet<string>,
-): OutputSection[] {
-  const visible = fields.filter((f) => !isAutoCopied(f, inputNames));
-  if (visible.length === 0) return [];
-  return [{ rows: visible.map((f) => ({ fields: [f.name] })) }];
 }

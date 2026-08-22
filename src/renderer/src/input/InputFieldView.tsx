@@ -1,4 +1,5 @@
 import type { InputField } from "@core/config";
+import { titleOf } from "@core/config";
 import type { CoercedValue } from "@core";
 import { HelpBubble } from "../components/ui/popover";
 import { cn } from "../lib/utils";
@@ -13,24 +14,26 @@ export function InputFieldView({
   field: InputField;
   value: CoercedValue | undefined;
 }): React.JSX.Element {
+  const display = field.display;
   const label = (
     <div className="flex items-center gap-1">
       <span className="text-sm font-medium text-muted-foreground">
-        {field.displayName ?? field.name}
+        {titleOf(field.name, display)}
       </span>
-      {field.help && <HelpBubble>{field.help}</HelpBubble>}
+      {display?.help && <HelpBubble>{display.help}</HelpBubble>}
     </div>
   );
-  const description = field.description && (
-    <p className="text-xs text-muted-foreground/80">{field.description}</p>
+  const description = display?.description && (
+    <p className="text-xs text-muted-foreground/80">{display.description}</p>
   );
   const valueEl = (
-    <div className={cn(sizeClass[field.textSize])}>
-      <ValueView type={field.type} value={value} />
+    <div className={cn(sizeClass[display?.textSize ?? "md"])}>
+      {/* A field *is* its type, so it can be handed straight to the formatter. */}
+      <ValueView type={field} value={value} />
     </div>
   );
 
-  if (field.labelPosition === "above") {
+  if (display?.titlePosition === "above") {
     return (
       <div className="flex flex-col gap-1">
         {label}

@@ -9,9 +9,11 @@ function titleText(
   record: RecordView | undefined,
   inputPath: string | null,
 ): string {
-  const titleField = config?.input.fields.find((f) => f.title);
-  if (titleField && record) {
-    const value = record.inputValues[titleField.name] as CoercedValue | undefined;
+  const appTitle = config?.ui?.appTitle;
+  // A literal title wins outright; a field reference reads the current record.
+  if (typeof appTitle === "string") return appTitle;
+  if (appTitle && record) {
+    const value = record.inputValues[appTitle.field] as CoercedValue | undefined;
     if (value !== null && value !== undefined && value !== "") return formatTitle(value);
   }
   if (inputPath) return inputPath.split(/[/\\]/).pop() ?? "MLabel";

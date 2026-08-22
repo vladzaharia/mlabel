@@ -2,10 +2,16 @@
   // MLabel sample config. Point your editor at the generated JSON Schema for
   // autocomplete + validation while editing.
   "$schema": "../schema/mlabel.schema.json",
+  "version": 2,
 
-  // Input and output share the same configuration style: each has `fields`
-  // (the schema) and `categories` (cards of flex-wrap rows). Input cards show
-  // values read-only; output cards show editable widgets.
+  // A field IS its type: `type` is a flat tag and each kind brings its own
+  // payload key (`items`, `fields`, `values`, `choices`). Input and output
+  // fields share that shape; output fields add `widget` (how it renders) and
+  // `fill` (who provides the value), which are independent of each other.
+  //
+  // `display` may be a bare string when all you need is a caption.
+
+  "ui": { "appTitle": { "field": "prompt" } },
 
   // ---------------------------------------------------------------------------
   // INPUT — what is read from the source file and shown read-only.
@@ -13,190 +19,190 @@
   "input": {
     "adapterId": "csv",
     "fields": [
-      { "name": "id", "type": { "type": "text" } },
+      { "name": "id", "type": "text" },
       {
         "name": "prompt",
-        "displayName": "Prompt",
-        "type": { "type": "text" },
-        "title": true, // this value becomes the top app-bar title
-        "labelPosition": "above",
-        "textSize": "lg",
+        "type": "text",
+        "display": { "title": "Prompt", "titlePosition": "above", "textSize": "lg" },
       },
       {
         "name": "response",
-        "displayName": "Model response",
-        "type": { "type": "text" },
-        "labelPosition": "above",
+        "type": "text",
+        "display": { "title": "Model response", "titlePosition": "above" },
       },
-      { "name": "model", "displayName": "Model", "type": { "type": "text" } },
-      { "name": "created", "displayName": "Created", "type": { "type": "date" } },
+      { "name": "model", "type": "text", "display": "Model" },
+      { "name": "created", "type": "date", "display": "Created" },
       {
         "name": "score",
-        "displayName": "Model score",
-        "type": { "type": "number", "format": "float" },
-        "help": "The model's self-reported confidence (0–1).",
+        "type": "number",
+        "min": 0,
+        "max": 1,
+        "display": {
+          "title": "Model score",
+          "help": "The model's self-reported confidence (0–1).",
+        },
       },
-      { "name": "flagged", "displayName": "Auto-flagged", "type": { "type": "bool" } },
-      {
-        "name": "tags",
-        "displayName": "Tags",
-        "type": { "type": "array", "items": { "type": "text" } },
-      },
+      { "name": "flagged", "type": "boolean", "display": "Auto-flagged" },
+      { "name": "tags", "type": "array", "items": { "type": "text" }, "display": "Tags" },
       {
         "name": "tokenCounts",
-        "displayName": "Token counts",
-        "type": { "type": "map", "keyType": "text", "valueType": { "type": "number" } },
+        "type": "map",
+        "values": { "type": "integer" },
+        "display": "Token counts",
       },
       {
         "name": "checks",
-        "displayName": "Safety checks",
-        "labelPosition": "above",
-        "type": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "fields": [
-              { "name": "name", "displayName": "Check", "type": { "type": "text" } },
-              { "name": "passed", "displayName": "Passed", "type": { "type": "bool" } },
-            ],
-          },
+        "type": "array",
+        "items": {
+          "type": "object",
+          "fields": [
+            { "name": "name", "type": "text", "display": "Check" },
+            { "name": "passed", "type": "boolean", "display": "Passed" },
+          ],
         },
+        "display": { "title": "Safety checks", "titlePosition": "above" },
       },
       {
         "name": "annotators",
-        "displayName": "Prior annotations",
-        "labelPosition": "above",
-        "type": {
-          "type": "map",
-          "keyType": "text",
-          "valueType": {
-            "type": "object",
-            "fields": [
-              { "name": "role", "displayName": "Role", "type": { "type": "text" } },
-              {
-                "name": "confidence",
-                "displayName": "Confidence",
-                "type": { "type": "number", "format": "float" },
-              },
-            ],
-          },
+        "type": "map",
+        "values": {
+          "type": "object",
+          "fields": [
+            { "name": "role", "type": "text", "display": "Role" },
+            { "name": "confidence", "type": "number", "display": "Confidence" },
+          ],
         },
+        "display": { "title": "Prior annotations", "titlePosition": "above" },
       },
     ],
-    "categories": [
+
+    // Purely visual. Evaluated by a core module the export path never imports,
+    // so a rule can never change what is written to disk.
+    "rules": [
       {
-        "id": "sample",
-        "displayName": "Sample",
-        "description": "The prompt/response pair under review.",
+        "name": "canned-refusal",
+        "when": { "op": "matches", "field": "response", "pattern": "^(I'm sorry|As an AI)" },
+        "appliesTo": ["response"],
+        "style": { "tone": "muted", "note": "Canned refusal — deprioritize." },
+      },
+      {
+        "name": "very-confident",
+        "when": { "op": "gt", "field": "score", "value": 0.9 },
+        "appliesTo": ["score"],
+        "style": { "tone": "warning", "note": "Unusually confident — check carefully." },
+      },
+    ],
+
+    "cards": [
+      {
+        "name": "sample",
+        "display": { "title": "Sample", "description": "The prompt/response pair under review." },
         "rows": [
-          { "fields": ["prompt"] },
-          { "fields": ["response"] },
-          { "columns": 3, "fields": ["model", "created", "score"] },
+          { "use": ["prompt"] },
+          { "use": ["response"] },
+          { "perRow": 3, "use": ["model", "created", "score"] },
         ],
       },
       {
-        "id": "signals",
-        "displayName": "Automated signals",
-        "description": "Pre-computed metadata for this sample.",
-        "help": "These are produced upstream and are provided to inform your labels.",
+        "name": "signals",
+        "display": {
+          "title": "Automated signals",
+          "description": "Pre-computed metadata for this sample.",
+          "help": "These are produced upstream and are provided to inform your labels.",
+        },
         "rows": [
-          { "columns": 2, "fields": ["flagged", "tags"] },
-          { "fields": ["tokenCounts"] },
-          { "fields": ["checks"] },
+          { "perRow": 2, "use": ["flagged", "tags"] },
+          { "use": ["tokenCounts"] },
+          { "use": ["checks"] },
         ],
       },
       {
-        "id": "priors",
-        "displayName": "Prior annotations",
-        "rows": [{ "fields": ["annotators"] }],
+        "name": "priors",
+        "display": "Prior annotations",
+        "rows": [{ "use": ["annotators"] }],
       },
     ],
   },
 
   // ---------------------------------------------------------------------------
-  // OUTPUT — what the labeler captures (or is auto-copied).
+  // OUTPUT — what the labeler captures (or the app fills in).
   // ---------------------------------------------------------------------------
   "output": {
     "adapterId": "csv",
     "fields": [
-      // Auto-copied from the same-named input column (no widget shown).
-      { "name": "id", "control": "hidden" },
+      // Carried over from the input column of the same name. `fill.from` would
+      // let this be written under a different name.
+      { "name": "id", "type": "text", "fill": { "kind": "copy" } },
       {
         "name": "sentiment",
-        "displayName": "Sentiment",
-        "control": "radio",
-        "options": [
-          { "value": "positive", "displayName": "Positive" },
-          { "value": "neutral", "displayName": "Neutral" },
-          { "value": "negative", "displayName": "Negative" },
+        "type": "enum",
+        "widget": "radio",
+        "choices": [
+          { "name": "positive", "display": "Positive" },
+          { "name": "neutral", "display": "Neutral" },
+          { "name": "negative", "display": "Negative", "selectedStyle": { "tone": "danger" } },
         ],
+        "display": "Sentiment",
       },
       {
         "name": "quality",
-        "displayName": "Quality",
-        "control": "select",
-        "options": [
-          { "value": "high", "displayName": "High" },
-          { "value": "medium", "displayName": "Medium" },
-          { "value": "low", "displayName": "Low" },
+        "type": "enum",
+        "choices": [
+          { "name": "high", "display": "High" },
+          { "name": "medium", "display": "Medium" },
+          { "name": "low", "display": "Low" },
         ],
+        "display": "Quality",
       },
       {
         "name": "needsReview",
-        "displayName": "Needs human review",
-        "control": "checkbox",
+        "type": "boolean",
         "required": false,
+        "display": "Needs human review",
       },
       {
         "name": "rating",
-        "displayName": "Overall rating",
-        "control": "slider",
+        "type": "integer",
+        "widget": "slider",
         "min": 1,
         "max": 5,
         "step": 1,
+        "display": "Overall rating",
       },
       {
         "name": "confidence",
-        "displayName": "Your confidence",
-        "control": "number",
+        "type": "number",
         "required": false,
         "min": 0,
         "max": 1,
         "step": 0.1,
+        "display": "Your confidence",
       },
-      {
-        "name": "reviewedOn",
-        "displayName": "Reviewed on",
-        "control": "date",
-        "required": false,
-      },
+      { "name": "reviewedOn", "type": "date", "required": false, "display": "Reviewed on" },
       {
         "name": "notes",
-        "displayName": "Notes",
-        "control": "textarea",
+        "type": "text",
+        "widget": "textarea",
         "required": false,
         "maxLength": 500,
-        "labelPosition": "above",
+        "display": { "title": "Notes", "titlePosition": "above" },
       },
     ],
-    "categories": [
+    "cards": [
       {
-        "id": "labels",
-        "displayName": "Labels",
-        "rows": [
-          { "columns": 2, "fields": ["sentiment", "quality"] },
-          { "fields": ["needsReview"] },
-        ],
+        "name": "labels",
+        "display": "Labels",
+        "rows": [{ "perRow": 2, "use": ["sentiment", "quality"] }, { "use": ["needsReview"] }],
       },
       {
-        "id": "scores",
-        "displayName": "Scores",
-        "rows": [{ "columns": 2, "fields": ["rating", "confidence"] }],
+        "name": "scores",
+        "display": "Scores",
+        "rows": [{ "perRow": 2, "use": ["rating", "confidence"] }],
       },
       {
-        "id": "meta",
-        "displayName": "Review",
-        "rows": [{ "columns": 2, "fields": ["reviewedOn", "notes"] }],
+        "name": "meta",
+        "display": "Review",
+        "rows": [{ "perRow": 2, "use": ["reviewedOn", "notes"] }],
       },
     ],
   },

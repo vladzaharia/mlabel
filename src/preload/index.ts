@@ -51,6 +51,8 @@ const api = {
   pickInput: () => ipcRenderer.invoke(IPC_INVOKE.pickInput),
   loadInput: (path: string) => ipcRenderer.invoke(IPC_INVOKE.loadInput, path),
   pathForFile: (file: File) => webUtils.getPathForFile(file),
+  unloadInput: () => ipcRenderer.invoke(IPC_INVOKE.unloadInput),
+  unloadConfig: () => ipcRenderer.invoke(IPC_INVOKE.unloadConfig),
 
   saveSession: (data: SessionData) => ipcRenderer.invoke(IPC_INVOKE.saveSession, data),
   clearSession: () => ipcRenderer.invoke(IPC_INVOKE.clearSession),

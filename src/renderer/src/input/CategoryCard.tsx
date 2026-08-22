@@ -1,24 +1,25 @@
-import type { Category, InputField } from "@core/config";
+import type { Card, InputField } from "@core/config";
+import { titleOf } from "@core/config";
 import type { CoercedValue } from "@core";
 import { CardShell } from "../components/CardShell";
 import { GridRow } from "./GridRow";
 
 export function CategoryCard({
-  category,
+  card,
   fieldsByName,
   values,
 }: {
-  category: Category;
+  card: Card;
   fieldsByName: Map<string, InputField>;
   values: Readonly<Record<string, CoercedValue>>;
 }): React.JSX.Element {
   return (
     <CardShell
-      displayName={category.displayName}
-      description={category.description}
-      help={category.help}
+      displayName={titleOf(card.name, card.display)}
+      description={card.display?.description}
+      help={card.display?.help}
     >
-      {category.rows.map((row, i) => (
+      {card.rows.map((row, i) => (
         <GridRow key={i} row={row} fieldsByName={fieldsByName} values={values} />
       ))}
     </CardShell>

@@ -1,23 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { loadConfig } from "@core/config";
-import type { AppConfig, IpcApi, JoinAnalyzeResponse, PrepareFileInfo } from "@core";
+import type { IpcApi, JoinAnalyzeResponse, PrepareFileInfo } from "@core";
+import { buildConfig } from "@test/fixtures/config";
+import { installIpcApi } from "@test/fixtures/ipc";
 import { useStore } from "../store/store";
 import { usePrepareStore } from "../store/prepare-store";
 import { PrepareView } from "./PrepareView";
 
-function sampleConfig(): AppConfig {
-  const result = loadConfig(`{
-    "input": {
-      "fields": [{ "name": "id", "type": { "type": "text" } }],
-      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
-    },
-    "output": { "fields": [{ "name": "label", "control": "text" }] }
-  }`);
-  if (!result.ok) throw new Error("invalid sample config");
-  return result.config;
-}
+const sampleConfig = buildConfig();
 
 function fileInfo(path: string, rowCount = 4, ok = true): PrepareFileInfo {
   return { path, rowCount, ok, issues: [] };
@@ -32,38 +23,14 @@ function joinOk(paths: readonly string[]): JoinAnalyzeResponse {
   };
 }
 
+/** Prepare needs live split/join analysis, so those three are stubbed for real. */
 function mockApi(overrides: Partial<IpcApi> = {}): IpcApi {
-  const base: IpcApi = {
-    ping: async () => "pong",
-    getTheme: async () => false,
-    onThemeChange: () => () => {},
-    onUpdateStatus: () => () => {},
-    onSetMode: () => () => {},
-    setMenuContext: async () => {},
-    installUpdate: async () => {},
-    checkForUpdates: async () => {},
-    openExternal: async () => {},
-    revealPath: async () => {},
-    getStartupConfig: async () => ({ status: "none" }),
-    pickConfig: async () => ({ status: "canceled" }),
-    pickInput: async () => ({ ok: false, canceled: true }),
-    loadInput: async () => ({ ok: false, canceled: true }),
+  return installIpcApi({
     pathForFile: (file) => `/d/${file.name}`,
-    saveSession: async () => {},
-    clearSession: async () => {},
-    exportLabels: async () => ({ ok: true }),
-    getRecent: async () => ({}),
-    pickSplitFile: async () => ({ ok: false, canceled: true }),
     analyzeSplitFile: async (path) => ({ ok: true, file: fileInfo(path, 5) }),
-    pickPrepareFiles: async () => ({ canceled: true, paths: [] }),
-    runSplit: async () => ({ ok: false }),
-    pickJoinFiles: async () => ({ ok: false, canceled: true }),
     analyzeJoinFiles: async ({ paths }) => joinOk(paths),
-    runJoin: async () => ({ ok: false }),
-  };
-  const api: IpcApi = { ...base, ...overrides };
-  Object.defineProperty(window, "api", { value: api, configurable: true });
-  return api;
+    ...overrides,
+  });
 }
 
 function dropFiles(names: string[]): void {
@@ -75,7 +42,7 @@ function dropFiles(names: string[]): void {
 describe("PrepareView", () => {
   beforeEach(() => {
     usePrepareStore.getState().reset();
-    useStore.setState({ config: sampleConfig(), phase: "prepare" });
+    useStore.setState({ config: sampleConfig, phase: "prepare" });
     mockApi();
   });
   afterEach(() => cleanup());

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { isAutoCopied } from "@core";
+import { isUserFilled } from "@core";
 import { useStore } from "../store/store";
 
 interface KeyboardShortcutOptions {
@@ -17,6 +17,12 @@ interface KeyboardShortcutOptions {
 export function useKeyboardShortcuts({ onDone, onToggleHelp }: KeyboardShortcutOptions): void {
   useEffect(() => {
     function handler(event: KeyboardEvent): void {
+      // An open modal owns the keyboard. Radix traps Tab but not this window
+      // listener, so without this guard the resume prompt was live-fire: digits
+      // wrote labels to the record behind it, and ⌘Enter exported *and* cleared
+      // the very session the dialog was asking whether to restore.
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+
       const target = event.target instanceof HTMLElement ? event.target : null;
       // A field that consumes keystrokes has focus: text entry, or a Radix
       // widget (slider/radio/select) that handles arrows and digit typeahead.
@@ -55,12 +61,9 @@ export function useKeyboardShortcuts({ onDone, onToggleHelp }: KeyboardShortcutO
         const { config, records, index, setLabel } = state;
         const record = records[index];
         if (!config || !record) return;
-        const inputNames = new Set(config.input.fields.map((f) => f.name));
-        const field = config.output.fields.find(
-          (f) => (f.control === "radio" || f.control === "select") && !isAutoCopied(f, inputNames),
-        );
-        const option = field?.options?.[Number(event.key) - 1];
-        if (field && option) setLabel(index, field.name, option.value);
+        const field = config.output.fields.find((f) => f.type === "enum" && isUserFilled(f));
+        const choice = field?.type === "enum" ? field.choices[Number(event.key) - 1] : undefined;
+        if (field && choice) setLabel(index, field.name, choice.name);
       }
     }
 

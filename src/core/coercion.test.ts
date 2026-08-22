@@ -12,7 +12,7 @@ describe("coerceValue — scalars", () => {
   it("returns null for empty / whitespace cells", () => {
     expect(value({ type: "text" }, "")).toBeNull();
     expect(value({ type: "number" }, "   ")).toBeNull();
-    expect(value({ type: "bool" }, null)).toBeNull();
+    expect(value({ type: "boolean" }, null)).toBeNull();
   });
 
   it("coerces text", () => {
@@ -21,17 +21,17 @@ describe("coerceValue — scalars", () => {
 
   it("coerces numbers and enforces integer format", () => {
     expect(value({ type: "number" }, "3.5")).toBe(3.5);
-    expect(value({ type: "number", format: "integer" }, "42")).toBe(42);
+    expect(value({ type: "integer" }, "42")).toBe(42);
     const bad = coerceValue({ type: "number" }, "abc");
     expect(bad.ok).toBe(false);
-    const nonInt = coerceValue({ type: "number", format: "integer" }, "1.2");
+    const nonInt = coerceValue({ type: "integer" }, "1.2");
     expect(nonInt.ok).toBe(false);
   });
 
   it("coerces booleans from common encodings", () => {
-    for (const t of ["true", "1", "yes", "Y"]) expect(value({ type: "bool" }, t)).toBe(true);
-    for (const f of ["false", "0", "no", "N"]) expect(value({ type: "bool" }, f)).toBe(false);
-    expect(coerceValue({ type: "bool" }, "maybe").ok).toBe(false);
+    for (const t of ["true", "1", "yes", "Y"]) expect(value({ type: "boolean" }, t)).toBe(true);
+    for (const f of ["false", "0", "no", "N"]) expect(value({ type: "boolean" }, f)).toBe(false);
+    expect(coerceValue({ type: "boolean" }, "maybe").ok).toBe(false);
   });
 
   it("coerces dates and rejects invalid ones", () => {
@@ -42,7 +42,7 @@ describe("coerceValue — scalars", () => {
   it("validates enums against allowed values", () => {
     const type: ValueTypeShape = {
       type: "enum",
-      options: [{ value: "a", displayName: "Alpha" }, { value: "b" }],
+      choices: [{ name: "a", display: { title: "Alpha" } }, { name: "b" }],
     };
     expect(value(type, "a")).toBe("a");
     expect(coerceValue(type, "z").ok).toBe(false);
@@ -60,8 +60,8 @@ describe("coerceValue — composites (JSON-encoded)", () => {
       items: {
         type: "object",
         fields: [
-          { name: "id", type: { type: "number" } },
-          { name: "ok", type: { type: "bool" } },
+          { name: "id", type: "number" },
+          { name: "ok", type: "boolean" },
         ],
       },
     };
@@ -72,24 +72,27 @@ describe("coerceValue — composites (JSON-encoded)", () => {
   });
 
   it("coerces a map of scalars", () => {
-    const type: ValueTypeShape = { type: "map", keyType: "text", valueType: { type: "number" } };
+    const type: ValueTypeShape = { type: "map", values: { type: "number" } };
     expect(value(type, '{"x":"1","y":"2"}')).toEqual({ x: 1, y: 2 });
   });
 
   it("coerces a map of objects (keyed table rows)", () => {
     const type: ValueTypeShape = {
       type: "map",
-      keyType: "text",
-      valueType: {
+      values: {
         type: "object",
-        fields: [{ name: "score", type: { type: "number" } }],
+        fields: [{ name: "score", type: "number" }],
       },
     };
     expect(value(type, '{"alice":{"score":"9"}}')).toEqual({ alice: { score: 9 } });
   });
 
   it("rejects numeric-keyed maps with non-numeric keys", () => {
-    const type: ValueTypeShape = { type: "map", keyType: "number", valueType: { type: "text" } };
+    const type: ValueTypeShape = {
+      type: "map",
+      keys: { type: "integer" },
+      values: { type: "text" },
+    };
     expect(coerceValue(type, '{"notnum":"v"}').ok).toBe(false);
     expect(value(type, '{"3":"v"}')).toEqual({ "3": "v" });
   });

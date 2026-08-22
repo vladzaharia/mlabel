@@ -77,6 +77,16 @@ export interface IpcApi {
   loadInput: (path: string) => Promise<InputLoadResponse>;
   /** Resolve a dropped File to an absolute path (preload uses webUtils). */
   pathForFile: (file: File) => string;
+  /**
+   * Drop the parsed input document held in main.
+   *
+   * The renderer leaving a file is the only signal main gets. Without it the
+   * document stays resident for the process lifetime, and a later export would
+   * write the old file's rows.
+   */
+  unloadInput: () => Promise<void>;
+  /** Drop the loaded config (and, with it, the input that depended on it). */
+  unloadConfig: () => Promise<void>;
 
   // --- Session (autosave / resume) ---
   saveSession: (data: SessionData) => Promise<void>;
@@ -113,6 +123,8 @@ export const IPC_INVOKE = {
   pickConfig: "config:pick",
   pickInput: "input:pick",
   loadInput: "input:load",
+  unloadInput: "input:unload",
+  unloadConfig: "config:unload",
   saveSession: "session:save",
   clearSession: "session:clear",
   exportLabels: "export:run",

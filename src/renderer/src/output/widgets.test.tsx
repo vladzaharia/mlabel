@@ -4,36 +4,43 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { loadConfig } from "@core/config";
 import type { OutputField } from "@core/config";
+import { buildConfig } from "@test/fixtures/config";
 import { CheckboxWidget } from "./widgets";
 import { FieldRenderer } from "./FieldRenderer";
 
-/** Parse a real config so every OutputField carries the Zod-applied defaults. */
+/** Built through the loader so every OutputField carries the schema defaults. */
 function buildFields(): Map<string, OutputField> {
-  const result = loadConfig(`{
-    "input": {
-      "fields": [{ "name": "id", "type": { "type": "text" } }],
-      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
-    },
-    "output": {
-      "fields": [
-        { "name": "note", "control": "text", "labelPosition": "above", "description": "A short note", "displayName": "Note" },
-        { "name": "essay", "control": "textarea", "labelPosition": "above", "description": "Long form", "displayName": "Essay" },
-        { "name": "score", "control": "number", "min": 0, "max": 10, "labelPosition": "above", "description": "0–10 score", "displayName": "Score" },
-        { "name": "when", "control": "date", "labelPosition": "above", "displayName": "When" },
-        { "name": "flag", "control": "checkbox", "displayName": "Flag" },
-        { "name": "verdict", "control": "radio", "displayName": "Verdict", "options": [{ "value": "good", "displayName": "Good" }, { "value": "bad" }] },
-        { "name": "bucket", "control": "select", "displayName": "Bucket", "options": [{ "value": "a" }, { "value": "b" }] },
-        { "name": "confidence", "control": "slider", "min": 0, "max": 100, "displayName": "Confidence" },
-        { "name": "code", "control": "text", "regex": "^[A-Z]{3}$", "labelPosition": "above", "displayName": "Code" },
-        { "name": "req_text", "control": "text", "required": true, "labelPosition": "above", "displayName": "Req Text" },
-        { "name": "opt_text", "control": "text", "required": false, "labelPosition": "above", "displayName": "Opt Text" }
-      ]
-    }
-  }`);
-  if (!result.ok) throw new Error("invalid test config");
-  return new Map(result.config.output.fields.map((f) => [f.name, f]));
+  const above = { labelPosition: "above" } as const;
+  const config = buildConfig({
+    output: [
+      { name: "note", ...above, description: "A short note", displayName: "Note" },
+      { name: "essay", kind: "textarea", ...above, description: "Long form", displayName: "Essay" },
+      {
+        name: "score",
+        kind: "number",
+        min: 0,
+        max: 10,
+        ...above,
+        description: "0–10 score",
+        displayName: "Score",
+      },
+      { name: "when", kind: "date", ...above, displayName: "When" },
+      { name: "flag", kind: "checkbox", displayName: "Flag" },
+      {
+        name: "verdict",
+        kind: "choice",
+        displayName: "Verdict",
+        choices: [{ value: "good", label: "Good" }, "bad"],
+      },
+      { name: "bucket", kind: "dropdown", displayName: "Bucket", choices: ["a", "b"] },
+      { name: "confidence", kind: "slider", min: 0, max: 100, displayName: "Confidence" },
+      { name: "code", pattern: "^[A-Z]{3}$", ...above, displayName: "Code" },
+      { name: "req_text", required: true, ...above, displayName: "Req Text" },
+      { name: "opt_text", required: false, ...above, displayName: "Opt Text" },
+    ],
+  });
+  return new Map(config.output.fields.map((f) => [f.name, f]));
 }
 
 const fields = buildFields();

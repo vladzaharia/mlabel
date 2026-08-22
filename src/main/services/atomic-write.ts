@@ -13,7 +13,7 @@ type FsDeps = Pick<typeof fsPromises, "open" | "rename" | "mkdir" | "unlink">;
 let seq = 0;
 
 /**
- * Write `value` as JSON to `path` atomically via a same-directory temp file.
+ * Write `text` to `path` atomically via a same-directory temp file.
  *
  * Algorithm:
  * 1. mkdir(dirname(path), recursive)
@@ -23,9 +23,9 @@ let seq = 0;
  * 5. Best-effort dir fsync (swallowed on Windows EISDIR/EPERM)
  * 6. On any failure: best-effort unlink(tmp), rethrow
  */
-export async function writeJsonAtomic(
+export async function writeTextAtomic(
   path: string,
-  value: unknown,
+  text: string,
   opts?: AtomicWriteOptions,
   deps?: FsDeps,
 ): Promise<void> {
@@ -38,7 +38,7 @@ export async function writeJsonAtomic(
   let handle: Awaited<ReturnType<typeof fsPromises.open>> | undefined;
   try {
     handle = await open(tmp, "w");
-    await handle.writeFile(JSON.stringify(value), "utf8");
+    await handle.writeFile(text, "utf8");
     if (doFsync) await handle.sync();
     await handle.close();
     handle = undefined;
@@ -73,6 +73,16 @@ export async function writeJsonAtomic(
     }
     throw err;
   }
+}
+
+/** Write `value` as JSON to `path` atomically. */
+export async function writeJsonAtomic(
+  path: string,
+  value: unknown,
+  opts?: AtomicWriteOptions,
+  deps?: FsDeps,
+): Promise<void> {
+  return writeTextAtomic(path, JSON.stringify(value), opts, deps);
 }
 
 /**

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { test as fcTest, fc } from "@fast-check/vitest";
-import { fingerprintsEqual, sessionHasChanges } from "./session";
-import type { RecordView, SessionData, SourceFingerprint } from "./types/view";
+import { fingerprintsEqual, reviveLabelMap, sessionHasChanges } from "./session";
+import { evaluateRecord } from "./completion";
+import type { LabelMap, RecordView, SessionData, SourceFingerprint } from "./types/view";
+import { buildConfig } from "@test/fixtures/config";
 
 function record(index: number, labelValues: RecordView["labelValues"]): RecordView {
   return { index, inputValues: {}, labelValues, coercionErrors: [] };
@@ -89,5 +91,67 @@ describe("fingerprintsEqual", () => {
   ])("property: equal iff size AND sha256 both match (fast-check)", (a, b) => {
     const expected = a.size === b.size && a.sha256 === b.sha256;
     expect(fingerprintsEqual(a, b)).toBe(expected);
+  });
+});
+
+/** Exactly what session-store does to a label map on the way to disk and back. */
+const roundTrip = (labels: LabelMap): LabelMap => JSON.parse(JSON.stringify(labels)) as LabelMap;
+
+describe("reviveLabelMap", () => {
+  // Sessions are persisted with plain JSON.stringify and read back with plain
+  // JSON.parse, so a Date is written as an ISO string and returns as a string.
+  // Nothing re-coerced it, so `value instanceof Date` failed and a finished
+  // record silently reverted to incomplete on resume.
+  const config = buildConfig({
+    output: [
+      { name: "reviewedOn", kind: "date" },
+      { name: "score", kind: "number", min: 0, max: 10 },
+      { name: "flag", kind: "checkbox" },
+      { name: "verdict", kind: "choice", choices: ["good", "bad"] },
+      { name: "note", required: false },
+    ],
+  });
+
+  const complete: LabelMap = {
+    reviewedOn: new Date("2026-06-01T00:00:00.000Z"),
+    score: 7,
+    flag: true,
+    verdict: "good",
+    note: "ok",
+  };
+
+  it("restores a Date from the ISO string a JSON round-trip leaves behind", () => {
+    const revived = reviveLabelMap(roundTrip(complete), config.output.fields);
+    expect(revived["reviewedOn"]).toBeInstanceOf(Date);
+    expect((revived["reviewedOn"] as Date).toISOString()).toBe("2026-06-01T00:00:00.000Z");
+  });
+
+  it("leaves values that survive JSON untouched", () => {
+    const revived = reviveLabelMap(roundTrip(complete), config.output.fields);
+    expect(revived["score"]).toBe(7);
+    expect(revived["flag"]).toBe(true);
+    expect(revived["verdict"]).toBe("good");
+    expect(revived["note"]).toBe("ok");
+  });
+
+  it("preserves nulls for unanswered fields", () => {
+    const revived = reviveLabelMap(roundTrip({ ...complete, note: null }), config.output.fields);
+    expect(revived["note"]).toBeNull();
+  });
+
+  it("keeps an unparseable value rather than destroying it", () => {
+    const revived = reviveLabelMap({ reviewedOn: "not-a-date" }, config.output.fields);
+    expect(revived["reviewedOn"]).toBe("not-a-date");
+  });
+
+  // The bug in one assertion: this is what a labeler experienced after resuming.
+  it("keeps a complete record complete across a save/resume round-trip", () => {
+    expect(evaluateRecord(complete, config.output.fields).status).toBe("complete");
+
+    // Without revival the round-tripped map reports "Must be a date."
+    expect(evaluateRecord(roundTrip(complete), config.output.fields).status).not.toBe("complete");
+
+    const revived = reviveLabelMap(roundTrip(complete), config.output.fields);
+    expect(evaluateRecord(revived, config.output.fields).status).toBe("complete");
   });
 });

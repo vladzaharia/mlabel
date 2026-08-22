@@ -4,7 +4,6 @@ import type {
   AdapterManifest,
   ParseResult,
   SourceAdapter,
-  SourceCapabilities,
   ValidationIssue,
 } from "../interfaces";
 import type { RawRecord, SourceDocument } from "../../types/source";
@@ -27,15 +26,12 @@ const manifest: AdapterManifest = {
   extensions: [".csv", ".tsv"],
 };
 
-const capabilities: SourceCapabilities = { byteExact: false };
-
 function readConfig(adapterConfig: unknown): CsvAdapterConfig {
   return (adapterConfig as CsvAdapterConfig | undefined) ?? {};
 }
 
 class CsvSourceAdapter implements SourceAdapter {
   readonly manifest = manifest;
-  readonly capabilities = capabilities;
 
   parse(
     input: AdapterInput,

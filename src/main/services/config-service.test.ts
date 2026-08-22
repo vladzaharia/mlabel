@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { configText } from "@test/fixtures/config";
 
 const mocks = vi.hoisted(() => ({
   getPath: vi.fn<(name: string) => string>(),
@@ -20,16 +21,8 @@ vi.mock("./network-guard", () => ({ setUpdatesEnabled: mocks.setUpdatesEnabled }
 // Imported after the mocks so electron/updater/network-guard resolve to them.
 import { pickConfig } from "./config-service";
 
-/** Minimal valid config; `network` is spliced in per test. */
-function configText(networkFragment = ""): string {
-  return `{
-    "input": {
-      "fields": [{ "name": "id", "type": { "type": "text" } }],
-      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
-    },
-    "output": { "fields": [{ "name": "label", "control": "text" }] }${networkFragment}
-  }`;
-}
+/** Minimal valid config; the network block is set (or omitted) per test. */
+const configFor = (updateChecks?: boolean): string => configText({ updateChecks });
 
 describe("config-service: pickConfig", () => {
   let dir: string;
@@ -50,7 +43,7 @@ describe("config-service: pickConfig", () => {
 
   it("loads a config with updateChecks:false, closes the gate, and never starts updates", async () => {
     const path = join(dir, "config.jsonc");
-    writeFileSync(path, configText(`,\n    "network": { "updateChecks": false }`), "utf8");
+    writeFileSync(path, configFor(false), "utf8");
     pickReturns(path);
 
     const result = await pickConfig();
@@ -63,7 +56,7 @@ describe("config-service: pickConfig", () => {
 
   it("loads a permitting config, opens the gate, then starts updates", async () => {
     const path = join(dir, "config.jsonc");
-    writeFileSync(path, configText(), "utf8"); // network omitted ⇒ updateChecks defaults true
+    writeFileSync(path, configFor(), "utf8"); // network omitted ⇒ updateChecks defaults true
     pickReturns(path);
 
     const result = await pickConfig();

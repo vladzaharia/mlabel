@@ -14,7 +14,7 @@ describe("ValueView", () => {
   it("renders an enum's display name, not its value", () => {
     const type: ValueTypeShape = {
       type: "enum",
-      options: [{ value: "good", displayName: "Looks good" }],
+      choices: [{ name: "good", display: { title: "Looks good" } }],
     };
     render(<ValueView type={type} value="good" />);
     expect(screen.getByText("Looks good")).toBeInTheDocument();
@@ -32,8 +32,8 @@ describe("ValueView", () => {
       items: {
         type: "object",
         fields: [
-          { name: "id", type: { type: "number" } },
-          { name: "label", displayName: "Label", type: { type: "text" } },
+          { name: "id", type: "number" },
+          { name: "label", display: { title: "Label" }, type: "text" },
         ],
       },
     };
@@ -46,19 +46,20 @@ describe("ValueView", () => {
   it("renders map<K,object> as a table with a bold key column", () => {
     const type: ValueTypeShape = {
       type: "map",
-      keyType: "text",
-      valueType: { type: "object", fields: [{ name: "score", type: { type: "number" } }] },
+      values: { type: "object", fields: [{ name: "score", type: "number" }] },
     };
     render(<ValueView type={type} value={{ alice: { score: 9 } }} />);
     const table = screen.getByRole("table");
     expect(within(table).getByText("Key")).toBeInTheDocument();
-    const keyCell = within(table).getByText("alice");
-    expect(keyCell.className).toContain("font-semibold");
+    // The class sits on the <td>; cell contents live in an inner element that
+    // caps their width so one long value can't stretch the table forever.
+    const keyCell = within(table).getByText("alice").closest("td");
+    expect(keyCell?.className).toContain("font-semibold");
     expect(within(table).getByText("9")).toBeInTheDocument();
   });
 
   it("renders map<K,scalar> as a two-column key/value table", () => {
-    const type: ValueTypeShape = { type: "map", keyType: "text", valueType: { type: "number" } };
+    const type: ValueTypeShape = { type: "map", values: { type: "number" } };
     render(<ValueView type={type} value={{ x: 1, y: 2 }} />);
     const table = screen.getByRole("table");
     expect(within(table).getByText("Value")).toBeInTheDocument();

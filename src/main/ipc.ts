@@ -39,6 +39,8 @@ export function registerIpc(): void {
 
   ipcMain.handle(IPC_INVOKE.pickInput, () => pickInput());
   ipcMain.handle(IPC_INVOKE.loadInput, (_event, path: string) => loadInputFromPath(path));
+  ipcMain.handle(IPC_INVOKE.unloadInput, () => appState.clearInput());
+  ipcMain.handle(IPC_INVOKE.unloadConfig, () => appState.clearConfig());
 
   ipcMain.handle(IPC_INVOKE.saveSession, (_event, data: SessionData) => saveSessionStamped(data));
   ipcMain.handle(IPC_INVOKE.clearSession, () => clearSession());

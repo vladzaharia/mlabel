@@ -26,10 +26,6 @@ export interface ExportArtifacts {
   remainingCount: number;
 }
 
-function inputFieldNameSet(config: AppConfig): Set<string> {
-  return new Set(config.input.fields.map((f) => f.name));
-}
-
 function toLabelMap(values: Record<string, CoercedValue | undefined>): LabelMap {
   const out: LabelMap = {};
   for (const [key, value] of Object.entries(values)) out[key] = value ?? null;
@@ -47,14 +43,13 @@ function mergeLabels(
 
 /** Coerce every record's input fields and seed auto-copied label values. */
 export function buildRecordViews(config: AppConfig, document: SourceDocument): BuiltInput {
-  const inputNames = inputFieldNameSet(config);
   const inputValues = new Map<number, Record<string, CoercedValue>>();
 
   const records: RecordView[] = document.records.map((record) => {
     const values: Record<string, CoercedValue> = {};
     const errors: { field: string; message: string }[] = [];
     for (const field of config.input.fields) {
-      const result = coerceValue(field.type, record.fields[field.name]);
+      const result = coerceValue(field, record.fields[field.name]);
       if (result.ok) values[field.name] = result.value;
       else {
         values[field.name] = null;
@@ -62,7 +57,7 @@ export function buildRecordViews(config: AppConfig, document: SourceDocument): B
       }
     }
     inputValues.set(record.index, values);
-    const seeded = seedLabelValues(values, config.output.fields, inputNames);
+    const seeded = seedLabelValues(values, config.output.fields);
     return {
       index: record.index,
       inputValues: values,
@@ -82,16 +77,15 @@ export function buildExport(
   labels: Record<number, LabelMap>,
   registry: AdapterRegistry,
 ): ExportArtifacts {
-  const inputNames = inputFieldNameSet(config);
   const outputFields: readonly OutputField[] = config.output.fields;
   const completeRecords: LabeledRecord[] = [];
   const incomplete: number[] = [];
 
   for (const record of document.records) {
     const values = inputValues.get(record.index) ?? {};
-    const seeded = seedLabelValues(values, outputFields, inputNames);
+    const seeded = seedLabelValues(values, outputFields);
     const merged = mergeLabels(seeded, labels[record.index]);
-    if (evaluateRecord(merged, outputFields, inputNames).status === "complete") {
+    if (evaluateRecord(merged, outputFields).status === "complete") {
       completeRecords.push({
         index: record.index,
         inputValues: values,

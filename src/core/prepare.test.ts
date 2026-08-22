@@ -4,43 +4,33 @@ import {
   chunkSizes,
   findDuplicateRecords,
   headersMatch,
-  outputCoercionType,
   splitRecords,
   validateInputRecord,
   validateOutputRecord,
 } from "./prepare";
-import { loadConfig } from "./config";
 import type { AppConfig } from "./config";
+import { buildConfig } from "@test/fixtures/config";
 import type { ProvenanceToken, RawFieldValue, RawRecord } from "./types/source";
 
 const config = loadAppConfig();
 
 function loadAppConfig(): AppConfig {
-  const result = loadConfig(`{
-    "input": {
-      "fields": [
-        { "name": "id", "type": { "type": "text" } },
-        { "name": "count", "type": { "type": "number", "format": "integer" } },
-        { "name": "tags", "type": { "type": "array", "items": { "type": "text" } } }
-      ],
-      "categories": [
-        { "id": "c", "displayName": "C", "rows": [{ "fields": ["id", "count", "tags"] }] }
-      ]
-    },
-    "output": {
-      "fields": [
-        { "name": "id", "control": "hidden" },
-        { "name": "tags", "control": "hidden" },
-        { "name": "verdict", "control": "radio", "options": [{ "value": "good" }, { "value": "bad" }] },
-        { "name": "score", "control": "slider", "min": 0, "max": 10 },
-        { "name": "flag", "control": "checkbox" },
-        { "name": "when", "control": "date" },
-        { "name": "note", "control": "text", "required": false }
-      ]
-    }
-  }`);
-  if (!result.ok) throw new Error("invalid test config");
-  return result.config;
+  return buildConfig({
+    input: [
+      "id",
+      { name: "count", type: { type: "integer" } },
+      { name: "tags", type: { type: "array", items: { type: "text" } } },
+    ],
+    output: [
+      { name: "id", kind: "copied" },
+      { name: "tags", kind: "copied" },
+      { name: "verdict", kind: "choice", choices: ["good", "bad"] },
+      { name: "score", kind: "slider", min: 0, max: 10 },
+      { name: "flag", kind: "checkbox" },
+      { name: "when", kind: "date" },
+      { name: "note", required: false },
+    ],
+  });
 }
 
 const provenance: ProvenanceToken = { __adapter: "test", __raw: null };
@@ -129,26 +119,6 @@ describe("findDuplicateRecords", () => {
   });
 });
 
-describe("outputCoercionType", () => {
-  const field = (name: string) => config.output.fields.find((f) => f.name === name)!;
-
-  it("uses the matching input field's type so composites round-trip", () => {
-    expect(outputCoercionType(field("id"), config)).toEqual({ type: "text" });
-    expect(outputCoercionType(field("tags"), config)).toEqual({
-      type: "array",
-      items: { type: "text" },
-    });
-  });
-
-  it("maps controls to types when there is no input match", () => {
-    expect(outputCoercionType(field("verdict"), config)).toEqual({ type: "text" });
-    expect(outputCoercionType(field("score"), config)).toEqual({ type: "number" });
-    expect(outputCoercionType(field("flag"), config)).toEqual({ type: "bool" });
-    expect(outputCoercionType(field("when"), config)).toEqual({ type: "date" });
-    expect(outputCoercionType(field("note"), config)).toEqual({ type: "text" });
-  });
-});
-
 describe("validateOutputRecord", () => {
   it("accepts a complete, valid row", () => {
     expect(validateOutputRecord(record(0, completeOutputFields), config, 0)).toEqual([]);
@@ -169,6 +139,9 @@ describe("validateOutputRecord", () => {
     });
   });
 
+  // Caught during coercion now rather than during validation: the column
+  // carries its real `enum` type, so an unknown value fails on the way in.
+  // Under the old schema an enum column was re-read as text and only failed later.
   it("flags an invalid enum value", () => {
     const issues = validateOutputRecord(
       record(0, { ...completeOutputFields, verdict: "meh" }),
@@ -176,7 +149,8 @@ describe("validateOutputRecord", () => {
       1,
     );
     expect(issues).toHaveLength(1);
-    expect(issues[0]).toMatchObject({ kind: "schema", severity: "error", field: "verdict" });
+    expect(issues[0]).toMatchObject({ kind: "coercion", severity: "error", field: "verdict" });
+    expect(issues[0]?.message).toMatch(/good, bad/);
   });
 
   it("flags out-of-range and non-numeric slider values", () => {

@@ -18,7 +18,10 @@
       "@core": ["./src/core/index.ts"],
       "@core/*": ["./src/core/*"],
       "@": ["./src/renderer/src"],
-      "@/*": ["./src/renderer/src/*"]
+      "@/*": ["./src/renderer/src/*"],
+      // Test-only. Mirrored in vitest.config.ts but deliberately NOT in
+      // electron.vite.config.ts — nothing under test/ is ever bundled.
+      "@test/*": ["./test/*"]
     }
   }
 }

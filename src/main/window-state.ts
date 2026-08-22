@@ -8,7 +8,7 @@
 
 import { join } from "node:path";
 import { app, screen, type BrowserWindow } from "electron";
-import { readJsonSafe, writeJsonAtomic } from "./services/atomic-json";
+import { readJsonSafe, writeJsonAtomic } from "./services/atomic-write";
 import { createWriteQueue } from "./services/write-queue";
 
 // ---------------------------------------------------------------------------

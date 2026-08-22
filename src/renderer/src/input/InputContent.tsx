@@ -1,4 +1,5 @@
 import type { InputField } from "@core/config";
+import { resolveCards } from "@core/config";
 import { useStore, selectCurrentRecord } from "../store/store";
 import { CategoryCard } from "./CategoryCard";
 
@@ -12,13 +13,18 @@ export function InputContent(): React.JSX.Element {
 
   if (!config || !record) return <div className="flex-1" />;
 
+  const cards = resolveCards(
+    config.input.cards,
+    config.input.fields.map((f) => f.name),
+  );
+
   return (
     <div className="flex-1 overflow-auto">
       <div className="mx-auto flex max-w-5xl flex-col gap-4 p-5">
-        {config.input.categories.map((category) => (
+        {cards.map((card) => (
           <CategoryCard
-            key={category.id}
-            category={category}
+            key={card.name}
+            card={card}
             fieldsByName={fieldsByName}
             values={record.inputValues}
           />

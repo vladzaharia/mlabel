@@ -1,12 +1,6 @@
 import type { LabeledRecord } from "../types/labeling";
 import type { RawRecord, SourceDocument } from "../types/source";
 
-/** What a source adapter can do. */
-export interface SourceCapabilities {
-  /** Can it re-emit unlabeled records byte-for-byte from provenance? */
-  byteExact: boolean;
-}
-
 export interface AdapterManifest {
   readonly id: string;
   readonly label: string;
@@ -36,11 +30,18 @@ export interface ParseResult {
   issues: ValidationIssue[];
 }
 
-/** Parses a source format into the generic document model and re-emits
- *  unlabeled records faithfully (for the `*-remaining` file). */
+/**
+ * Parses a source format into the generic document model and re-emits
+ * unlabeled records for the `*-remaining` file.
+ *
+ * `reemit` is **value-faithful, not byte-faithful**: values, column order and
+ * the detected dialect round-trip exactly (see the parse→reemit→parse property
+ * test in `csv.test.ts`), but incidental formatting — BOM, header whitespace,
+ * original quoting style, blank lines, trailing newline — does not. That is the
+ * contract downstream code may rely on.
+ */
 export interface SourceAdapter {
   readonly manifest: AdapterManifest;
-  readonly capabilities: SourceCapabilities;
   /**
    * @param input         source content / params
    * @param expectedFields input schema field names, for header validation

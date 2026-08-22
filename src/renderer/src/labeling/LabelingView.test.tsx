@@ -1,24 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import type { AppConfig, IpcApi } from "@core";
-import { loadConfig } from "@core/config";
+import { buildConfig } from "@test/fixtures/config";
+import { installIpcApi } from "@test/fixtures/ipc";
 import { useStore } from "../store/store";
 import { useAnnouncer } from "../a11y/announcer";
 import { LabelingView } from "./LabelingView";
 import { LiveAnnouncer } from "../a11y/LiveAnnouncer";
 import { debounce } from "../lib/utils";
 
-function sampleConfig(): AppConfig {
-  const result = loadConfig(`{
-    "input": {
-      "fields": [{ "name": "id", "type": { "type": "text" } }],
-      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
-    },
-    "output": { "fields": [{ "name": "label", "control": "text" }] }
-  }`);
-  if (!result.ok) throw new Error("invalid sample config");
-  return result.config;
-}
+const config = buildConfig();
 
 function makeRecords(n: number) {
   return Array.from({ length: n }, (_, i) => ({
@@ -29,38 +19,7 @@ function makeRecords(n: number) {
   }));
 }
 
-function mockApi(): void {
-  const base: IpcApi = {
-    ping: async () => "pong",
-    getTheme: async () => false,
-    onThemeChange: () => () => {},
-    onUpdateStatus: () => () => {},
-    onSetMode: () => () => {},
-    setMenuContext: async () => {},
-    installUpdate: async () => {},
-    checkForUpdates: async () => {},
-    openExternal: async () => {},
-    revealPath: async () => {},
-    getStartupConfig: async () => ({ status: "none" }),
-    pickConfig: async () => ({ status: "canceled" }),
-    pickInput: async () => ({ ok: false, canceled: true }),
-    loadInput: async () => ({ ok: false, canceled: true }),
-    pathForFile: () => "",
-    saveSession: async () => {},
-    clearSession: async () => {},
-    exportLabels: async () => ({ ok: true }),
-    getRecent: async () => ({}),
-    pickSplitFile: async () => ({ ok: false, canceled: true }),
-    analyzeSplitFile: async () => ({ ok: false, canceled: true }),
-    pickPrepareFiles: async () => ({ canceled: true, paths: [] }),
-    runSplit: async () => ({ ok: false }),
-    pickJoinFiles: async () => ({ ok: false, canceled: true }),
-    analyzeJoinFiles: async () => ({ ok: false }),
-    runJoin: async () => ({ ok: false }),
-  };
-  Object.defineProperty(window, "api", { value: base, configurable: true });
-  Object.defineProperty(window, "platform", { value: "darwin", configurable: true });
-}
+const mockApi = (): void => void installIpcApi({ getTheme: async () => false });
 
 describe("LabelingView announcements", () => {
   beforeEach(() => {
@@ -68,7 +27,7 @@ describe("LabelingView announcements", () => {
     mockApi();
     useAnnouncer.setState({ polite: { message: "", seq: 0 }, assertive: { message: "", seq: 0 } });
     useStore.setState({
-      config: sampleConfig(),
+      config,
       phase: "labeling",
       records: makeRecords(4),
       index: 0,
@@ -140,7 +99,6 @@ describe("LabelingView announcements", () => {
 
   it("announces 25% milestone when first record is labeled", () => {
     const records = makeRecords(4);
-    const config = sampleConfig();
     useStore.setState({ records, config, index: 0, labels: {} });
 
     render(
@@ -166,7 +124,6 @@ describe("LabelingView announcements", () => {
 
   it("does NOT re-announce the 25% milestone on subsequent labels", () => {
     const records = makeRecords(4);
-    const config = sampleConfig();
     useStore.setState({ records, config, index: 0, labels: {} });
 
     render(
@@ -201,7 +158,6 @@ describe("LabelingView announcements", () => {
 
   it("announces 'All records labeled' at 100%", () => {
     const records = makeRecords(2);
-    const config = sampleConfig();
     useStore.setState({ records, config, index: 0, labels: {} });
 
     render(
@@ -248,7 +204,7 @@ describe("LabelingView: empty-records state", () => {
   beforeEach(() => {
     mockApi();
     useStore.setState({
-      config: sampleConfig(),
+      config,
       phase: "labeling",
       records: [],
       index: 0,
@@ -281,7 +237,7 @@ describe("LabelingView: export error banner", () => {
   beforeEach(() => {
     mockApi();
     useStore.setState({
-      config: sampleConfig(),
+      config,
       phase: "labeling",
       records: makeRecords(2),
       index: 0,

@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { loadConfig } from "@core/config";
-import type { AppConfig, IpcApi, RecordView } from "@core";
+import type { IpcApi, RecordView } from "@core";
 import type { LabelMap } from "@core";
+import { buildConfig } from "@test/fixtures/config";
+import { installIpcApi } from "@test/fixtures/ipc";
 import {
   COLOR_THEMES,
   resolveDark,
@@ -12,24 +13,12 @@ import {
 } from "./store";
 import { useAnnouncer } from "../a11y/announcer";
 
-const config = loadAppConfig();
-
-function loadAppConfig(): AppConfig {
-  const result = loadConfig(`{
-    "input": {
-      "fields": [{ "name": "id", "type": { "type": "text" } }],
-      "categories": [{ "id": "c", "displayName": "C", "rows": [{ "fields": ["id"] }] }]
-    },
-    "output": {
-      "fields": [
-        { "name": "id", "control": "hidden" },
-        { "name": "verdict", "control": "radio", "options": [{ "value": "good" }, { "value": "bad" }] }
-      ]
-    }
-  }`);
-  if (!result.ok) throw new Error("invalid test config");
-  return result.config;
-}
+const config = buildConfig({
+  output: [
+    { name: "id", kind: "copied" },
+    { name: "verdict", kind: "choice", choices: ["good", "bad"] },
+  ],
+});
 
 const records: RecordView[] = [
   {
@@ -91,12 +80,12 @@ describe("store: completion count", () => {
 
 describe("store: color theme", () => {
   beforeEach(() => {
-    localStorage.clear();
+    window.localStorage.clear();
     delete document.documentElement.dataset.theme;
     useStore.setState({ colorTheme: "cobalt" });
   });
   afterEach(() => {
-    localStorage.clear();
+    window.localStorage.clear();
     delete document.documentElement.dataset.theme;
   });
 
@@ -108,7 +97,7 @@ describe("store: color theme", () => {
     for (const theme of COLOR_THEMES.map((t) => t.id) as ColorTheme[]) {
       useStore.getState().setColorTheme(theme);
       expect(useStore.getState().colorTheme).toBe(theme);
-      expect(localStorage.getItem("mlabel.colortheme")).toBe(theme);
+      expect(window.localStorage.getItem("mlabel.colortheme")).toBe(theme);
       expect(document.documentElement.dataset.theme).toBe(theme);
     }
   });
@@ -128,14 +117,10 @@ describe("store: write-through autosave", () => {
     setMenuContextMockAutosave.mockClear();
     // Must use Object.defineProperty (same as app.test.tsx) so that
     // `window.api` resolves correctly in happy-dom.
-    Object.defineProperty(window, "api", {
-      value: {
-        saveSession: saveSessionMock,
-        clearSession: clearSessionMock,
-        setMenuContext: setMenuContextMockAutosave,
-      },
-      configurable: true,
-      writable: true,
+    installIpcApi({
+      saveSession: saveSessionMock,
+      clearSession: clearSessionMock,
+      setMenuContext: setMenuContextMockAutosave,
     });
     // Seed with non-null configPath/inputPath so the autosave guard passes.
     seed({ configPath: "/cfg/test.jsonc", inputPath: "/data/input.csv" });
@@ -199,15 +184,11 @@ describe("store: zero-records guard", () => {
     clearSessionMock.mockClear();
     saveSessionMock2.mockClear();
     setMenuContextMockZero.mockClear();
-    Object.defineProperty(window, "api", {
-      value: {
-        loadInput: loadInputMock,
-        clearSession: clearSessionMock,
-        saveSession: saveSessionMock2,
-        setMenuContext: setMenuContextMockZero,
-      },
-      configurable: true,
-      writable: true,
+    installIpcApi({
+      loadInput: loadInputMock,
+      clearSession: clearSessionMock,
+      saveSession: saveSessionMock2,
+      setMenuContext: setMenuContextMockZero,
     });
     useStore.setState({ phase: "need-input", config, records: [], error: null, busy: false });
   });
@@ -262,15 +243,11 @@ describe("store: exportError and submitDone announcements", () => {
     clearSessionMock.mockClear();
     saveSessionMock3.mockClear();
     setMenuContextMockExport.mockClear();
-    Object.defineProperty(window, "api", {
-      value: {
-        exportLabels: exportLabelsMock,
-        clearSession: clearSessionMock,
-        saveSession: saveSessionMock3,
-        setMenuContext: setMenuContextMockExport,
-      },
-      configurable: true,
-      writable: true,
+    installIpcApi({
+      exportLabels: exportLabelsMock,
+      clearSession: clearSessionMock,
+      saveSession: saveSessionMock3,
+      setMenuContext: setMenuContextMockExport,
     });
     useAnnouncer.setState({ polite: { message: "", seq: 0 }, assertive: { message: "", seq: 0 } });
     seed({ configPath: "/cfg/test.jsonc", inputPath: "/data/input.csv" });
@@ -353,15 +330,11 @@ describe("store: pendingResumeStale", () => {
     loadInputMock.mockClear();
     clearSessionMock.mockClear();
     saveSessionMockStale.mockClear();
-    Object.defineProperty(window, "api", {
-      value: {
-        loadInput: loadInputMock,
-        clearSession: clearSessionMock,
-        saveSession: saveSessionMockStale,
-        setMenuContext: async () => {},
-      },
-      configurable: true,
-      writable: true,
+    installIpcApi({
+      loadInput: loadInputMock,
+      clearSession: clearSessionMock,
+      saveSession: saveSessionMockStale,
+      setMenuContext: async () => {},
     });
     useStore.setState({
       phase: "need-input",
@@ -455,11 +428,7 @@ describe("store: deferResume", () => {
 
   beforeEach(() => {
     clearSessionMock.mockClear();
-    Object.defineProperty(window, "api", {
-      value: { clearSession: clearSessionMock },
-      configurable: true,
-      writable: true,
-    });
+    installIpcApi({ clearSession: clearSessionMock });
     useStore.setState({
       pendingResume: {
         configPath: "/cfg.jsonc",
@@ -492,11 +461,7 @@ describe("store: setMode", () => {
   beforeEach(() => {
     setMenuContextMock.mockClear();
     useAnnouncer.setState({ polite: { message: "", seq: 0 }, assertive: { message: "", seq: 0 } });
-    Object.defineProperty(window, "api", {
-      value: { setMenuContext: setMenuContextMock },
-      configurable: true,
-      writable: true,
-    });
+    installIpcApi({ setMenuContext: setMenuContextMock });
   });
 
   afterEach(() => {
@@ -602,5 +567,168 @@ describe("store: setMode", () => {
     useStore.getState().backToConfig();
 
     expect(setMenuContextMock).toHaveBeenCalledWith({ configLoaded: false, mode: "label" });
+  });
+});
+
+describe("store: applyResume re-types persisted values", () => {
+  // A Date written to session.json comes back as a string. Before revival the
+  // record silently reverted to incomplete the moment the labeler resumed.
+  const dateConfig = buildConfig({
+    output: [
+      { name: "id", kind: "copied" },
+      { name: "reviewedOn", kind: "date" },
+    ],
+  });
+
+  const dateRecords: RecordView[] = [
+    {
+      index: 0,
+      inputValues: { id: "1" },
+      labelValues: { id: "1", reviewedOn: null },
+      coercionErrors: [],
+    },
+  ];
+
+  beforeEach(() => {
+    installIpcApi({ setMenuContext: async () => {}, saveSession: async () => {} });
+    useStore.setState({
+      config: dateConfig,
+      records: dateRecords,
+      index: 0,
+      labels: { 0: { id: "1", reviewedOn: null } },
+      phase: "labeling",
+      pendingResume: null,
+      pendingResumeStale: false,
+    });
+  });
+
+  it("revives an ISO string back into a Date", () => {
+    useStore.setState({
+      pendingResume: {
+        configPath: "c",
+        inputPath: "i",
+        index: 0,
+        // Exactly what JSON.parse hands back for a persisted Date.
+        labels: { 0: { id: "1", reviewedOn: "2026-06-01T00:00:00.000Z" } },
+      },
+    });
+
+    useStore.getState().applyResume();
+
+    const revived = useStore.getState().labels[0]?.["reviewedOn"];
+    expect(revived).toBeInstanceOf(Date);
+    expect((revived as Date).toISOString()).toBe("2026-06-01T00:00:00.000Z");
+  });
+
+  it("counts the resumed record as complete, which is the bug this fixes", () => {
+    useStore.setState({
+      pendingResume: {
+        configPath: "c",
+        inputPath: "i",
+        index: 0,
+        labels: { 0: { id: "1", reviewedOn: "2026-06-01T00:00:00.000Z" } },
+      },
+    });
+
+    useStore.getState().applyResume();
+    expect(selectCompletedCount(useStore.getState())).toBe(1);
+  });
+});
+
+describe("store: transitions leave no stale state behind", () => {
+  const unloadInput = vi.fn(async () => {});
+  const unloadConfig = vi.fn(async () => {});
+
+  beforeEach(() => {
+    unloadInput.mockClear();
+    unloadConfig.mockClear();
+    installIpcApi({
+      setMenuContext: async () => {},
+      saveSession: async () => {},
+      clearSession: async () => {},
+      unloadInput,
+      unloadConfig,
+    });
+    useStore.setState({
+      config,
+      configPath: "/c.jsonc",
+      inputPath: "/in.csv",
+      records,
+      index: 1,
+      labels: { 0: { verdict: "good" } },
+      phase: "labeling",
+      exportError: "Disk full",
+      exportResult: { ok: true, outputPath: "/out.csv" },
+      busy: false,
+    });
+  });
+
+  // A failed export used to leave its banner up across a file switch, so a
+  // brand-new file was greeted by the previous one's error and a "Try again"
+  // button that would export something else entirely.
+  it("backToInput clears the export error", () => {
+    useStore.getState().backToInput();
+    expect(useStore.getState().exportError).toBeNull();
+  });
+
+  it("backToConfig clears the export error", () => {
+    useStore.getState().backToConfig();
+    expect(useStore.getState().exportError).toBeNull();
+  });
+
+  it("backToInput asks main to drop the parsed document", () => {
+    useStore.getState().backToInput();
+    expect(unloadInput).toHaveBeenCalledOnce();
+  });
+
+  it("backToConfig asks main to drop the config", () => {
+    useStore.getState().backToConfig();
+    expect(unloadConfig).toHaveBeenCalledOnce();
+  });
+
+  // A rejected IPC call used to strand busy:true, disabling every button in the
+  // app with no message and no way back.
+  it("clears busy when picking a config rejects", async () => {
+    installIpcApi({
+      setMenuContext: async () => {},
+      pickConfig: async () => {
+        throw new Error("EPIPE");
+      },
+    });
+    await useStore.getState().pickConfig();
+    expect(useStore.getState().busy).toBe(false);
+    expect(useStore.getState().error).toMatch(/EPIPE/);
+  });
+
+  it("clears busy when picking an input rejects", async () => {
+    installIpcApi({
+      setMenuContext: async () => {},
+      pickInput: async () => {
+        throw new Error("EACCES");
+      },
+    });
+    await useStore.getState().pickInput();
+    expect(useStore.getState().busy).toBe(false);
+  });
+
+  it("clears busy when exporting rejects", async () => {
+    installIpcApi({
+      setMenuContext: async () => {},
+      saveSession: async () => {},
+      exportLabels: async () => {
+        throw new Error("ENOSPC");
+      },
+    });
+    await useStore.getState().submitDone();
+    expect(useStore.getState().busy).toBe(false);
+    expect(useStore.getState().exportError).toMatch(/ENOSPC/);
+  });
+
+  // Switching mode mid-pick let phase and mode disagree: the labeling screen
+  // rendered while the native menu radio still said "Prepare".
+  it("ignores a mode switch while a picker is open", () => {
+    useStore.setState({ busy: true, mode: "label" });
+    useStore.getState().setMode("prepare");
+    expect(useStore.getState().mode).toBe("label");
   });
 });

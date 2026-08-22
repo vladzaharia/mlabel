@@ -6,6 +6,7 @@ export default defineConfig({
     alias: {
       "@core": resolve("src/core"),
       "@": resolve("src/renderer/src"),
+      "@test": resolve("test"),
     },
   },
   test: {
