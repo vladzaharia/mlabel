@@ -5,6 +5,20 @@ import { ValueView } from "./ValueView";
 
 afterEach(() => cleanup());
 
+/** An array-of-object table whose single column combines the named fields. */
+const withColumn = (use: string[]): ValueTypeShape => ({
+  type: "array",
+  items: {
+    type: "object",
+    fields: [
+      { name: "name", display: { title: "Check" }, type: "text" },
+      { name: "toxic", display: { title: "Toxic" }, type: "boolean" },
+      { name: "pii", display: { title: "PII" }, type: "boolean" },
+    ],
+    table: { columns: [{ name: "col", use, display: { title: "Col" } }] },
+  },
+});
+
 describe("ValueView", () => {
   it("renders an em-dash for empty values", () => {
     render(<ValueView type={{ type: "text" }} value={null} />);
@@ -41,6 +55,33 @@ describe("ValueView", () => {
     const table = screen.getByRole("table");
     expect(within(table).getByText("Label")).toBeInTheDocument();
     expect(within(table).getByText("x")).toBeInTheDocument();
+  });
+
+  // A composite column captions itself in the header. Repeating that caption in
+  // every cell reads as part of the data — "Check safety" instead of "safety".
+  describe("composite columns", () => {
+    const row = [{ name: "safety", toxic: false, pii: true }];
+
+    it("omits the per-field label when the column shows a single field", () => {
+      render(<ValueView type={withColumn(["name"])} value={row} />);
+      const table = screen.getByRole("table");
+      expect(within(table).getByText("safety")).toBeInTheDocument();
+      // "Col" is the header; "Check" would be the field label leaking into the cell.
+      expect(within(table).queryByText("Check")).not.toBeInTheDocument();
+    });
+
+    it("keeps per-field labels when the column combines several fields", () => {
+      render(<ValueView type={withColumn(["name", "toxic"])} value={row} />);
+      const table = screen.getByRole("table");
+      expect(within(table).getByText("Check")).toBeInTheDocument();
+      expect(within(table).getByText("Toxic")).toBeInTheDocument();
+    });
+
+    // A lone tick with nothing beside it says nothing about which flag it is.
+    it("keeps a boolean's label even when it is the only field", () => {
+      render(<ValueView type={withColumn(["toxic"])} value={row} />);
+      expect(within(screen.getByRole("table")).getByText("Toxic")).toBeInTheDocument();
+    });
   });
 
   it("renders map<K,object> as a table with a bold key column", () => {

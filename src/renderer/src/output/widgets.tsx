@@ -2,10 +2,33 @@ import { Check, ChevronDown } from "lucide-react";
 import { Checkbox, RadioGroup, Select, Slider } from "radix-ui";
 import type { OutputField, ValueTypeKind } from "@core/config";
 import { titleOf } from "@core/config";
-import { isRequired } from "@core";
+import { ariaChord, formatChord, isRequired } from "@core";
 import { SEVERITY } from "../components/Severity";
+import { Kbd } from "../components/Kbd";
 import type { CoercedValue } from "@core";
-import { cn } from "../lib/utils";
+import { cn, isMac } from "../lib/utils";
+
+/**
+ * The chord that picks a choice, shown beside it.
+ *
+ * Deliberately rendered *outside* the option's own control: inside the border
+ * it reads as part of the caption — "Correct C" — rather than as a key you can
+ * press. Sitting alongside, it looks like what it is.
+ */
+function ChoiceHint({
+  shortcut,
+  className,
+}: {
+  shortcut: string | undefined;
+  className?: string;
+}): React.JSX.Element | null {
+  if (!shortcut) return null;
+  return (
+    <Kbd className={cn("px-1 py-0 text-[0.625rem] text-muted-foreground", className)}>
+      {formatChord(shortcut, isMac())}
+    </Kbd>
+  );
+}
 
 /**
  * Props for one widget.
@@ -166,7 +189,7 @@ export function RadioWidget({
       aria-invalid={invalid || undefined}
       aria-describedby={describedBy}
       className={cn(
-        "flex flex-wrap gap-2 rounded-md p-0.5",
+        "flex flex-wrap gap-x-4 gap-y-2 rounded-md p-0.5",
         invalid && "outline outline-2 outline-danger",
       )}
       value={typeof value === "string" ? value : ""}
@@ -175,23 +198,37 @@ export function RadioWidget({
       {field.choices.map((option) => {
         // A choice may carry its own tone for when it is the selected one —
         // picking "negative" can read as a warning without implying an error.
+        // With no frame to tint, the tone lands on the caption instead.
         const selectedTone = option.selectedStyle?.tone;
         const isSelected = value === option.name;
         return (
-          <RadioGroup.Item
-            key={option.name}
-            value={option.name}
-            className={cn(
-              "group flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:border-accent data-[state=checked]:bg-accent/10",
-              isSelected && selectedTone && SEVERITY[selectedTone].frameClass,
-              isSelected && selectedTone && SEVERITY[selectedTone].textClass,
-            )}
-          >
-            <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-muted-foreground group-data-[state=checked]:border-accent">
-              <RadioGroup.Indicator className="h-1.5 w-1.5 rounded-full bg-accent" />
-            </span>
-            {titleOf(option.name, option.display)}
-          </RadioGroup.Item>
+          <span key={option.name} className="inline-flex items-center gap-1.5">
+            {/* <label> rather than text inside the control, so a radio and a
+                checkbox are the same shape. `button` is a labelable element, so
+                the wrapper still supplies the accessible name. */}
+            <label
+              className={cn(
+                "flex items-center gap-2 text-sm",
+                isSelected && selectedTone && SEVERITY[selectedTone].textClass,
+              )}
+            >
+              <RadioGroup.Item
+                value={option.name}
+                aria-keyshortcuts={
+                  option.shortcut ? ariaChord(option.shortcut, isMac()) : undefined
+                }
+                className={cn(
+                  "flex size-4 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  borderClass(invalid),
+                  isSelected && "border-accent bg-accent text-accent-foreground",
+                )}
+              >
+                <RadioGroup.Indicator className="size-1.5 rounded-full bg-current" />
+              </RadioGroup.Item>
+              {titleOf(option.name, option.display)}
+            </label>
+            <ChoiceHint shortcut={option.shortcut} />
+          </span>
         );
       })}
     </RadioGroup.Root>
@@ -229,12 +266,20 @@ export function SelectWidget({
               <Select.Item
                 key={option.name}
                 value={option.name}
+                aria-keyshortcuts={
+                  option.shortcut ? ariaChord(option.shortcut, isMac()) : undefined
+                }
                 className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-accent/15"
               >
+                {/* Outside ItemText on purpose: whatever ItemText holds is what
+                    the closed trigger echoes back, and a key cap has no business
+                    appearing there once the choice is made. Right-aligned like a
+                    menu accelerator, which is the same idea. */}
                 <Select.ItemText>{titleOf(option.name, option.display)}</Select.ItemText>
                 <Select.ItemIndicator>
                   <Check size={14} className="text-accent" />
                 </Select.ItemIndicator>
+                <ChoiceHint shortcut={option.shortcut} className="ml-auto pl-2" />
               </Select.Item>
             ))}
           </Select.Viewport>
@@ -320,22 +365,26 @@ export function CheckboxGroupWidget({
     <fieldset aria-describedby={describedBy} className="flex flex-wrap gap-x-4 gap-y-2">
       <legend className="sr-only">{ariaLabel(field)}</legend>
       {items.map((choice) => (
-        <label key={choice.name} className="flex items-center gap-2 text-sm">
-          <Checkbox.Root
-            checked={selected.has(choice.name)}
-            onCheckedChange={(state) => toggle(choice.name, state === true)}
-            className={cn(
-              "flex size-4 items-center justify-center rounded border transition-colors",
-              borderClass(invalid),
-              selected.has(choice.name) && "border-accent bg-accent text-accent-foreground",
-            )}
-          >
-            <Checkbox.Indicator>
-              <Check size={12} aria-hidden="true" />
-            </Checkbox.Indicator>
-          </Checkbox.Root>
-          {titleOf(choice.name, choice.display)}
-        </label>
+        <span key={choice.name} className="inline-flex items-center gap-1.5">
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox.Root
+              checked={selected.has(choice.name)}
+              onCheckedChange={(state) => toggle(choice.name, state === true)}
+              aria-keyshortcuts={choice.shortcut ? ariaChord(choice.shortcut, isMac()) : undefined}
+              className={cn(
+                "flex size-4 items-center justify-center rounded border transition-colors",
+                borderClass(invalid),
+                selected.has(choice.name) && "border-accent bg-accent text-accent-foreground",
+              )}
+            >
+              <Checkbox.Indicator>
+                <Check size={12} aria-hidden="true" />
+              </Checkbox.Indicator>
+            </Checkbox.Root>
+            {titleOf(choice.name, choice.display)}
+          </label>
+          <ChoiceHint shortcut={choice.shortcut} />
+        </span>
       ))}
     </fieldset>
   );

@@ -1,5 +1,6 @@
 import { formatChord, isUserFilled, titleOf, type AppConfig } from "@core";
 import { Dialog, DialogTitle, DialogDescription } from "./ui/dialog";
+import { Kbd } from "./Kbd";
 import { isMac } from "../lib/utils";
 import { useStore } from "../store/store";
 
@@ -44,14 +45,6 @@ function buildRows(mac: boolean, config: AppConfig | null): ShortcutRow[] {
     }
   }
   return rows;
-}
-
-function Kbd({ children }: { children: string }): React.JSX.Element {
-  return (
-    <kbd className="inline-flex items-center rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
-      {children}
-    </kbd>
-  );
 }
 
 interface ShortcutsDialogProps {

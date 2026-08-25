@@ -42,6 +42,18 @@ export function parseChord(text: string): Chord | null {
 }
 
 /**
+ * Whether a chord is a plain keystroke with no modifier held.
+ *
+ * Bare chords are the ones that collide with typing: `"c"` selecting a choice
+ * must not fire while the caret is in the notes box, or the letter can never be
+ * typed. A chord carrying a modifier has no such conflict, which is what lets
+ * `mod+`-style accelerators stay reachable from inside a text field.
+ */
+export function isBareChord(chord: Chord): boolean {
+  return !chord.mod && !chord.ctrl && !chord.alt && !chord.shift && !chord.meta;
+}
+
+/**
  * The parts of a keydown a chord cares about.
  *
  * Structural rather than `KeyboardEvent` so the core stays free of the DOM lib
@@ -91,6 +103,32 @@ export function formatChord(text: string, isMac: boolean): string {
   const mods = parts.map((m) => (isMac ? GLYPH[m.toLowerCase()] : WORD[m.toLowerCase()]) ?? m);
   const label = key.toUpperCase();
   return isMac ? [...mods, label].join("") : [...mods, label].join("+");
+}
+
+/** ARIA spells modifiers with `KeyboardEvent` names — `Control`, never `Ctrl`. */
+const ARIA_MOD: Record<string, string> = {
+  meta: "Meta",
+  ctrl: "Control",
+  alt: "Alt",
+  shift: "Shift",
+};
+
+/**
+ * A chord as `aria-keyshortcuts` wants it: `"Meta+V"`, not `"⌘V"`.
+ *
+ * The visible badge is glyphs, which a screen reader would read as punctuation
+ * or skip entirely. This is the same chord spelled for assistive tech, so the
+ * badge can stay decorative (`aria-hidden`) without the shortcut going unheard.
+ */
+export function ariaChord(text: string, isMac: boolean): string {
+  const parts = text.split("+");
+  const key = parts.pop() ?? "";
+  const mods = parts.map((part) => {
+    const name = part.toLowerCase();
+    if (name === "mod") return isMac ? "Meta" : "Control";
+    return ARIA_MOD[name] ?? part;
+  });
+  return [...mods, key.toUpperCase()].join("+");
 }
 
 /**

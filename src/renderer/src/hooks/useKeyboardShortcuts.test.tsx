@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import type { LabelMap, RecordView } from "@core";
-import { buildConfig } from "@test/fixtures/config";
+import { loadConfig } from "@core/config";
+import { buildConfig, configObject } from "@test/fixtures/config";
 import { useStore } from "../store/store";
+import { isMac } from "../lib/utils";
 import { RadioWidget, SliderWidget } from "../output/widgets";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 
@@ -261,5 +263,99 @@ describe("useKeyboardShortcuts: Enter and gap navigation", () => {
     useStore.setState({ index: 2 });
     press(window, "ArrowRight", { shiftKey: true });
     expect(useStore.getState().index).toBe(2);
+  });
+});
+
+// ─── Config-declared choice chords ───────────────────────────────────────────
+
+/**
+ * Choice chords are app-wide: a labeler answers without tabbing to the question
+ * first. The only place they stand down is text entry, where a bare letter is
+ * indistinguishable from typing that letter.
+ */
+function ChordHarness(): React.JSX.Element {
+  useKeyboardShortcuts({ onDone: vi.fn() });
+  return <input aria-label="notes" />;
+}
+
+const chordLabels = (): LabelMap => useStore.getState().labels[0] ?? {};
+
+describe("useKeyboardShortcuts: choice chords fire app-wide", () => {
+  const chordConfig = (() => {
+    const raw = configObject({
+      output: [
+        {
+          name: "verdict",
+          kind: "choice",
+          choices: [
+            { value: "good", shortcut: "g" },
+            { value: "bad", shortcut: "mod+b" },
+          ],
+        },
+      ],
+    }) as Record<string, Record<string, unknown[]>>;
+    // A multi-select has no fixture kind; write the array-of-enum shape directly.
+    raw["output"]!["fields"]!.push({
+      name: "topics",
+      type: "array",
+      widget: "checkboxes",
+      required: false,
+      items: {
+        type: "enum",
+        choices: [
+          { name: "billing", shortcut: "b" },
+          { name: "outage", shortcut: "o" },
+        ],
+      },
+    });
+    const result = loadConfig(JSON.stringify(raw));
+    if (!result.ok) throw new Error(result.issues.map((i) => i.message).join("; "));
+    return result.config;
+  })();
+
+  const chordRecords: RecordView[] = [
+    { index: 0, inputValues: {}, labelValues: { verdict: null, topics: null }, coercionErrors: [] },
+  ];
+
+  beforeEach(() => {
+    useStore.setState({
+      config: chordConfig,
+      records: chordRecords,
+      index: 0,
+      labels: { 0: {} },
+      phase: "labeling",
+    });
+    render(<ChordHarness />);
+  });
+
+  afterEach(() => cleanup());
+
+  it("selects a choice with the caret nowhere near the field", () => {
+    press(window, "g");
+    expect(chordLabels()["verdict"]).toBe("good");
+  });
+
+  it("holds a bare chord back while typing, so the letter can be typed", () => {
+    press(screen.getByLabelText("notes"), "g");
+    expect(chordLabels()["verdict"]).toBeUndefined();
+  });
+
+  it("still fires a modifier chord from inside a text field", () => {
+    // `mod` is Cmd on macOS and Ctrl elsewhere; send whichever this run means.
+    press(screen.getByLabelText("notes"), "b", isMac() ? { metaKey: true } : { ctrlKey: true });
+    expect(chordLabels()["verdict"]).toBe("bad");
+  });
+
+  it("toggles a multi-select choice on, then back off", () => {
+    press(window, "b");
+    expect(chordLabels()["topics"]).toEqual(["billing"]);
+    press(window, "b");
+    expect(chordLabels()["topics"]).toBeNull();
+  });
+
+  it("keeps declaration order when a second multi-select choice is added", () => {
+    press(window, "o");
+    press(window, "b");
+    expect(chordLabels()["topics"]).toEqual(["billing", "outage"]);
   });
 });

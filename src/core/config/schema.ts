@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isReservedChord } from "../shortcuts";
 import {
   Choice,
   FieldDisplay,
@@ -359,39 +360,58 @@ function collectShortcuts(
   fields: readonly OutputField[],
   basePath: (string | number)[],
 ): void {
+  // One namespace for every chord the config declares. Choice chords fire
+  // app-wide rather than only while their own field has focus, so two fields
+  // claiming "p" is a real ambiguity — there would be no way to say which one
+  // the keystroke meant.
   const seen = new Map<string, string>();
+
+  const claim = (chord: string, owner: string, path: (string | number)[]): void => {
+    const prior = seen.get(chord);
+    if (prior) {
+      issue(ctx, ctx.value, path, `Shortcut "${chord}" is already used by ${prior}.`);
+    } else {
+      seen.set(chord, owner);
+    }
+    // A config claiming a chord the OS owns takes it away for good: the renderer
+    // calls preventDefault on a match, so `mod+v` would stop Paste working in
+    // the notes box with nothing on screen to explain why.
+    if (isReservedChord(chord)) {
+      issue(ctx, ctx.value, path, `Shortcut "${chord}" is reserved by the app or the OS.`);
+    }
+  };
+
   fields.forEach((field, fi) => {
     if (field.shortcut) {
-      const owner = seen.get(field.shortcut);
-      if (owner) {
-        issue(
-          ctx,
-          ctx.value,
-          [...basePath, fi, "shortcut"],
-          `Shortcut "${field.shortcut}" is already used by "${owner}".`,
-        );
-      }
-      seen.set(field.shortcut, field.name);
+      claim(field.shortcut, `"${field.name}"`, [...basePath, fi, "shortcut"]);
     }
-    // Choice shortcuts are scoped to their field: two enums may both use "p",
-    // because they only fire while their own field has focus.
-    if (field.type === "enum") {
-      const within = new Map<string, string>();
-      field.choices.forEach((choice, ci) => {
-        if (!choice.shortcut) return;
-        const owner = within.get(choice.shortcut);
-        if (owner) {
-          issue(
-            ctx,
-            ctx.value,
-            [...basePath, fi, "choices", ci, "shortcut"],
-            `Shortcut "${choice.shortcut}" is already used by choice "${owner}" on this field.`,
-          );
-        }
-        within.set(choice.shortcut, choice.name);
-      });
-    }
+
+    // A multi-select is an `array` of `enum`; its options take chords too, and
+    // the chord toggles rather than replaces.
+    const choices = choicesOf(field);
+    if (!choices) return;
+    choices.list.forEach((choice, ci) => {
+      if (!choice.shortcut) return;
+      claim(choice.shortcut, `choice "${choice.name}" on "${field.name}"`, [
+        ...basePath,
+        fi,
+        ...choices.path,
+        ci,
+        "shortcut",
+      ]);
+    });
   });
+}
+
+/** The selectable options of a field, single-choice or multi-select alike. */
+function choicesOf(
+  field: OutputField,
+): { list: readonly { name: string; shortcut?: string }[]; path: string[] } | undefined {
+  if (field.type === "enum") return { list: field.choices, path: ["choices"] };
+  if (field.type === "array" && field.items.type === "enum") {
+    return { list: field.items.choices, path: ["items", "choices"] };
+  }
+  return undefined;
 }
 
 function validateConfig(ctx: CheckCtx, cfg: AppConfig): void {

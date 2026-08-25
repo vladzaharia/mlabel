@@ -5,6 +5,7 @@ import {
   sessionFields,
   stampLabelTime,
   timestampField,
+  toggleChoice,
 } from "./labels";
 import { evaluateRecord } from "./completion";
 import { buildConfig } from "@test/fixtures/config";
@@ -130,5 +131,31 @@ describe("stampLabelTime", () => {
   it("stores a Date, not a pre-formatted string", () => {
     const stamped = stampLabelTime({ id: "1", verdict: "good" }, answered, outputFields, clock);
     expect(stamped["labeledAt"]).toBeInstanceOf(Date);
+  });
+});
+
+describe("toggleChoice", () => {
+  const order = ["billing", "outage", "howto"] as const;
+
+  it("adds a choice to an empty value", () => {
+    expect(toggleChoice(null, "outage", order)).toEqual(["outage"]);
+  });
+
+  it("removes a choice that was already selected", () => {
+    expect(toggleChoice(["billing", "outage"], "billing", order)).toEqual(["outage"]);
+  });
+
+  // Click order must not leak into the exported cell, or two labelers who
+  // picked the same set produce different rows.
+  it("keeps declaration order regardless of selection order", () => {
+    expect(toggleChoice(["howto"], "billing", order)).toEqual(["billing", "howto"]);
+  });
+
+  it("returns null when the last choice is removed", () => {
+    expect(toggleChoice(["billing"], "billing", order)).toBeNull();
+  });
+
+  it("treats a non-array value as no selection", () => {
+    expect(toggleChoice("billing", "outage", order)).toEqual(["outage"]);
   });
 });

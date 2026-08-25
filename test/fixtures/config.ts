@@ -48,7 +48,7 @@ export type OutputKind =
   | "timestamp";
 
 /** A choice: a bare string is shorthand for a value with no separate caption. */
-export type ChoiceSpec = string | { value: string; label?: string };
+export type ChoiceSpec = string | { value: string; label?: string; shortcut?: string };
 
 export interface OutputSpec {
   name: string;
@@ -127,9 +127,12 @@ function inputField(spec: InputSpec): Record<string, unknown> {
 }
 
 function choice(spec: ChoiceSpec): Record<string, unknown> {
-  return typeof spec === "string"
-    ? { name: spec }
-    : { name: spec.value, ...(spec.label === undefined ? {} : { display: { title: spec.label } }) };
+  if (typeof spec === "string") return { name: spec };
+  return {
+    name: spec.value,
+    ...(spec.label === undefined ? {} : { display: { title: spec.label } }),
+    ...(spec.shortcut === undefined ? {} : { shortcut: spec.shortcut }),
+  };
 }
 
 /** Maps a semantic kind onto the schema's type + widget + fill. */

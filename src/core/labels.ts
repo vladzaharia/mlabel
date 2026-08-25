@@ -78,3 +78,23 @@ export function stampLabelTime(
 
   return { ...labels, [field.name]: now() };
 }
+
+/**
+ * Add or remove one choice from a multi-select value.
+ *
+ * Declaration order is preserved rather than click order, so the exported cell
+ * is stable however the labeler arrived at the selection. Returns `null` for an
+ * empty result, matching what an untouched field holds — an empty array would
+ * read as "answered with nothing".
+ */
+export function toggleChoice(
+  current: CoercedValue | null | undefined,
+  name: string,
+  order: readonly string[],
+): string[] | null {
+  const selected = new Set(Array.isArray(current) ? current.map(String) : []);
+  if (selected.has(name)) selected.delete(name);
+  else selected.add(name);
+  const ordered = order.filter((choice) => selected.has(choice));
+  return ordered.length === 0 ? null : ordered;
+}

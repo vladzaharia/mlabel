@@ -222,6 +222,11 @@ function CompositeCell({
   // ObjectView rather than introducing a second way to draw the same thing.
   if (layout === "stack") return <ObjectView fields={fields} value={data} compact />;
 
+  // A one-field column is already captioned by its own header, so repeating the
+  // field label in every cell just reads as part of the value ("Check safety").
+  // Booleans are the exception below — a bare tick names nothing.
+  const labelled = fields.length > 1;
+
   return (
     <div className={layout === "chips" ? "flex flex-wrap gap-1.5" : "flex flex-wrap gap-3"}>
       {fields.map((field) => {
@@ -247,7 +252,7 @@ function CompositeCell({
                 : "inline-flex items-center gap-1 text-xs"
             }
           >
-            <span className="text-muted-foreground">{label}</span>
+            {labelled && <span className="text-muted-foreground">{label}</span>}
             <ValueView type={field} value={value} />
           </span>
         );

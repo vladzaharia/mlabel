@@ -170,20 +170,63 @@ describe("shortcuts", () => {
     });
 
   it("accepts distinct field shortcuts", () => {
-    expect(loadConfig(twoFields("mod+a", "mod+b")).ok).toBe(true);
+    expect(loadConfig(twoFields("mod+j", "mod+k")).ok).toBe(true);
   });
 
   it("rejects two fields claiming the same shortcut", () => {
-    expect(all(twoFields("mod+a", "mod+a"))).toMatch(/already used by "first"/);
+    expect(all(twoFields("mod+j", "mod+j"))).toMatch(/already used by "first"/);
   });
 
   it("rejects a chord it cannot parse", () => {
     expect(all(twoFields("mod+", "mod+b"))).toMatch(/mod\+s/);
   });
 
-  // Choice shortcuts only fire while their own field has focus, so two enums
-  // may each use "y" — a flat uniqueness check would wrongly reject that.
-  it("allows two enums to reuse the same choice shortcut", () => {
+  // `matchConfigChords` runs before the typing guard and calls preventDefault,
+  // so a config claiming mod+v silently breaks Paste inside the notes textarea.
+  it("rejects a field shortcut that shadows a reserved chord", () => {
+    expect(all(twoFields("mod+v", "mod+k"))).toMatch(/reserved/i);
+  });
+
+  it("rejects a choice shortcut that shadows a reserved chord", () => {
+    const text = tweak({ output: [{ name: "a", kind: "choice", choices: ["yes"] }] }, (c) => {
+      outputFields(c)[0]!["choices"][0].shortcut = "mod+c";
+    });
+    expect(all(text)).toMatch(/reserved/i);
+  });
+
+  /** Turn a single-choice field into the multi-select spelling of the same thing. */
+  const asMultiSelect = (choices: Record<string, unknown>[]) =>
+    tweak({ output: [{ name: "a", kind: "choice", choices: ["yes"] }] }, (c) => {
+      const field = outputFields(c)[0]!;
+      field["type"] = "array";
+      field["widget"] = "checkboxes";
+      field["items"] = { type: "enum", choices };
+      delete field["choices"];
+    });
+
+  // A multi-select option is still an option: the chord toggles it.
+  it("accepts a choice shortcut on a multi-select", () => {
+    expect(loadConfig(asMultiSelect([{ name: "yes", shortcut: "y" }])).ok).toBe(true);
+  });
+
+  it("holds multi-select choice shortcuts to the same one-owner rule", () => {
+    const text = asMultiSelect([
+      { name: "yes", shortcut: "y" },
+      { name: "nope", shortcut: "y" },
+    ]);
+    expect(all(text)).toMatch(/already used by choice "yes"/);
+  });
+
+  it("still allows a bare letter that merely appears inside a reserved chord", () => {
+    const text = tweak({ output: [{ name: "a", kind: "choice", choices: ["yes"] }] }, (c) => {
+      outputFields(c)[0]!["choices"][0].shortcut = "v";
+    });
+    expect(loadConfig(text).ok).toBe(true);
+  });
+
+  // Choice chords fire app-wide, so a chord may name exactly one option. Two
+  // enums claiming "y" would leave the keystroke with no unambiguous meaning.
+  it("rejects two enums reusing the same choice shortcut", () => {
     const text = tweak(
       {
         output: [
@@ -196,7 +239,15 @@ describe("shortcuts", () => {
         outputFields(c)[1]!["choices"][0].shortcut = "y";
       },
     );
-    expect(loadConfig(text).ok).toBe(true);
+    expect(all(text)).toMatch(/already used by choice "yes" on "a"/);
+  });
+
+  it("rejects a choice shortcut colliding with a field shortcut", () => {
+    const text = tweak({ output: [{ name: "a", kind: "choice", choices: ["yes"] }] }, (c) => {
+      outputFields(c)[0]!["shortcut"] = "mod+y";
+      outputFields(c)[0]!["choices"][0].shortcut = "mod+y";
+    });
+    expect(all(text)).toMatch(/already used by "a"/);
   });
 
   it("rejects two choices on the same field claiming one shortcut", () => {

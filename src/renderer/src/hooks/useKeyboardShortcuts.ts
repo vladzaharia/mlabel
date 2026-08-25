@@ -1,5 +1,12 @@
 import { useEffect } from "react";
-import { chordMatches, isUserFilled, parseChord, type OutputField } from "@core";
+import {
+  chordMatches,
+  isBareChord,
+  isUserFilled,
+  parseChord,
+  toggleChoice,
+  type OutputField,
+} from "@core";
 import { useStore } from "../store/store";
 import { isMac } from "../lib/utils";
 
@@ -57,6 +64,16 @@ export function useKeyboardShortcuts({ onDone, onToggleHelp }: KeyboardShortcutO
           '[role="combobox"], [role="slider"], [role="radiogroup"], [role="listbox"]',
         ) != null;
 
+      // Narrower than `typing`: where a *letter* means "insert this letter" or
+      // drives typeahead. A radiogroup and a slider consume arrows, not letters,
+      // so a bare choice chord stays live while one of them has focus — which is
+      // what makes those chords usable from anywhere in the form.
+      const textEntry =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable === true ||
+        target?.closest('[role="combobox"], [role="listbox"]') != null;
+
       if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
         event.preventDefault();
         onDone();
@@ -66,10 +83,10 @@ export function useKeyboardShortcuts({ onDone, onToggleHelp }: KeyboardShortcutO
       const state = useStore.getState();
       const config = state.config;
 
-      // Config-declared chords carry their own modifiers, so they are matched
-      // before the typing guard — that is what makes them reachable from inside
-      // a text field, which is the whole point of `mod+`-style accelerators.
-      if (config && matchConfigChords(event, config.output.fields, state, target)) return;
+      // Matched before the typing guard so a `mod+`-style accelerator stays
+      // reachable from inside a text field. Bare chords are held back there by
+      // `textEntry` instead — see matchConfigChords.
+      if (config && matchConfigChords(event, config.output.fields, state, textEntry)) return;
 
       // Radix widgets preventDefault on keys they consume — never double-handle.
       if (typing || event.defaultPrevented) return;
@@ -144,7 +161,11 @@ function focusedChoiceField(
 
 /**
  * Try the chords a config declared: a field's own `shortcut` moves focus to it,
- * and a choice's `shortcut` selects that choice while its field has focus.
+ * and a choice's `shortcut` picks that choice from anywhere in the app.
+ *
+ * Choice chords are deliberately *not* scoped to the focused field — answering
+ * shouldn't require tabbing to the question first. The validator enforces that
+ * one chord names one option, so there is never an ambiguous keystroke.
  *
  * Returns true when one fired, so the caller stops.
  */
@@ -152,30 +173,53 @@ function matchConfigChords(
   event: KeyboardEvent,
   fields: readonly OutputField[],
   state: ReturnType<typeof useStore.getState>,
-  target: HTMLElement | null,
+  textEntry: boolean,
 ): boolean {
   const mac = isMac();
 
+  /** Whether this chord is both a match and allowed to fire right now. */
+  const fires = (text: string | undefined): boolean => {
+    if (text === undefined) return false;
+    const chord = parseChord(text);
+    if (!chord) return false;
+    // In a text box a bare letter is just that letter, and a widget that already
+    // consumed the key has the stronger claim on it.
+    if ((textEntry || event.defaultPrevented) && isBareChord(chord)) return false;
+    return chordMatches(chord, event, mac);
+  };
+
   for (const field of fields) {
-    if (!field.shortcut || !isUserFilled(field)) continue;
-    const chord = parseChord(field.shortcut);
-    if (chord && chordMatches(chord, event, mac)) {
+    if (!isUserFilled(field)) continue;
+
+    if (fires(field.shortcut)) {
       event.preventDefault();
       focusField(field.name);
       return true;
     }
-  }
 
-  // Choice chords are scoped to their own field, which is why two enums may
-  // both use "p" without colliding.
-  const focused = focusedChoiceField(fields, target);
-  if (focused?.type === "enum") {
-    for (const choice of focused.choices) {
-      if (!choice.shortcut) continue;
-      const chord = parseChord(choice.shortcut);
-      if (chord && chordMatches(chord, event, mac)) {
+    if (field.type === "enum") {
+      const choice = field.choices.find((c) => fires(c.shortcut));
+      if (choice) {
         event.preventDefault();
-        state.setLabel(state.index, focused.name, choice.name);
+        state.setLabel(state.index, field.name, choice.name);
+        return true;
+      }
+    } else if (field.type === "array" && field.items.type === "enum") {
+      const options = field.items.choices;
+      const choice = options.find((c) => fires(c.shortcut));
+      if (choice) {
+        event.preventDefault();
+        // A multi-select chord toggles rather than replaces, matching what
+        // clicking the same checkbox twice does.
+        const current =
+          state.labels[state.index]?.[field.name] ??
+          state.records[state.index]?.labelValues[field.name];
+        const next = toggleChoice(
+          current,
+          choice.name,
+          options.map((c) => c.name),
+        );
+        state.setLabel(state.index, field.name, next);
         return true;
       }
     }
