@@ -1,0 +1,77 @@
+---
+title: Keyboard shortcuts
+description: Every built-in shortcut, the number keys, config-defined chords, and why some pause while you type.
+sidebar:
+  order: 3
+---
+
+import Shot from "../../../components/Shot.astro";
+
+Press <kbd>?</kbd> at any time for a list that includes whatever your config adds.
+
+<Shot
+  name="shortcuts-dialog"
+  alt="The keyboard shortcuts dialog, listing built-in shortcuts and the config's own chords."
+/>
+
+## Built in
+
+| Keys                                                  | Action                                |
+| ----------------------------------------------------- | ------------------------------------- |
+| <kbd>←</kbd> <kbd>→</kbd>                             | Previous / next record                |
+| <kbd>⇧</kbd>+<kbd>←</kbd> / <kbd>⇧</kbd>+<kbd>→</kbd> | Previous / next **unfinished** record |
+| <kbd>Enter</kbd>                                      | Next record                           |
+| <kbd>1</kbd>–<kbd>9</kbd>                             | Pick the *n*th choice                 |
+| <kbd>⌘/Ctrl</kbd>+<kbd>Enter</kbd>                    | Save & export                         |
+| <kbd>⌘/Ctrl</kbd>+<kbd>⇧</kbd>+<kbd>L</kbd>           | Switch to Label mode                  |
+| <kbd>⌘/Ctrl</kbd>+<kbd>⇧</kbd>+<kbd>P</kbd>           | Switch to Prepare mode                |
+| <kbd>?</kbd>                                          | Toggle this list                      |
+
+<kbd>⌘</kbd> on macOS, <kbd>Ctrl</kbd> everywhere else.
+
+## Number keys
+
+<kbd>1</kbd> through <kbd>9</kbd> pick the *n*th option of a choice field — the focused one, or the
+first choice field on the form if nothing is focused. For a form whose main question is a three-way
+rating, this is the whole interaction: press a digit, press
+<kbd>Enter</kbd>, repeat.
+
+## Shortcuts your config adds
+
+A config can attach a chord to a **field** (moves focus to it) or to an individual
+**choice** (selects it directly). Both appear in the <kbd>?</kbd> dialog automatically, so
+that list is always truthful for the config you have open.
+
+Choice chords fire **app-wide**, not only while their own field has focus. That is what
+makes them worth having — you can press <kbd>c</kbd> for "correct" without first tabbing to
+the right field. It is also why every chord in a config has to be unique across the whole
+file.
+
+## Why a letter sometimes does nothing
+
+A bare letter chord is held back while you are **typing**: in a text box, a textarea, or a
+dropdown's search field. Otherwise a chord on <kbd>c</kbd> would make the letter "c"
+impossible to type in your notes.
+
+Chords with a modifier (<kbd>⌘</kbd>, <kbd>Ctrl</kbd>, <kbd>Alt</kbd>, <kbd>⇧</kbd>) are
+**not** held back — they stay live everywhere, including inside a text field.
+
+Radio groups and sliders are a deliberate middle ground: they consume arrow keys, not
+letters, so bare chords keep working while one of them has focus.
+
+## Modal dialogs take over
+
+While a dialog is open — the resume prompt, this shortcuts list — it owns the keyboard
+entirely. No shortcut reaches the form behind it.
+
+## Reserved chords
+
+A config may not claim a chord the app or the operating system already owns:
+
+<kbd>⌘/Ctrl</kbd>+ <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd> <kbd>A</kbd>
+<kbd>Q</kbd> <kbd>W</kbd> <kbd>M</kbd> <kbd>H</kbd> <kbd>R</kbd> <kbd>Enter</kbd>, plus
+<kbd>⌘/Ctrl</kbd>+<kbd>⇧</kbd>+<kbd>L</kbd> and <kbd>⌘/Ctrl</kbd>+<kbd>⇧</kbd>+<kbd>P</kbd>.
+
+Trying to use one is a config error rather than a silent override — otherwise a config
+could take Paste away from the notes box with nothing on screen to explain it. See
+[Shortcuts](/config/shortcuts/).

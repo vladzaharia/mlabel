@@ -1,0 +1,78 @@
+---
+title: Reading a record
+description: How values are displayed — nested tables, help popovers, and what the coloured notes mean.
+sidebar:
+  order: 2
+---
+
+import Shot from "../../../components/Shot.astro";
+
+The left-hand side is the evidence. It is read-only, and everything about how it looks
+comes from the config.
+
+## Cards and rows
+
+Fields are grouped into cards under headings, and arranged in rows. A card may carry a
+description under its heading and a ⓘ popover with longer guidance — hover or focus the
+icon to read it.
+
+Each field can also carry its own description and its own ⓘ help, for anything too long to
+sit in a caption.
+
+## Simple values
+
+Text, numbers, dates, booleans and single choices render as themselves. A caption sits to
+the left by default, or above the value when the config asks for it — which is what you
+want for a long prompt or a model response that needs the full width.
+
+## Lists and dictionaries
+
+<Shot
+  name="value-table"
+  alt="A record showing a list of safety checks rendered as a table, and prior annotations as a keyed table."
+/>
+
+Structured values get real structure rather than raw JSON:
+
+- A **list of simple values** renders as chips.
+- A **list of objects** renders as a table, one row per element.
+- A **dictionary** renders as a table keyed by its entries.
+
+A config can group several of an object's fields into one displayed column, so a table
+stays narrow even when the underlying object is wide. See
+[TableView](/reference/table-view/).
+
+## Coloured notes
+
+<Shot
+  name="labeling"
+  alt="The Model score value tinted amber, with the note 'Unusually confident — check carefully' beside it."
+/>
+
+A tinted value with a short note beside it is a **display rule** firing — something the
+project author wanted you to notice. Typical examples: a model that reported unusually high
+confidence, or a response that looks like a canned refusal.
+
+The tones are semantic rather than decorative:
+
+| Tone      | Reads as                                   |
+| --------- | ------------------------------------------ |
+| `muted`   | Deprioritize this                          |
+| `info`    | Context worth knowing                      |
+| `success` | A positive signal                          |
+| `warning` | Look carefully                             |
+| `danger`  | Something is wrong here                    |
+| `accent`  | Draw the eye, without a judgement attached |
+
+:::note
+A rule is a hint, never an instruction, and it **cannot** change what gets exported. If a
+rule tells you a value looks suspicious and you disagree, label what you actually think.
+:::
+
+Rule notes look different from validation errors on purpose. A validation error is
+something you are expected to fix; a rule note is about the source data, which you cannot.
+
+## The window title
+
+The title bar can show a literal name or track a value from the current record — often an
+ID or the prompt under review — so the window is identifiable when several are open.

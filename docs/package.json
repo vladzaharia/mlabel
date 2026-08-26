@@ -1,0 +1,27 @@
+{
+  "name": "mlabel-docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Documentation site for MLabel — https://mlabel.vlad.gg",
+  "type": "module",
+  "scripts": {
+    "gen": "tsx scripts/generate-reference.ts",
+    "dev": "pnpm gen && astro dev",
+    "build": "pnpm gen && astro build && pnpm check:links",
+    "check:links": "node scripts/check-links.mjs",
+    "preview": "astro preview",
+    "screenshots": "tsx scripts/screenshots.ts",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.41.9",
+    "astro": "7.2.7",
+    "sharp": "0.34.4"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.0",
+    "playwright": "1.62.1",
+    "tsx": "4.22.4",
+    "typescript": "6.0.3"
+  }
+}

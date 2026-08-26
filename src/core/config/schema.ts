@@ -60,16 +60,42 @@ const Chord = z
  * explicit means a copied column can be renamed, and a captured field may
  * safely share a name with an input column.
  */
-export const Fill = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("user") }),
-  z.strictObject({
-    kind: z.literal("copy"),
-    /** Input field to copy from; defaults to this field's own name. */
-    from: Identifier.optional(),
-  }),
-  z.strictObject({ kind: z.literal("session") }),
-  z.strictObject({ kind: z.literal("timestamp") }),
-]);
+export const Fill = z
+  .discriminatedUnion("kind", [
+    z.strictObject({
+      kind: z
+        .literal("user")
+        .meta({ description: "The labeler answers this field on every record." }),
+    }),
+    z.strictObject({
+      kind: z.literal("copy").meta({
+        description: "Carried over from an input column. Renders no widget.",
+      }),
+      /** Input field to copy from; defaults to this field's own name. */
+      from: Identifier.meta({
+        description:
+          "Input field to copy from. Defaults to this field's own name; naming one explicitly is how a copied column gets renamed on the way out. Its type must match this field's type.",
+      }).optional(),
+    }),
+    z.strictObject({
+      kind: z.literal("session").meta({
+        description:
+          "The labeler answers this once, on the setup step, and the answer is written to every exported row.",
+      }),
+    }),
+    z.strictObject({
+      kind: z.literal("timestamp").meta({
+        description:
+          "Stamped by the app when the record becomes complete, and again on every later edit. Renders no widget.",
+      }),
+    }),
+  ])
+  .meta({
+    id: "Fill",
+    title: "Fill",
+    description:
+      "Where an output field's value comes from — orthogonal to how it renders. Only `user` and `session` fields show a widget.",
+  });
 export type Fill = z.infer<typeof Fill>;
 
 export type FillKind = Fill["kind"];
@@ -81,16 +107,33 @@ export const isInteractiveFill = (kind: FillKind): boolean => INTERACTIVE_FILLS.
 
 // --- Fields ----------------------------------------------------------------
 
+/** The source column this field reads, or the output column it writes. */
+const FieldName = Identifier.meta({
+  description:
+    "The column name in the data file. Letters, digits, `_` and `-`, with optional inner spaces; `.` `[` `]` `*` and edge whitespace are excluded.",
+});
+
 export const InputField = z
-  .discriminatedUnion("type", typeVariants({ name: Identifier, display: FieldDisplay.optional() }))
-  .meta({ id: "InputField", title: "Input field" });
+  .discriminatedUnion("type", typeVariants({ name: FieldName, display: FieldDisplay.optional() }))
+  .meta({
+    id: "InputField",
+    title: "Input field",
+    description: "One source column, read from the input file and shown read-only.",
+  });
 export type InputField = z.infer<typeof InputField>;
 
 /** The widget keys legal for one type — empty for types that render no widget. */
 function widgetFor(kind: ValueTypeKind): z.ZodRawShape {
   const legal: readonly string[] = WIDGETS_BY_TYPE[kind];
   if (legal.length === 0) return {};
-  return { widget: z.enum([...legal] as [string, ...string[]]).optional() };
+  return {
+    widget: z
+      .enum([...legal] as [string, ...string[]])
+      .meta({
+        description: `How the field renders. Defaults to \`${legal[0]}\`. Only a field a person fills may name a widget.`,
+      })
+      .optional(),
+  };
 }
 
 export const OutputField = z
@@ -98,60 +141,126 @@ export const OutputField = z
     "type",
     typeVariants(
       {
-        name: Identifier,
+        name: FieldName,
         display: FieldDisplay.optional(),
-        fill: Fill.optional(),
+        fill: Fill.meta({
+          description: 'Where this field\'s value comes from. Defaults to `{ "kind": "user" }`.',
+        }).optional(),
         /**
          * Defaults by fill: user- and session-filled fields are required,
          * copied and timestamped ones are not. Resolved by `isRequired`.
          */
-        required: z.boolean().optional(),
+        required: z
+          .boolean()
+          .meta({
+            description:
+              "Whether a record counts as complete without this field. Defaults by fill: something a person is asked for is required, something the app derives is not.",
+          })
+          .optional(),
         /** Moves focus to this field's widget. Unique across the config. */
-        shortcut: Chord.optional(),
+        shortcut: Chord.meta({
+          description:
+            'Chord that moves focus to this field\'s widget, e.g. `"mod+1"`. Unique across the whole config, and not one of the chords the app or OS reserves.',
+        }).optional(),
       },
       widgetFor,
     ),
   )
-  .meta({ id: "OutputField", title: "Output field" });
+  .meta({
+    id: "OutputField",
+    title: "Output field",
+    description:
+      "One column written to the output file — captured from the labeler, copied from the input, or derived by the app.",
+  });
 export type OutputField = z.infer<typeof OutputField>;
 
 // --- Layout ----------------------------------------------------------------
 
-export const CardRow = z.strictObject({
-  /** Minimum columns before wrapping; defaults to the number of fields in the row. */
-  perRow: z.number().int().positive().optional(),
-  /** Field names to render, in order. */
-  use: z.array(Identifier).min(1),
-});
+export const CardRow = z
+  .strictObject({
+    /** Minimum columns before wrapping; defaults to the number of fields in the row. */
+    perRow: z
+      .number()
+      .int()
+      .positive()
+      .meta({
+        description: "Columns to fit before wrapping. Defaults to the number of fields in the row.",
+      })
+      .optional(),
+    /** Field names to render, in order. */
+    use: z
+      .array(Identifier)
+      .min(1)
+      .meta({ description: "Field names to render in this row, in order." }),
+  })
+  .meta({ id: "CardRow", title: "Card row" });
 export type CardRow = z.infer<typeof CardRow>;
 
 /**
  * A card grouping fields under a heading. The same shape drives read-only input
  * cards and interactive output cards.
  */
-export const Card = z.strictObject({
-  name: Identifier,
-  display: TextDisplay.optional(),
-  /**
-   * `session` cards render on the setup step rather than per record. Listing a
-   * session field in a `record` card would leave a hole in the grid.
-   */
-  scope: z.enum(["record", "session"]).optional(),
-  rows: z.array(CardRow).min(1),
-});
+export const Card = z
+  .strictObject({
+    name: Identifier.meta({ description: "Identifies the card; must be unique per side." }),
+    display: TextDisplay.optional(),
+    /**
+     * `session` cards render on the setup step rather than per record. Listing a
+     * session field in a `record` card would leave a hole in the grid.
+     */
+    scope: z
+      .enum(["record", "session"])
+      .meta({
+        description:
+          "`session` cards render on the setup step rather than once per record. Defaults to `record`.",
+      })
+      .optional(),
+    rows: z.array(CardRow).min(1).meta({ description: "The card's rows, rendered top to bottom." }),
+  })
+  .meta({
+    id: "Card",
+    title: "Card",
+    description:
+      "A card grouping fields under a heading. The same shape drives read-only input cards and interactive output cards. Omit `cards` entirely for one implicit card holding every field, one per row.",
+  });
 export type Card = z.infer<typeof Card>;
 
 // --- Display rules ---------------------------------------------------------
 
 const Scalar = z.union([z.string(), z.number(), z.boolean()]);
 
+/** The input field a condition reads. */
+const TestedField = Identifier.meta({
+  description: "The input field whose value is tested.",
+});
+
+/** Prose for each operator, so hovering `op` explains the choice. */
+const OPS: Record<string, string> = {
+  eq: "True when the values are equal.",
+  ne: "True when the values differ.",
+  gt: "True when the field is greater than the comparand.",
+  gte: "True when the field is greater than or equal to the comparand.",
+  lt: "True when the field is less than the comparand.",
+  lte: "True when the field is less than or equal to the comparand.",
+  in: "True when the field matches one of the listed values.",
+  notIn: "True when the field matches none of the listed values.",
+  matches: "True when the field matches the regular expression.",
+  empty: "True when the field is null, an empty string, or an empty list.",
+  notEmpty: "True when the field holds anything at all.",
+};
+
 /** Comparison against either a literal or another field — exactly one. */
 const comparison = <T extends string>(op: T, value: z.ZodType) =>
   z.strictObject({
-    op: z.literal(op),
-    field: Identifier,
-    value: value.optional(),
-    otherField: Identifier.optional(),
+    op: z.literal(op).meta({ description: OPS[op] }),
+    field: TestedField,
+    value: value
+      .meta({ description: "The literal to compare against. Give this or `otherField`, not both." })
+      .optional(),
+    otherField: Identifier.meta({
+      description:
+        "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
+    }).optional(),
   });
 
 /**
@@ -167,13 +276,39 @@ export const Condition = z
     comparison("gte", z.number()),
     comparison("lt", z.number()),
     comparison("lte", z.number()),
-    z.strictObject({ op: z.literal("in"), field: Identifier, value: z.array(Scalar).min(1) }),
-    z.strictObject({ op: z.literal("notIn"), field: Identifier, value: z.array(Scalar).min(1) }),
-    z.strictObject({ op: z.literal("matches"), field: Identifier, pattern: z.string().min(1) }),
-    z.strictObject({ op: z.literal("empty"), field: Identifier }),
-    z.strictObject({ op: z.literal("notEmpty"), field: Identifier }),
+    z.strictObject({
+      op: z.literal("in").meta({ description: OPS["in"] }),
+      field: TestedField,
+      value: z.array(Scalar).min(1).meta({ description: "The values to match against." }),
+    }),
+    z.strictObject({
+      op: z.literal("notIn").meta({ description: OPS["notIn"] }),
+      field: TestedField,
+      value: z.array(Scalar).min(1).meta({ description: "The values to match against." }),
+    }),
+    z.strictObject({
+      op: z.literal("matches").meta({ description: OPS["matches"] }),
+      field: TestedField,
+      pattern: z.string().min(1).meta({
+        description:
+          "JavaScript regular expression, tested against the value's string form. Compiled when the config loads.",
+      }),
+    }),
+    z.strictObject({
+      op: z.literal("empty").meta({ description: OPS["empty"] }),
+      field: TestedField,
+    }),
+    z.strictObject({
+      op: z.literal("notEmpty").meta({ description: OPS["notEmpty"] }),
+      field: TestedField,
+    }),
   ])
-  .meta({ id: "Condition", title: "Condition" });
+  .meta({
+    id: "Condition",
+    title: "Condition",
+    description:
+      "A rule's trigger, evaluated over one record's input values. Never throws: a condition pointed at a missing or wrongly-typed value simply does not fire.",
+  });
 export type Condition = z.infer<typeof Condition>;
 
 /**
@@ -184,25 +319,48 @@ export type Condition = z.infer<typeof Condition>;
  */
 export const DisplayRule = z
   .strictObject({
-    name: Identifier,
-    when: Condition,
+    name: Identifier.meta({
+      description: "Identifies the rule; shown in diagnostics and used as a stable render key.",
+    }),
+    when: Condition.meta({ description: "The condition that fires this rule." }),
     /** Fields to style. Defaults to the field the condition tests. */
-    appliesTo: z.array(Identifier).min(1).optional(),
-    style: Style,
+    appliesTo: z
+      .array(Identifier)
+      .min(1)
+      .meta({
+        description:
+          "Fields to style when the rule fires. Defaults to the field the condition tests, which is what you want for a single-field rule and never what you want when comparing two.",
+      })
+      .optional(),
+    style: Style.meta({ description: "How the matched fields are styled." }),
   })
-  .meta({ id: "DisplayRule", title: "Display rule" });
+  .meta({
+    id: "DisplayRule",
+    title: "Display rule",
+    description:
+      "A purely visual rule over displayed input values. Rules never affect what is exported — that guarantee is structural, since the module evaluating them is never imported on the export path.",
+  });
 export type DisplayRule = z.infer<typeof DisplayRule>;
 
 // --- Top level -------------------------------------------------------------
 
 const AdapterRef = {
-  adapterId: z.string().min(1).default("csv"),
+  adapterId: z.string().min(1).default("csv").meta({
+    description:
+      "Which format adapter handles this side. `csv` is the only one built in; it also reads `.tsv`.",
+  }),
   /**
    * Opaque, adapter-owned options (e.g. delimiter). The core never reads this,
    * so it is the one place unknown keys survive — but it must still be an
    * object, since no adapter can do anything with a bare scalar.
    */
-  adapterConfig: z.looseObject({}).optional(),
+  adapterConfig: z
+    .looseObject({})
+    .meta({
+      description:
+        "Opaque, adapter-owned options — for CSV, `delimiter` and `quoteChar` on input, `delimiter` and `newline` on output. The core never reads this, so it is the one object in the config where unknown keys are allowed.",
+    })
+    .optional(),
 };
 
 /** The config shape this build reads. See `loadConfig` for the version gate. */
@@ -210,14 +368,38 @@ export const CONFIG_VERSION = 2;
 
 export const AppConfig = z
   .strictObject({
-    $schema: z.string().optional(),
-    version: z.literal(CONFIG_VERSION),
+    $schema: z
+      .string()
+      .meta({
+        description:
+          "Path or URL to this JSON Schema, for editor autocomplete. Use `https://mlabel.vlad.gg/mlabel.schema.json` for a standalone config.",
+      })
+      .optional(),
+    version: z.literal(CONFIG_VERSION).meta({
+      description:
+        "Config format version. This build reads version 2 only; a config with no `version`, or a different one, is rejected with a single clear message rather than a cascade of shape errors.",
+    }),
 
     ui: z
       .strictObject({
         /** A literal title, or the input field whose value becomes the title. */
-        appTitle: z.union([z.string(), z.strictObject({ field: Identifier })]).optional(),
+        appTitle: z
+          .union([
+            z.string(),
+            z.strictObject({
+              field: Identifier.meta({
+                description:
+                  "Input field whose value becomes the window title, so the title tracks the record on screen.",
+              }),
+            }),
+          ])
+          .meta({
+            description:
+              'The window title: a literal string, or `{ "field": "…" }` to use the value of an input field, which changes per record.',
+          })
+          .optional(),
       })
+      .meta({ description: "Chrome-level presentation." })
       .optional(),
 
     /**
@@ -226,22 +408,57 @@ export const AppConfig = z
      * all network calls. Absent or `true` ⇒ update checks run.
      */
     network: z
-      .strictObject({ updateChecks: z.boolean().default(true) })
-      .default({ updateChecks: true }),
+      .strictObject({
+        updateChecks: z.boolean().default(true).meta({
+          description:
+            "Whether to check GitHub Releases for updates. `false` forbids every network call the app could make. Absent or `true` means checks run.",
+        }),
+      })
+      .default({ updateChecks: true })
+      .meta({
+        description:
+          "Network policy. The update check is the only remote request this app ever performs, and it is opt-out.",
+      }),
 
-    input: z.strictObject({
-      ...AdapterRef,
-      fields: z.array(InputField).min(1),
-      rules: z.array(DisplayRule).optional(),
-      /** Omit for one implicit card holding every field, one per row. */
-      cards: z.array(Card).optional(),
-    }),
+    input: z
+      .strictObject({
+        ...AdapterRef,
+        fields: z
+          .array(InputField)
+          .min(1)
+          .meta({ description: "The source columns to read and show read-only." }),
+        rules: z
+          .array(DisplayRule)
+          .meta({
+            description:
+              "Purely visual rules over displayed input values. A rule can never change what is exported.",
+          })
+          .optional(),
+        /** Omit for one implicit card holding every field, one per row. */
+        cards: z
+          .array(Card)
+          .meta({
+            description: "Layout. Omit for one implicit card holding every field, one per row.",
+          })
+          .optional(),
+      })
+      .meta({ description: "What is read from the source file and shown read-only." }),
 
-    output: z.strictObject({
-      ...AdapterRef,
-      fields: z.array(OutputField).min(1),
-      cards: z.array(Card).optional(),
-    }),
+    output: z
+      .strictObject({
+        ...AdapterRef,
+        fields: z
+          .array(OutputField)
+          .min(1)
+          .meta({ description: "The columns written to the output file." }),
+        cards: z
+          .array(Card)
+          .meta({
+            description: "Layout. Omit for one implicit card holding every field, one per row.",
+          })
+          .optional(),
+      })
+      .meta({ description: "What the labeler captures, or the app fills in." }),
   })
   .check((ctx) => validateConfig(ctx, ctx.value));
 

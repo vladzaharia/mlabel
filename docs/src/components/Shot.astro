@@ -1,0 +1,57 @@
+---
+import { Image } from "astro:assets";
+
+/**
+ * A screenshot pair captured in both themes.
+ *
+ * The two images are always both in the DOM and one is hidden by CSS keyed off
+ * Starlight's `data-theme`, so switching theme swaps the shot without a
+ * round-trip or a layout shift. `alt` is required rather than optional — a
+ * screenshot with no description is invisible to anyone using a screen reader,
+ * and every one of these carries information the prose relies on.
+ */
+interface Props {
+  /** Base name under `src/assets/shots`, without the `.light`/`.dark` suffix. */
+  name: string;
+  alt: string;
+}
+
+const { name, alt } = Astro.props;
+
+const shots = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/shots/*.{png,webp}",
+  { eager: true },
+);
+
+const pick = (theme: "light" | "dark"): ImageMetadata | undefined =>
+  shots[`/src/assets/shots/${name}.${theme}.png`]?.default;
+
+const light = pick("light");
+const dark = pick("dark");
+---
+
+{
+  light && dark ? (
+    <figure class="shot not-content">
+      <Image class="shot-light" src={light} alt={alt} loading="lazy" />
+      <Image class="shot-dark" src={dark} alt={alt} loading="lazy" />
+    </figure>
+  ) : (
+    <aside class="shot-missing">
+      <p>
+        <strong>Screenshot pending:</strong> <code>{name}</code>. Run{" "}
+        <code>pnpm -C docs screenshots</code> to capture it.
+      </p>
+    </aside>
+  )
+}
+
+<style>
+  .shot-missing {
+    border: 1px dashed var(--sl-color-gray-4);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+  }
+</style>

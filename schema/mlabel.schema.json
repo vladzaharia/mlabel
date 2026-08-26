@@ -12,148 +12,344 @@
       "$ref": "#/$defs/__schema2"
     },
     "network": {
-      "$ref": "#/$defs/__schema4"
+      "$ref": "#/$defs/__schema7"
     },
     "input": {
-      "$ref": "#/$defs/__schema5"
+      "$ref": "#/$defs/__schema10"
     },
     "output": {
-      "$ref": "#/$defs/__schema63"
+      "$ref": "#/$defs/__schema92"
     }
   },
   "required": ["version", "input", "output"],
   "additionalProperties": false,
   "$defs": {
     "__schema0": {
-      "type": "string"
+      "type": "string",
+      "description": "Path or URL to this JSON Schema, for editor autocomplete. Use `https://mlabel.vlad.gg/mlabel.schema.json` for a standalone config."
     },
     "__schema1": {
       "type": "number",
-      "const": 2
+      "const": 2,
+      "description": "Config format version. This build reads version 2 only; a config with no `version`, or a different one, is rejected with a single clear message rather than a cascade of shape errors."
     },
     "__schema2": {
       "type": "object",
       "properties": {
         "appTitle": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "field": {
-                  "$ref": "#/$defs/__schema3"
-                }
-              },
-              "required": ["field"],
-              "additionalProperties": false
-            }
-          ]
+          "$ref": "#/$defs/__schema3"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Chrome-level presentation."
     },
     "__schema3": {
-      "type": "string",
-      "minLength": 1,
-      "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_ -]*[A-Za-z0-9_-]$|^[A-Za-z0-9_-]$"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema4"
+        },
+        {
+          "$ref": "#/$defs/__schema5"
+        }
+      ],
+      "description": "The window title: a literal string, or `{ \"field\": \"…\" }` to use the value of an input field, which changes per record."
     },
     "__schema4": {
-      "default": {
-        "updateChecks": true
-      },
-      "type": "object",
-      "properties": {
-        "updateChecks": {
-          "default": true,
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": false
+      "type": "string"
     },
     "__schema5": {
       "type": "object",
       "properties": {
-        "adapterId": {
+        "field": {
+          "description": "Input field whose value becomes the window title, so the title tracks the record on screen.",
           "$ref": "#/$defs/__schema6"
-        },
-        "adapterConfig": {
-          "$ref": "#/$defs/__schema7"
-        },
-        "fields": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/InputField"
-          }
-        },
-        "rules": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/DisplayRule"
-          }
-        },
-        "cards": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema61"
-          }
         }
       },
-      "required": ["fields"],
+      "required": ["field"],
       "additionalProperties": false
     },
     "__schema6": {
-      "default": "csv",
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_ -]*[A-Za-z0-9_-]$|^[A-Za-z0-9_-]$"
     },
     "__schema7": {
-      "type": "object",
-      "properties": {},
-      "additionalProperties": {}
-    },
-    "InputField": {
-      "oneOf": [
-        {
-          "$ref": "#/$defs/__schema8"
-        },
-        {
-          "$ref": "#/$defs/__schema14"
-        },
-        {
-          "$ref": "#/$defs/__schema15"
-        },
-        {
-          "$ref": "#/$defs/__schema16"
-        },
-        {
-          "$ref": "#/$defs/__schema17"
-        },
-        {
-          "$ref": "#/$defs/__schema18"
-        },
-        {
-          "$ref": "#/$defs/__schema22"
-        },
-        {
-          "$ref": "#/$defs/__schema46"
-        },
-        {
-          "$ref": "#/$defs/__schema47"
-        }
-      ],
-      "title": "Input field"
+      "default": {
+        "updateChecks": true
+      },
+      "description": "Network policy. The update check is the only remote request this app ever performs, and it is opt-out.",
+      "$ref": "#/$defs/__schema8"
     },
     "__schema8": {
       "type": "object",
       "properties": {
+        "updateChecks": {
+          "default": true,
+          "description": "Whether to check GitHub Releases for updates. `false` forbids every network call the app could make. Absent or `true` means checks run.",
+          "$ref": "#/$defs/__schema9"
+        }
+      },
+      "additionalProperties": false
+    },
+    "__schema9": {
+      "type": "boolean"
+    },
+    "__schema10": {
+      "type": "object",
+      "properties": {
+        "adapterId": {
+          "$ref": "#/$defs/__schema11"
+        },
+        "adapterConfig": {
+          "$ref": "#/$defs/__schema13"
+        },
+        "fields": {
+          "$ref": "#/$defs/__schema15"
+        },
+        "rules": {
+          "$ref": "#/$defs/__schema64"
+        },
+        "cards": {
+          "$ref": "#/$defs/__schema85"
+        }
+      },
+      "required": ["fields"],
+      "additionalProperties": false,
+      "description": "What is read from the source file and shown read-only."
+    },
+    "__schema11": {
+      "default": "csv",
+      "description": "Which format adapter handles this side. `csv` is the only one built in; it also reads `.tsv`.",
+      "$ref": "#/$defs/__schema12"
+    },
+    "__schema12": {
+      "type": "string",
+      "minLength": 1
+    },
+    "__schema13": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": {
+        "$ref": "#/$defs/__schema14"
+      },
+      "description": "Opaque, adapter-owned options — for CSV, `delimiter` and `quoteChar` on input, `delimiter` and `newline` on output. The core never reads this, so it is the one object in the config where unknown keys are allowed."
+    },
+    "__schema14": {},
+    "__schema15": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/InputField"
+      },
+      "description": "The source columns to read and show read-only."
+    },
+    "InputField": {
+      "title": "Input field",
+      "description": "One source column, read from the input file and shown read-only.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Selects which shape the rest of this object takes. Every other key is validated against the variant named here.",
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "text",
+              "description": "A string."
+            },
+            {
+              "type": "string",
+              "const": "integer",
+              "description": "A whole number."
+            },
+            {
+              "type": "string",
+              "const": "number",
+              "description": "A number, whole or fractional."
+            },
+            {
+              "type": "string",
+              "const": "boolean",
+              "description": "true / false."
+            },
+            {
+              "type": "string",
+              "const": "date",
+              "description": "A date; ISO-8601 on the wire."
+            },
+            {
+              "type": "string",
+              "const": "enum",
+              "description": "One of a fixed set of `choices`."
+            },
+            {
+              "type": "string",
+              "const": "object",
+              "description": "A record with named `fields`."
+            },
+            {
+              "type": "string",
+              "const": "array",
+              "description": "A list of `items`."
+            },
+            {
+              "type": "string",
+              "const": "map",
+              "description": "A dictionary of `keys` → `values`."
+            }
+          ]
+        },
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema9"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema18"
+            }
+          ]
+        }
+      },
+      "required": ["type", "name"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema16"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "integer"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema24"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema25"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "boolean"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema26"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "date"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema27"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "enum"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema28"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "object"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema35"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "array"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema62"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "map"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema63"
+          }
+        }
+      ]
+    },
+    "__schema16": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema17"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema18"
+            }
+          ]
         },
         "type": {
           "type": "string",
@@ -163,63 +359,91 @@
         "minLength": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9007199254740991
+          "maximum": 9007199254740991,
+          "description": "Shortest accepted value, in characters."
         },
         "maxLength": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9007199254740991
+          "maximum": 9007199254740991,
+          "description": "Longest accepted value, in characters."
         },
         "pattern": {
-          "type": "string"
+          "type": "string",
+          "description": "JavaScript regular expression the value must match. Compiled when the config loads, so a malformed pattern fails at load rather than at render."
         }
       },
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema9": {
-      "$ref": "#/$defs/__schema10"
+    "__schema17": {
+      "description": "The column name in the data file. Letters, digits, `_` and `-`, with optional inner spaces; `.` `[` `]` `*` and edge whitespace are excluded.",
+      "$ref": "#/$defs/__schema6"
     },
-    "__schema10": {
+    "__schema18": {
+      "$ref": "#/$defs/FieldDisplay"
+    },
+    "FieldDisplay": {
       "type": "object",
       "properties": {
         "title": {
-          "$ref": "#/$defs/__schema11"
+          "$ref": "#/$defs/__schema19"
         },
         "description": {
-          "$ref": "#/$defs/__schema12"
+          "$ref": "#/$defs/__schema20"
         },
         "help": {
-          "$ref": "#/$defs/__schema13"
+          "$ref": "#/$defs/__schema21"
         },
         "titlePosition": {
-          "type": "string",
-          "enum": ["left", "above"]
+          "$ref": "#/$defs/__schema22"
         },
         "textSize": {
-          "type": "string",
-          "enum": ["sm", "md", "lg"]
+          "$ref": "#/$defs/__schema23"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Field display",
+      "description": "Captions plus layout. Only fields take the layout keys — choices, cards and table columns take a plain text display."
     },
-    "__schema11": {
-      "type": "string"
+    "__schema19": {
+      "type": "string",
+      "description": "The caption shown in place of the machine name."
     },
-    "__schema12": {
-      "type": "string"
+    "__schema20": {
+      "type": "string",
+      "description": "Shown under the caption."
     },
-    "__schema13": {
-      "type": "string"
+    "__schema21": {
+      "type": "string",
+      "description": "Shown in the ⓘ popover beside the caption."
     },
-    "__schema14": {
+    "__schema22": {
+      "type": "string",
+      "enum": ["left", "above"],
+      "description": "Where the caption sits relative to the value. Defaults to `left`."
+    },
+    "__schema23": {
+      "type": "string",
+      "enum": ["sm", "md", "lg"],
+      "description": "Size of the rendered value. Defaults to `md`."
+    },
+    "__schema24": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema9"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema18"
+            }
+          ]
         },
         "type": {
           "type": "string",
@@ -227,27 +451,38 @@
           "description": "A whole number."
         },
         "min": {
-          "type": "number"
+          "type": "number",
+          "description": "Smallest accepted value, inclusive."
         },
         "max": {
-          "type": "number"
+          "type": "number",
+          "description": "Largest accepted value, inclusive."
         },
         "step": {
           "type": "number",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "Increment for the number and slider widgets. A hint only, never a validity constraint — three slider clicks legitimately produce 0.30000000000000004."
         }
       },
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema15": {
+    "__schema25": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema9"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema18"
+            }
+          ]
         },
         "type": {
           "type": "string",
@@ -255,249 +490,43 @@
           "description": "A number, whole or fractional."
         },
         "min": {
-          "type": "number"
+          "type": "number",
+          "description": "Smallest accepted value, inclusive."
         },
         "max": {
-          "type": "number"
+          "type": "number",
+          "description": "Largest accepted value, inclusive."
         },
         "step": {
           "type": "number",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "Increment for the number and slider widgets. A hint only, never a validity constraint."
         }
       },
       "required": ["name", "type"],
       "additionalProperties": false
-    },
-    "__schema16": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "display": {
-          "$ref": "#/$defs/__schema9"
-        },
-        "type": {
-          "type": "string",
-          "const": "boolean",
-          "description": "true / false."
-        }
-      },
-      "required": ["name", "type"],
-      "additionalProperties": false
-    },
-    "__schema17": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "display": {
-          "$ref": "#/$defs/__schema9"
-        },
-        "type": {
-          "type": "string",
-          "const": "date",
-          "description": "A date; ISO-8601 on the wire."
-        }
-      },
-      "required": ["name", "type"],
-      "additionalProperties": false
-    },
-    "__schema18": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "display": {
-          "$ref": "#/$defs/__schema9"
-        },
-        "type": {
-          "type": "string",
-          "const": "enum",
-          "description": "One of a fixed set of `choices`."
-        },
-        "choices": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema19"
-          }
-        }
-      },
-      "required": ["name", "type", "choices"],
-      "additionalProperties": false
-    },
-    "__schema19": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "display": {
-          "$ref": "#/$defs/__schema20"
-        },
-        "shortcut": {
-          "type": "string"
-        },
-        "selectedStyle": {
-          "$ref": "#/$defs/__schema21"
-        }
-      },
-      "required": ["name"],
-      "additionalProperties": false
-    },
-    "__schema20": {
-      "type": "object",
-      "properties": {
-        "title": {
-          "$ref": "#/$defs/__schema11"
-        },
-        "description": {
-          "$ref": "#/$defs/__schema12"
-        },
-        "help": {
-          "$ref": "#/$defs/__schema13"
-        }
-      },
-      "additionalProperties": false
-    },
-    "__schema21": {
-      "type": "object",
-      "properties": {
-        "tone": {
-          "type": "string",
-          "enum": ["muted", "info", "success", "warning", "danger", "accent"]
-        },
-        "note": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
-    "__schema22": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "display": {
-          "$ref": "#/$defs/__schema9"
-        },
-        "type": {
-          "type": "string",
-          "const": "object",
-          "description": "A record with named `fields`."
-        },
-        "fields": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/NestedField"
-          }
-        },
-        "table": {
-          "$ref": "#/$defs/__schema32"
-        }
-      },
-      "required": ["name", "type", "fields"],
-      "additionalProperties": false
-    },
-    "NestedField": {
-      "oneOf": [
-        {
-          "$ref": "#/$defs/__schema23"
-        },
-        {
-          "$ref": "#/$defs/__schema26"
-        },
-        {
-          "$ref": "#/$defs/__schema27"
-        },
-        {
-          "$ref": "#/$defs/__schema28"
-        },
-        {
-          "$ref": "#/$defs/__schema29"
-        },
-        {
-          "$ref": "#/$defs/__schema30"
-        },
-        {
-          "$ref": "#/$defs/__schema31"
-        },
-        {
-          "$ref": "#/$defs/__schema35"
-        },
-        {
-          "$ref": "#/$defs/__schema45"
-        }
-      ],
-      "title": "Nested field"
-    },
-    "__schema23": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "$ref": "#/$defs/__schema24"
-        },
-        "display": {
-          "$ref": "#/$defs/__schema25"
-        },
-        "type": {
-          "type": "string",
-          "const": "text",
-          "description": "A string."
-        },
-        "minLength": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "maxLength": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "pattern": {
-          "type": "string"
-        }
-      },
-      "required": ["name", "type"],
-      "additionalProperties": false
-    },
-    "__schema24": {
-      "type": "string",
-      "minLength": 1
-    },
-    "__schema25": {
-      "$ref": "#/$defs/__schema20"
     },
     "__schema26": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema24"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema25"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema18"
+            }
+          ]
         },
         "type": {
           "type": "string",
-          "const": "integer",
-          "description": "A whole number."
-        },
-        "min": {
-          "type": "number"
-        },
-        "max": {
-          "type": "number"
-        },
-        "step": {
-          "type": "number",
-          "exclusiveMinimum": 0
+          "const": "boolean",
+          "description": "true / false."
         }
       },
       "required": ["name", "type"],
@@ -507,25 +536,23 @@
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema24"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema25"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema18"
+            }
+          ]
         },
         "type": {
           "type": "string",
-          "const": "number",
-          "description": "A number, whole or fractional."
-        },
-        "min": {
-          "type": "number"
-        },
-        "max": {
-          "type": "number"
-        },
-        "step": {
-          "type": "number",
-          "exclusiveMinimum": 0
+          "const": "date",
+          "description": "A date; ISO-8601 on the wire."
         }
       },
       "required": ["name", "type"],
@@ -535,46 +562,18 @@
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema24"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema25"
-        },
-        "type": {
-          "type": "string",
-          "const": "boolean",
-          "description": "true / false."
-        }
-      },
-      "required": ["name", "type"],
-      "additionalProperties": false
-    },
-    "__schema29": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "$ref": "#/$defs/__schema24"
-        },
-        "display": {
-          "$ref": "#/$defs/__schema25"
-        },
-        "type": {
-          "type": "string",
-          "const": "date",
-          "description": "A date; ISO-8601 on the wire."
-        }
-      },
-      "required": ["name", "type"],
-      "additionalProperties": false
-    },
-    "__schema30": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "$ref": "#/$defs/__schema24"
-        },
-        "display": {
-          "$ref": "#/$defs/__schema25"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema18"
+            }
+          ]
         },
         "type": {
           "type": "string",
@@ -585,21 +584,114 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema19"
-          }
+            "$ref": "#/$defs/Choice"
+          },
+          "description": "The permitted values, in the order they are offered."
         }
       },
       "required": ["name", "type", "choices"],
       "additionalProperties": false
     },
-    "__schema31": {
+    "Choice": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema24"
+          "$ref": "#/$defs/__schema29"
         },
         "display": {
-          "$ref": "#/$defs/__schema25"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema30"
+            }
+          ]
+        },
+        "shortcut": {
+          "$ref": "#/$defs/__schema31"
+        },
+        "selectedStyle": {
+          "$ref": "#/$defs/__schema32"
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false,
+      "title": "Choice",
+      "description": "One option of an `enum`."
+    },
+    "__schema29": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The literal string written to the data file when this choice is selected."
+    },
+    "__schema30": {
+      "$ref": "#/$defs/TextDisplay"
+    },
+    "TextDisplay": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/__schema19"
+        },
+        "description": {
+          "$ref": "#/$defs/__schema20"
+        },
+        "help": {
+          "$ref": "#/$defs/__schema21"
+        }
+      },
+      "additionalProperties": false,
+      "title": "Text display",
+      "description": "Captions for one entity. A bare string is shorthand for `{ title }`, which is how most display blocks are written."
+    },
+    "__schema31": {
+      "type": "string",
+      "description": "Chord that picks this choice. Fires app-wide, not only while the field has focus, so it shares one namespace with every other shortcut in the config."
+    },
+    "__schema32": {
+      "description": "Applied to the widget while this choice is the selected one.",
+      "$ref": "#/$defs/Style"
+    },
+    "__schema33": {
+      "type": "string",
+      "enum": ["muted", "info", "success", "warning", "danger", "accent"],
+      "description": "Semantic tone. Each maps to a contrast-audited token pair rather than a fixed colour, so both themes stay legible."
+    },
+    "__schema34": {
+      "type": "string",
+      "description": "Short explanation shown beside the styled value."
+    },
+    "Style": {
+      "type": "object",
+      "properties": {
+        "tone": {
+          "$ref": "#/$defs/__schema33"
+        },
+        "note": {
+          "$ref": "#/$defs/__schema34"
+        }
+      },
+      "additionalProperties": false,
+      "title": "Style"
+    },
+    "__schema35": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema17"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema18"
+            }
+          ]
         },
         "type": {
           "type": "string",
@@ -611,66 +703,548 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/NestedField"
-          }
+          },
+          "description": "The object's own named members. Unlike a column name, these are JSON keys from the source payload, so colons, slashes and unicode are all allowed."
         },
         "table": {
-          "$ref": "#/$defs/__schema32"
+          "$ref": "#/$defs/TableView"
         }
       },
       "required": ["name", "type", "fields"],
       "additionalProperties": false
     },
-    "__schema32": {
+    "NestedField": {
+      "title": "Nested field",
+      "description": "A named member inside an `object`.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Selects which shape the rest of this object takes. Every other key is validated against the variant named here.",
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "text",
+              "description": "A string."
+            },
+            {
+              "type": "string",
+              "const": "integer",
+              "description": "A whole number."
+            },
+            {
+              "type": "string",
+              "const": "number",
+              "description": "A number, whole or fractional."
+            },
+            {
+              "type": "string",
+              "const": "boolean",
+              "description": "true / false."
+            },
+            {
+              "type": "string",
+              "const": "date",
+              "description": "A date; ISO-8601 on the wire."
+            },
+            {
+              "type": "string",
+              "const": "enum",
+              "description": "One of a fixed set of `choices`."
+            },
+            {
+              "type": "string",
+              "const": "object",
+              "description": "A record with named `fields`."
+            },
+            {
+              "type": "string",
+              "const": "array",
+              "description": "A list of `items`."
+            },
+            {
+              "type": "string",
+              "const": "map",
+              "description": "A dictionary of `keys` → `values`."
+            }
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/__schema37"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema38"
+            }
+          ]
+        }
+      },
+      "required": ["type", "name"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema36"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "integer"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema39"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema40"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "boolean"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema41"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "date"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema42"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "enum"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema43"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "object"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema44"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "array"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema51"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "map"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema61"
+          }
+        }
+      ]
+    },
+    "__schema36": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema37"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema38"
+            }
+          ]
+        },
+        "type": {
+          "type": "string",
+          "const": "text",
+          "description": "A string."
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Shortest accepted value, in characters."
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Longest accepted value, in characters."
+        },
+        "pattern": {
+          "type": "string",
+          "description": "JavaScript regular expression the value must match. Compiled when the config loads, so a malformed pattern fails at load rather than at render."
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema37": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The key this member has in the source payload. Deliberately unconstrained, unlike a column name — real payloads use colons, slashes and unicode."
+    },
+    "__schema38": {
+      "$ref": "#/$defs/TextDisplay"
+    },
+    "__schema39": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema37"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema38"
+            }
+          ]
+        },
+        "type": {
+          "type": "string",
+          "const": "integer",
+          "description": "A whole number."
+        },
+        "min": {
+          "type": "number",
+          "description": "Smallest accepted value, inclusive."
+        },
+        "max": {
+          "type": "number",
+          "description": "Largest accepted value, inclusive."
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Increment for the number and slider widgets. A hint only, never a validity constraint — three slider clicks legitimately produce 0.30000000000000004."
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema40": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema37"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema38"
+            }
+          ]
+        },
+        "type": {
+          "type": "string",
+          "const": "number",
+          "description": "A number, whole or fractional."
+        },
+        "min": {
+          "type": "number",
+          "description": "Smallest accepted value, inclusive."
+        },
+        "max": {
+          "type": "number",
+          "description": "Largest accepted value, inclusive."
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Increment for the number and slider widgets. A hint only, never a validity constraint."
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema41": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema37"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema38"
+            }
+          ]
+        },
+        "type": {
+          "type": "string",
+          "const": "boolean",
+          "description": "true / false."
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema42": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema37"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema38"
+            }
+          ]
+        },
+        "type": {
+          "type": "string",
+          "const": "date",
+          "description": "A date; ISO-8601 on the wire."
+        }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+    "__schema43": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema37"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema38"
+            }
+          ]
+        },
+        "type": {
+          "type": "string",
+          "const": "enum",
+          "description": "One of a fixed set of `choices`."
+        },
+        "choices": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Choice"
+          },
+          "description": "The permitted values, in the order they are offered."
+        }
+      },
+      "required": ["name", "type", "choices"],
+      "additionalProperties": false
+    },
+    "__schema44": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema37"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema38"
+            }
+          ]
+        },
+        "type": {
+          "type": "string",
+          "const": "object",
+          "description": "A record with named `fields`."
+        },
+        "fields": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NestedField"
+          },
+          "description": "The object's own named members. Unlike a column name, these are JSON keys from the source payload, so colons, slashes and unicode are all allowed."
+        },
+        "table": {
+          "$ref": "#/$defs/TableView"
+        }
+      },
+      "required": ["name", "type", "fields"],
+      "additionalProperties": false
+    },
+    "TableView": {
       "type": "object",
       "properties": {
         "columns": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema33"
-          }
+          "$ref": "#/$defs/__schema45"
         }
       },
       "required": ["columns"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Table view",
+      "description": "How an object's fields group into displayed columns. Lives on the `object` type beside the `fields` its columns name, so it nests to any depth and covers `map<_, object>` as well as arrays."
     },
-    "__schema33": {
+    "__schema45": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TableColumn"
+      },
+      "description": "The displayed columns, left to right."
+    },
+    "TableColumn": {
       "type": "object",
       "properties": {
         "name": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/__schema46"
         },
         "use": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema34"
-          }
+          "$ref": "#/$defs/__schema47"
         },
         "layout": {
-          "type": "string",
-          "enum": ["chips", "stack", "inline"]
+          "$ref": "#/$defs/__schema49"
         },
         "display": {
-          "$ref": "#/$defs/__schema20"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema50"
+            }
+          ]
         }
       },
       "required": ["name", "use"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "title": "Table column",
+      "description": "One displayed column, combining one or more of the object's own fields."
     },
-    "__schema34": {
+    "__schema46": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The column heading."
+    },
+    "__schema47": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema48"
+      },
+      "description": "Object field names combined into this one column."
+    },
+    "__schema48": {
       "type": "string",
       "minLength": 1
     },
-    "__schema35": {
+    "__schema49": {
+      "type": "string",
+      "enum": ["chips", "stack", "inline"],
+      "description": "How multiple values share the cell. Defaults to `chips`."
+    },
+    "__schema50": {
+      "$ref": "#/$defs/TextDisplay"
+    },
+    "__schema51": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema24"
+          "$ref": "#/$defs/__schema37"
         },
         "display": {
-          "$ref": "#/$defs/__schema25"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema38"
+            }
+          ]
         },
         "type": {
           "type": "string",
@@ -678,45 +1252,14 @@
           "description": "A list of `items`."
         },
         "items": {
+          "description": "The type of every element. An `array` of `enum` is how a multi-select is declared.",
           "$ref": "#/$defs/ValueType"
         }
       },
       "required": ["name", "type", "items"],
       "additionalProperties": false
     },
-    "ValueType": {
-      "oneOf": [
-        {
-          "$ref": "#/$defs/__schema36"
-        },
-        {
-          "$ref": "#/$defs/__schema37"
-        },
-        {
-          "$ref": "#/$defs/__schema38"
-        },
-        {
-          "$ref": "#/$defs/__schema39"
-        },
-        {
-          "$ref": "#/$defs/__schema40"
-        },
-        {
-          "$ref": "#/$defs/__schema41"
-        },
-        {
-          "$ref": "#/$defs/__schema42"
-        },
-        {
-          "$ref": "#/$defs/__schema43"
-        },
-        {
-          "$ref": "#/$defs/__schema44"
-        }
-      ],
-      "title": "Value type"
-    },
-    "__schema36": {
+    "__schema52": {
       "type": "object",
       "properties": {
         "type": {
@@ -727,21 +1270,24 @@
         "minLength": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9007199254740991
+          "maximum": 9007199254740991,
+          "description": "Shortest accepted value, in characters."
         },
         "maxLength": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9007199254740991
+          "maximum": 9007199254740991,
+          "description": "Longest accepted value, in characters."
         },
         "pattern": {
-          "type": "string"
+          "type": "string",
+          "description": "JavaScript regular expression the value must match. Compiled when the config loads, so a malformed pattern fails at load rather than at render."
         }
       },
       "required": ["type"],
       "additionalProperties": false
     },
-    "__schema37": {
+    "__schema53": {
       "type": "object",
       "properties": {
         "type": {
@@ -750,20 +1296,23 @@
           "description": "A whole number."
         },
         "min": {
-          "type": "number"
+          "type": "number",
+          "description": "Smallest accepted value, inclusive."
         },
         "max": {
-          "type": "number"
+          "type": "number",
+          "description": "Largest accepted value, inclusive."
         },
         "step": {
           "type": "number",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "Increment for the number and slider widgets. A hint only, never a validity constraint — three slider clicks legitimately produce 0.30000000000000004."
         }
       },
       "required": ["type"],
       "additionalProperties": false
     },
-    "__schema38": {
+    "__schema54": {
       "type": "object",
       "properties": {
         "type": {
@@ -772,20 +1321,23 @@
           "description": "A number, whole or fractional."
         },
         "min": {
-          "type": "number"
+          "type": "number",
+          "description": "Smallest accepted value, inclusive."
         },
         "max": {
-          "type": "number"
+          "type": "number",
+          "description": "Largest accepted value, inclusive."
         },
         "step": {
           "type": "number",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "Increment for the number and slider widgets. A hint only, never a validity constraint."
         }
       },
       "required": ["type"],
       "additionalProperties": false
     },
-    "__schema39": {
+    "__schema55": {
       "type": "object",
       "properties": {
         "type": {
@@ -797,7 +1349,7 @@
       "required": ["type"],
       "additionalProperties": false
     },
-    "__schema40": {
+    "__schema56": {
       "type": "object",
       "properties": {
         "type": {
@@ -809,7 +1361,7 @@
       "required": ["type"],
       "additionalProperties": false
     },
-    "__schema41": {
+    "__schema57": {
       "type": "object",
       "properties": {
         "type": {
@@ -821,14 +1373,15 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema19"
-          }
+            "$ref": "#/$defs/Choice"
+          },
+          "description": "The permitted values, in the order they are offered."
         }
       },
       "required": ["type", "choices"],
       "additionalProperties": false
     },
-    "__schema42": {
+    "__schema58": {
       "type": "object",
       "properties": {
         "type": {
@@ -841,16 +1394,17 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/NestedField"
-          }
+          },
+          "description": "The object's own named members. Unlike a column name, these are JSON keys from the source payload, so colons, slashes and unicode are all allowed."
         },
         "table": {
-          "$ref": "#/$defs/__schema32"
+          "$ref": "#/$defs/TableView"
         }
       },
       "required": ["type", "fields"],
       "additionalProperties": false
     },
-    "__schema43": {
+    "__schema59": {
       "type": "object",
       "properties": {
         "type": {
@@ -859,13 +1413,14 @@
           "description": "A list of `items`."
         },
         "items": {
+          "description": "The type of every element. An `array` of `enum` is how a multi-select is declared.",
           "$ref": "#/$defs/ValueType"
         }
       },
       "required": ["type", "items"],
       "additionalProperties": false
     },
-    "__schema44": {
+    "__schema60": {
       "type": "object",
       "properties": {
         "type": {
@@ -874,23 +1429,209 @@
           "description": "A dictionary of `keys` → `values`."
         },
         "keys": {
+          "description": "The type of each key. Defaults to text when omitted.",
           "$ref": "#/$defs/ValueType"
         },
         "values": {
+          "description": "The type of each value.",
           "$ref": "#/$defs/ValueType"
         }
       },
       "required": ["type", "values"],
       "additionalProperties": false
     },
-    "__schema45": {
+    "ValueType": {
+      "title": "Value type",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Selects which shape the rest of this object takes. Every other key is validated against the variant named here.",
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "text",
+              "description": "A string."
+            },
+            {
+              "type": "string",
+              "const": "integer",
+              "description": "A whole number."
+            },
+            {
+              "type": "string",
+              "const": "number",
+              "description": "A number, whole or fractional."
+            },
+            {
+              "type": "string",
+              "const": "boolean",
+              "description": "true / false."
+            },
+            {
+              "type": "string",
+              "const": "date",
+              "description": "A date; ISO-8601 on the wire."
+            },
+            {
+              "type": "string",
+              "const": "enum",
+              "description": "One of a fixed set of `choices`."
+            },
+            {
+              "type": "string",
+              "const": "object",
+              "description": "A record with named `fields`."
+            },
+            {
+              "type": "string",
+              "const": "array",
+              "description": "A list of `items`."
+            },
+            {
+              "type": "string",
+              "const": "map",
+              "description": "A dictionary of `keys` → `values`."
+            }
+          ]
+        }
+      },
+      "required": ["type"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema52"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "integer"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema53"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema54"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "boolean"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema55"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "date"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema56"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "enum"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema57"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "object"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema58"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "array"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema59"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "map"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema60"
+          }
+        }
+      ]
+    },
+    "__schema61": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema24"
+          "$ref": "#/$defs/__schema37"
         },
         "display": {
-          "$ref": "#/$defs/__schema25"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema38"
+            }
+          ]
         },
         "type": {
           "type": "string",
@@ -898,23 +1639,33 @@
           "description": "A dictionary of `keys` → `values`."
         },
         "keys": {
+          "description": "The type of each key. Defaults to text when omitted.",
           "$ref": "#/$defs/ValueType"
         },
         "values": {
+          "description": "The type of each value.",
           "$ref": "#/$defs/ValueType"
         }
       },
       "required": ["name", "type", "values"],
       "additionalProperties": false
     },
-    "__schema46": {
+    "__schema62": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema9"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema18"
+            }
+          ]
         },
         "type": {
           "type": "string",
@@ -922,20 +1673,29 @@
           "description": "A list of `items`."
         },
         "items": {
+          "description": "The type of every element. An `array` of `enum` is how a multi-select is declared.",
           "$ref": "#/$defs/ValueType"
         }
       },
       "required": ["name", "type", "items"],
       "additionalProperties": false
     },
-    "__schema47": {
+    "__schema63": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema9"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema18"
+            }
+          ]
         },
         "type": {
           "type": "string",
@@ -943,375 +1703,91 @@
           "description": "A dictionary of `keys` → `values`."
         },
         "keys": {
+          "description": "The type of each key. Defaults to text when omitted.",
           "$ref": "#/$defs/ValueType"
         },
         "values": {
+          "description": "The type of each value.",
           "$ref": "#/$defs/ValueType"
         }
       },
       "required": ["name", "type", "values"],
       "additionalProperties": false
     },
+    "__schema64": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DisplayRule"
+      },
+      "description": "Purely visual rules over displayed input values. A rule can never change what is exported."
+    },
     "DisplayRule": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema65"
         },
         "when": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/__schema66"
         },
         "appliesTo": {
-          "$ref": "#/$defs/__schema60"
+          "$ref": "#/$defs/__schema83"
         },
         "style": {
-          "$ref": "#/$defs/__schema21"
+          "$ref": "#/$defs/__schema84"
         }
       },
       "required": ["name", "when", "style"],
       "additionalProperties": false,
-      "title": "Display rule"
+      "title": "Display rule",
+      "description": "A purely visual rule over displayed input values. Rules never affect what is exported — that guarantee is structural, since the module evaluating them is never imported on the export path."
     },
-    "Condition": {
-      "oneOf": [
-        {
-          "$ref": "#/$defs/__schema48"
-        },
-        {
-          "$ref": "#/$defs/__schema50"
-        },
-        {
-          "$ref": "#/$defs/__schema51"
-        },
-        {
-          "$ref": "#/$defs/__schema52"
-        },
-        {
-          "$ref": "#/$defs/__schema53"
-        },
-        {
-          "$ref": "#/$defs/__schema54"
-        },
-        {
-          "$ref": "#/$defs/__schema55"
-        },
-        {
-          "$ref": "#/$defs/__schema56"
-        },
-        {
-          "$ref": "#/$defs/__schema57"
-        },
-        {
-          "$ref": "#/$defs/__schema58"
-        },
-        {
-          "$ref": "#/$defs/__schema59"
-        }
-      ],
-      "title": "Condition"
+    "__schema65": {
+      "description": "Identifies the rule; shown in diagnostics and used as a stable render key.",
+      "$ref": "#/$defs/__schema6"
     },
-    "__schema48": {
+    "__schema66": {
+      "description": "The condition that fires this rule.",
+      "$ref": "#/$defs/Condition"
+    },
+    "__schema67": {
       "type": "object",
       "properties": {
         "op": {
           "type": "string",
-          "const": "eq"
+          "const": "eq",
+          "description": "True when the values are equal."
         },
         "field": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema68"
         },
         "value": {
-          "$ref": "#/$defs/__schema49"
+          "description": "The literal to compare against. Give this or `otherField`, not both.",
+          "$ref": "#/$defs/__schema72"
         },
         "otherField": {
-          "$ref": "#/$defs/__schema3"
-        }
-      },
-      "required": ["op", "field"],
-      "additionalProperties": false
-    },
-    "__schema49": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "number"
-        },
-        {
-          "type": "boolean"
-        }
-      ]
-    },
-    "__schema50": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "ne"
-        },
-        "field": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "value": {
-          "$ref": "#/$defs/__schema49"
-        },
-        "otherField": {
-          "$ref": "#/$defs/__schema3"
-        }
-      },
-      "required": ["op", "field"],
-      "additionalProperties": false
-    },
-    "__schema51": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "gt"
-        },
-        "field": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "value": {
-          "type": "number"
-        },
-        "otherField": {
-          "$ref": "#/$defs/__schema3"
-        }
-      },
-      "required": ["op", "field"],
-      "additionalProperties": false
-    },
-    "__schema52": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "gte"
-        },
-        "field": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "value": {
-          "type": "number"
-        },
-        "otherField": {
-          "$ref": "#/$defs/__schema3"
-        }
-      },
-      "required": ["op", "field"],
-      "additionalProperties": false
-    },
-    "__schema53": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "lt"
-        },
-        "field": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "value": {
-          "type": "number"
-        },
-        "otherField": {
-          "$ref": "#/$defs/__schema3"
-        }
-      },
-      "required": ["op", "field"],
-      "additionalProperties": false
-    },
-    "__schema54": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "lte"
-        },
-        "field": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "value": {
-          "type": "number"
-        },
-        "otherField": {
-          "$ref": "#/$defs/__schema3"
-        }
-      },
-      "required": ["op", "field"],
-      "additionalProperties": false
-    },
-    "__schema55": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "in"
-        },
-        "field": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "value": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema49"
-          }
-        }
-      },
-      "required": ["op", "field", "value"],
-      "additionalProperties": false
-    },
-    "__schema56": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "notIn"
-        },
-        "field": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "value": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema49"
-          }
-        }
-      },
-      "required": ["op", "field", "value"],
-      "additionalProperties": false
-    },
-    "__schema57": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "matches"
-        },
-        "field": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "pattern": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": ["op", "field", "pattern"],
-      "additionalProperties": false
-    },
-    "__schema58": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "empty"
-        },
-        "field": {
-          "$ref": "#/$defs/__schema3"
-        }
-      },
-      "required": ["op", "field"],
-      "additionalProperties": false
-    },
-    "__schema59": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "notEmpty"
-        },
-        "field": {
-          "$ref": "#/$defs/__schema3"
-        }
-      },
-      "required": ["op", "field"],
-      "additionalProperties": false
-    },
-    "__schema60": {
-      "minItems": 1,
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/__schema3"
-      }
-    },
-    "__schema61": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "$ref": "#/$defs/__schema3"
-        },
-        "display": {
-          "$ref": "#/$defs/__schema20"
-        },
-        "scope": {
-          "type": "string",
-          "enum": ["record", "session"]
-        },
-        "rows": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema62"
-          }
-        }
-      },
-      "required": ["name", "rows"],
-      "additionalProperties": false
-    },
-    "__schema62": {
-      "type": "object",
-      "properties": {
-        "perRow": {
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 9007199254740991
-        },
-        "use": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema3"
-          }
-        }
-      },
-      "required": ["use"],
-      "additionalProperties": false
-    },
-    "__schema63": {
-      "type": "object",
-      "properties": {
-        "adapterId": {
+          "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
           "$ref": "#/$defs/__schema6"
-        },
-        "adapterConfig": {
-          "$ref": "#/$defs/__schema7"
-        },
-        "fields": {
-          "minItems": 1,
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/OutputField"
-          }
-        },
-        "cards": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema61"
-          }
         }
       },
-      "required": ["fields"],
+      "required": ["op", "field"],
       "additionalProperties": false
     },
-    "OutputField": {
-      "oneOf": [
-        {
-          "$ref": "#/$defs/__schema64"
-        },
+    "__schema68": {
+      "description": "The input field whose value is tested.",
+      "$ref": "#/$defs/__schema6"
+    },
+    "__schema69": {
+      "type": "string"
+    },
+    "__schema70": {
+      "type": "number"
+    },
+    "__schema71": {
+      "type": "boolean"
+    },
+    "__schema72": {
+      "anyOf": [
         {
           "$ref": "#/$defs/__schema69"
         },
@@ -1320,46 +1796,790 @@
         },
         {
           "$ref": "#/$defs/__schema71"
+        }
+      ]
+    },
+    "__schema73": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "ne",
+          "description": "True when the values differ."
         },
-        {
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "value": {
+          "description": "The literal to compare against. Give this or `otherField`, not both.",
           "$ref": "#/$defs/__schema72"
         },
-        {
-          "$ref": "#/$defs/__schema73"
-        },
-        {
-          "$ref": "#/$defs/__schema74"
-        },
-        {
-          "$ref": "#/$defs/__schema75"
-        },
-        {
-          "$ref": "#/$defs/__schema76"
+        "otherField": {
+          "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
+          "$ref": "#/$defs/__schema6"
         }
-      ],
-      "title": "Output field"
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
     },
-    "__schema64": {
+    "__schema74": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "gt",
+          "description": "True when the field is greater than the comparand."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "value": {
+          "type": "number",
+          "description": "The literal to compare against. Give this or `otherField`, not both."
+        },
+        "otherField": {
+          "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema75": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "gte",
+          "description": "True when the field is greater than or equal to the comparand."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "value": {
+          "type": "number",
+          "description": "The literal to compare against. Give this or `otherField`, not both."
+        },
+        "otherField": {
+          "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema76": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "lt",
+          "description": "True when the field is less than the comparand."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "value": {
+          "type": "number",
+          "description": "The literal to compare against. Give this or `otherField`, not both."
+        },
+        "otherField": {
+          "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema77": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "lte",
+          "description": "True when the field is less than or equal to the comparand."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "value": {
+          "type": "number",
+          "description": "The literal to compare against. Give this or `otherField`, not both."
+        },
+        "otherField": {
+          "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema78": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "in",
+          "description": "True when the field matches one of the listed values."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "value": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema72"
+          },
+          "description": "The values to match against."
+        }
+      },
+      "required": ["op", "field", "value"],
+      "additionalProperties": false
+    },
+    "__schema79": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "notIn",
+          "description": "True when the field matches none of the listed values."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "value": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema72"
+          },
+          "description": "The values to match against."
+        }
+      },
+      "required": ["op", "field", "value"],
+      "additionalProperties": false
+    },
+    "__schema80": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "matches",
+          "description": "True when the field matches the regular expression."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1,
+          "description": "JavaScript regular expression, tested against the value's string form. Compiled when the config loads."
+        }
+      },
+      "required": ["op", "field", "pattern"],
+      "additionalProperties": false
+    },
+    "__schema81": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "empty",
+          "description": "True when the field is null, an empty string, or an empty list."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema82": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "notEmpty",
+          "description": "True when the field holds anything at all."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "Condition": {
+      "title": "Condition",
+      "description": "A rule's trigger, evaluated over one record's input values. Never throws: a condition pointed at a missing or wrongly-typed value simply does not fire.",
+      "type": "object",
+      "properties": {
+        "op": {
+          "description": "Selects which shape the rest of this object takes. Every other key is validated against the variant named here.",
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "eq",
+              "description": "True when the values are equal."
+            },
+            {
+              "type": "string",
+              "const": "ne",
+              "description": "True when the values differ."
+            },
+            {
+              "type": "string",
+              "const": "gt",
+              "description": "True when the field is greater than the comparand."
+            },
+            {
+              "type": "string",
+              "const": "gte",
+              "description": "True when the field is greater than or equal to the comparand."
+            },
+            {
+              "type": "string",
+              "const": "lt",
+              "description": "True when the field is less than the comparand."
+            },
+            {
+              "type": "string",
+              "const": "lte",
+              "description": "True when the field is less than or equal to the comparand."
+            },
+            {
+              "type": "string",
+              "const": "in",
+              "description": "True when the field matches one of the listed values."
+            },
+            {
+              "type": "string",
+              "const": "notIn",
+              "description": "True when the field matches none of the listed values."
+            },
+            {
+              "type": "string",
+              "const": "matches",
+              "description": "True when the field matches the regular expression."
+            },
+            {
+              "type": "string",
+              "const": "empty",
+              "description": "True when the field is null, an empty string, or an empty list."
+            },
+            {
+              "type": "string",
+              "const": "notEmpty",
+              "description": "True when the field holds anything at all."
+            }
+          ]
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        }
+      },
+      "required": ["op", "field"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "eq"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema67"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "ne"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema73"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "gt"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema74"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "gte"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema75"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "lt"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema76"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "lte"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema77"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "in"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema78"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "notIn"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema79"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "matches"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema80"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "empty"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema81"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "notEmpty"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema82"
+          }
+        }
+      ]
+    },
+    "__schema83": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema6"
+      },
+      "description": "Fields to style when the rule fires. Defaults to the field the condition tests, which is what you want for a single-field rule and never what you want when comparing two."
+    },
+    "__schema84": {
+      "description": "How the matched fields are styled.",
+      "$ref": "#/$defs/Style"
+    },
+    "__schema85": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Card"
+      },
+      "description": "Layout. Omit for one implicit card holding every field, one per row."
+    },
+    "Card": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema86"
         },
         "display": {
-          "$ref": "#/$defs/__schema65"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema87"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/__schema88"
+        },
+        "rows": {
+          "$ref": "#/$defs/__schema89"
+        }
+      },
+      "required": ["name", "rows"],
+      "additionalProperties": false,
+      "title": "Card",
+      "description": "A card grouping fields under a heading. The same shape drives read-only input cards and interactive output cards. Omit `cards` entirely for one implicit card holding every field, one per row."
+    },
+    "__schema86": {
+      "description": "Identifies the card; must be unique per side.",
+      "$ref": "#/$defs/__schema6"
+    },
+    "__schema87": {
+      "$ref": "#/$defs/TextDisplay"
+    },
+    "__schema88": {
+      "type": "string",
+      "enum": ["record", "session"],
+      "description": "`session` cards render on the setup step rather than once per record. Defaults to `record`."
+    },
+    "__schema89": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CardRow"
+      },
+      "description": "The card's rows, rendered top to bottom."
+    },
+    "CardRow": {
+      "type": "object",
+      "properties": {
+        "perRow": {
+          "$ref": "#/$defs/__schema90"
+        },
+        "use": {
+          "$ref": "#/$defs/__schema91"
+        }
+      },
+      "required": ["use"],
+      "additionalProperties": false,
+      "title": "Card row"
+    },
+    "__schema90": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Columns to fit before wrapping. Defaults to the number of fields in the row."
+    },
+    "__schema91": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema6"
+      },
+      "description": "Field names to render in this row, in order."
+    },
+    "__schema92": {
+      "type": "object",
+      "properties": {
+        "adapterId": {
+          "$ref": "#/$defs/__schema11"
+        },
+        "adapterConfig": {
+          "$ref": "#/$defs/__schema13"
+        },
+        "fields": {
+          "$ref": "#/$defs/__schema93"
+        },
+        "cards": {
+          "$ref": "#/$defs/__schema111"
+        }
+      },
+      "required": ["fields"],
+      "additionalProperties": false,
+      "description": "What the labeler captures, or the app fills in."
+    },
+    "__schema93": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/OutputField"
+      },
+      "description": "The columns written to the output file."
+    },
+    "OutputField": {
+      "title": "Output field",
+      "description": "One column written to the output file — captured from the labeler, copied from the input, or derived by the app.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Selects which shape the rest of this object takes. Every other key is validated against the variant named here.",
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "text",
+              "description": "A string."
+            },
+            {
+              "type": "string",
+              "const": "integer",
+              "description": "A whole number."
+            },
+            {
+              "type": "string",
+              "const": "number",
+              "description": "A number, whole or fractional."
+            },
+            {
+              "type": "string",
+              "const": "boolean",
+              "description": "true / false."
+            },
+            {
+              "type": "string",
+              "const": "date",
+              "description": "A date; ISO-8601 on the wire."
+            },
+            {
+              "type": "string",
+              "const": "enum",
+              "description": "One of a fixed set of `choices`."
+            },
+            {
+              "type": "string",
+              "const": "object",
+              "description": "A record with named `fields`."
+            },
+            {
+              "type": "string",
+              "const": "array",
+              "description": "A list of `items`."
+            },
+            {
+              "type": "string",
+              "const": "map",
+              "description": "A dictionary of `keys` → `values`."
+            }
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/__schema17"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema95"
+            }
+          ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema66"
+          "$ref": "#/$defs/__schema96"
         },
         "required": {
-          "$ref": "#/$defs/__schema67"
+          "$ref": "#/$defs/__schema101"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema102"
+        }
+      },
+      "required": ["type", "name"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema94"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "integer"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema103"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema104"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "boolean"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema105"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "date"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema106"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "enum"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema107"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "object"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema108"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "array"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema109"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "map"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema110"
+          }
+        }
+      ]
+    },
+    "__schema94": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/__schema17"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema95"
+            }
+          ]
+        },
+        "fill": {
+          "$ref": "#/$defs/__schema96"
+        },
+        "required": {
+          "$ref": "#/$defs/__schema101"
+        },
+        "shortcut": {
+          "$ref": "#/$defs/__schema102"
         },
         "widget": {
           "type": "string",
-          "enum": ["text", "textarea"]
+          "enum": ["text", "textarea"],
+          "description": "How the field renders. Defaults to `text`. Only a field a person fills may name a widget."
         },
         "type": {
           "type": "string",
@@ -1369,43 +2589,109 @@
         "minLength": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9007199254740991
+          "maximum": 9007199254740991,
+          "description": "Shortest accepted value, in characters."
         },
         "maxLength": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 9007199254740991
+          "maximum": 9007199254740991,
+          "description": "Longest accepted value, in characters."
         },
         "pattern": {
-          "type": "string"
+          "type": "string",
+          "description": "JavaScript regular expression the value must match. Compiled when the config loads, so a malformed pattern fails at load rather than at render."
         }
       },
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema65": {
-      "$ref": "#/$defs/__schema10"
+    "__schema95": {
+      "$ref": "#/$defs/FieldDisplay"
     },
-    "__schema66": {
+    "__schema96": {
+      "description": "Where this field's value comes from. Defaults to `{ \"kind\": \"user\" }`.",
+      "$ref": "#/$defs/Fill"
+    },
+    "__schema97": {
       "type": "object",
       "properties": {
         "kind": {
+          "type": "string",
+          "const": "user",
+          "description": "The labeler answers this field on every record."
+        }
+      },
+      "required": ["kind"],
+      "additionalProperties": false
+    },
+    "__schema98": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "copy",
+          "description": "Carried over from an input column. Renders no widget."
+        },
+        "from": {
+          "description": "Input field to copy from. Defaults to this field's own name; naming one explicitly is how a copied column gets renamed on the way out. Its type must match this field's type.",
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": ["kind"],
+      "additionalProperties": false
+    },
+    "__schema99": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "session",
+          "description": "The labeler answers this once, on the setup step, and the answer is written to every exported row."
+        }
+      },
+      "required": ["kind"],
+      "additionalProperties": false
+    },
+    "__schema100": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "timestamp",
+          "description": "Stamped by the app when the record becomes complete, and again on every later edit. Renders no widget."
+        }
+      },
+      "required": ["kind"],
+      "additionalProperties": false
+    },
+    "Fill": {
+      "title": "Fill",
+      "description": "Where an output field's value comes from — orthogonal to how it renders. Only `user` and `session` fields show a widget.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "Selects which shape the rest of this object takes. Every other key is validated against the variant named here.",
           "anyOf": [
             {
               "type": "string",
-              "const": "user"
+              "const": "user",
+              "description": "The labeler answers this field on every record."
             },
             {
               "type": "string",
-              "const": "copy"
+              "const": "copy",
+              "description": "Carried over from an input column. Renders no widget."
             },
             {
               "type": "string",
-              "const": "session"
+              "const": "session",
+              "description": "The labeler answers this once, on the setup step, and the answer is written to every exported row."
             },
             {
               "type": "string",
-              "const": "timestamp"
+              "const": "timestamp",
+              "description": "Stamped by the app when the record becomes complete, and again on every later edit. Renders no widget."
             }
           ]
         }
@@ -1422,15 +2708,7 @@
             "required": ["kind"]
           },
           "then": {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "type": "string",
-                "const": "user"
-              }
-            },
-            "required": ["kind"],
-            "additionalProperties": false
+            "$ref": "#/$defs/__schema97"
           }
         },
         {
@@ -1443,18 +2721,7 @@
             "required": ["kind"]
           },
           "then": {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "type": "string",
-                "const": "copy"
-              },
-              "from": {
-                "$ref": "#/$defs/__schema3"
-              }
-            },
-            "required": ["kind"],
-            "additionalProperties": false
+            "$ref": "#/$defs/__schema98"
           }
         },
         {
@@ -1467,15 +2734,7 @@
             "required": ["kind"]
           },
           "then": {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "type": "string",
-                "const": "session"
-              }
-            },
-            "required": ["kind"],
-            "additionalProperties": false
+            "$ref": "#/$defs/__schema99"
           }
         },
         {
@@ -1488,47 +2747,50 @@
             "required": ["kind"]
           },
           "then": {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "type": "string",
-                "const": "timestamp"
-              }
-            },
-            "required": ["kind"],
-            "additionalProperties": false
+            "$ref": "#/$defs/__schema100"
           }
         }
       ]
     },
-    "__schema67": {
-      "type": "boolean"
+    "__schema101": {
+      "type": "boolean",
+      "description": "Whether a record counts as complete without this field. Defaults by fill: something a person is asked for is required, something the app derives is not."
     },
-    "__schema68": {
+    "__schema102": {
       "type": "string",
-      "pattern": "^(?:(?:mod|ctrl|alt|shift|meta)\\+)*[A-Za-z0-9]$"
+      "pattern": "^(?:(?:mod|ctrl|alt|shift|meta)\\+)*[A-Za-z0-9]$",
+      "description": "Chord that moves focus to this field's widget, e.g. `\"mod+1\"`. Unique across the whole config, and not one of the chords the app or OS reserves."
     },
-    "__schema69": {
+    "__schema103": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema65"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema95"
+            }
+          ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema66"
+          "$ref": "#/$defs/__schema96"
         },
         "required": {
-          "$ref": "#/$defs/__schema67"
+          "$ref": "#/$defs/__schema101"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema102"
         },
         "widget": {
           "type": "string",
-          "enum": ["number", "slider"]
+          "enum": ["number", "slider"],
+          "description": "How the field renders. Defaults to `number`. Only a field a person fills may name a widget."
         },
         "type": {
           "type": "string",
@@ -1536,40 +2798,52 @@
           "description": "A whole number."
         },
         "min": {
-          "type": "number"
+          "type": "number",
+          "description": "Smallest accepted value, inclusive."
         },
         "max": {
-          "type": "number"
+          "type": "number",
+          "description": "Largest accepted value, inclusive."
         },
         "step": {
           "type": "number",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "Increment for the number and slider widgets. A hint only, never a validity constraint — three slider clicks legitimately produce 0.30000000000000004."
         }
       },
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema70": {
+    "__schema104": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema65"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema95"
+            }
+          ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema66"
+          "$ref": "#/$defs/__schema96"
         },
         "required": {
-          "$ref": "#/$defs/__schema67"
+          "$ref": "#/$defs/__schema101"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema102"
         },
         "widget": {
           "type": "string",
-          "enum": ["number", "slider"]
+          "enum": ["number", "slider"],
+          "description": "How the field renders. Defaults to `number`. Only a field a person fills may name a widget."
         },
         "type": {
           "type": "string",
@@ -1577,40 +2851,52 @@
           "description": "A number, whole or fractional."
         },
         "min": {
-          "type": "number"
+          "type": "number",
+          "description": "Smallest accepted value, inclusive."
         },
         "max": {
-          "type": "number"
+          "type": "number",
+          "description": "Largest accepted value, inclusive."
         },
         "step": {
           "type": "number",
-          "exclusiveMinimum": 0
+          "exclusiveMinimum": 0,
+          "description": "Increment for the number and slider widgets. A hint only, never a validity constraint."
         }
       },
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema71": {
+    "__schema105": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema65"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema95"
+            }
+          ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema66"
+          "$ref": "#/$defs/__schema96"
         },
         "required": {
-          "$ref": "#/$defs/__schema67"
+          "$ref": "#/$defs/__schema101"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema102"
         },
         "widget": {
           "type": "string",
-          "enum": ["checkbox"]
+          "enum": ["checkbox"],
+          "description": "How the field renders. Defaults to `checkbox`. Only a field a person fills may name a widget."
         },
         "type": {
           "type": "string",
@@ -1621,27 +2907,36 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema72": {
+    "__schema106": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema65"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema95"
+            }
+          ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema66"
+          "$ref": "#/$defs/__schema96"
         },
         "required": {
-          "$ref": "#/$defs/__schema67"
+          "$ref": "#/$defs/__schema101"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema102"
         },
         "widget": {
           "type": "string",
-          "enum": ["date"]
+          "enum": ["date"],
+          "description": "How the field renders. Defaults to `date`. Only a field a person fills may name a widget."
         },
         "type": {
           "type": "string",
@@ -1652,27 +2947,36 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema73": {
+    "__schema107": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema65"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema95"
+            }
+          ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema66"
+          "$ref": "#/$defs/__schema96"
         },
         "required": {
-          "$ref": "#/$defs/__schema67"
+          "$ref": "#/$defs/__schema101"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema102"
         },
         "widget": {
           "type": "string",
-          "enum": ["select", "radio"]
+          "enum": ["select", "radio"],
+          "description": "How the field renders. Defaults to `select`. Only a field a person fills may name a widget."
         },
         "type": {
           "type": "string",
@@ -1683,30 +2987,39 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema19"
-          }
+            "$ref": "#/$defs/Choice"
+          },
+          "description": "The permitted values, in the order they are offered."
         }
       },
       "required": ["name", "type", "choices"],
       "additionalProperties": false
     },
-    "__schema74": {
+    "__schema108": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema65"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema95"
+            }
+          ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema66"
+          "$ref": "#/$defs/__schema96"
         },
         "required": {
-          "$ref": "#/$defs/__schema67"
+          "$ref": "#/$defs/__schema101"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema102"
         },
         "type": {
           "type": "string",
@@ -1718,36 +3031,46 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/NestedField"
-          }
+          },
+          "description": "The object's own named members. Unlike a column name, these are JSON keys from the source payload, so colons, slashes and unicode are all allowed."
         },
         "table": {
-          "$ref": "#/$defs/__schema32"
+          "$ref": "#/$defs/TableView"
         }
       },
       "required": ["name", "type", "fields"],
       "additionalProperties": false
     },
-    "__schema75": {
+    "__schema109": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema65"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema95"
+            }
+          ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema66"
+          "$ref": "#/$defs/__schema96"
         },
         "required": {
-          "$ref": "#/$defs/__schema67"
+          "$ref": "#/$defs/__schema101"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema102"
         },
         "widget": {
           "type": "string",
-          "enum": ["checkboxes"]
+          "enum": ["checkboxes"],
+          "description": "How the field renders. Defaults to `checkboxes`. Only a field a person fills may name a widget."
         },
         "type": {
           "type": "string",
@@ -1755,29 +3078,38 @@
           "description": "A list of `items`."
         },
         "items": {
+          "description": "The type of every element. An `array` of `enum` is how a multi-select is declared.",
           "$ref": "#/$defs/ValueType"
         }
       },
       "required": ["name", "type", "items"],
       "additionalProperties": false
     },
-    "__schema76": {
+    "__schema110": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema17"
         },
         "display": {
-          "$ref": "#/$defs/__schema65"
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
+            },
+            {
+              "$ref": "#/$defs/__schema95"
+            }
+          ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema66"
+          "$ref": "#/$defs/__schema96"
         },
         "required": {
-          "$ref": "#/$defs/__schema67"
+          "$ref": "#/$defs/__schema101"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema102"
         },
         "type": {
           "type": "string",
@@ -1785,14 +3117,23 @@
           "description": "A dictionary of `keys` → `values`."
         },
         "keys": {
+          "description": "The type of each key. Defaults to text when omitted.",
           "$ref": "#/$defs/ValueType"
         },
         "values": {
+          "description": "The type of each value.",
           "$ref": "#/$defs/ValueType"
         }
       },
       "required": ["name", "type", "values"],
       "additionalProperties": false
+    },
+    "__schema111": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Card"
+      },
+      "description": "Layout. Omit for one implicit card holding every field, one per row."
     }
   }
 }

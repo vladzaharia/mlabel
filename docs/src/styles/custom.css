@@ -1,0 +1,55 @@
+/*
+ * Docs accent, sampled from the app's own accent token so the site and the
+ * product read as one thing. Starlight generates the rest of the ramp from
+ * these, including the dark-mode variants.
+ */
+:root {
+  --sl-color-accent-low: #14273c;
+  --sl-color-accent: #2b6cb0;
+  --sl-color-accent-high: #b9d4f1;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #c9dcf3;
+  --sl-color-accent: #1f5fa0;
+  --sl-color-accent-high: #10314f;
+}
+
+/*
+ * Reference tables are key / type / required / notes. Without explicit widths
+ * the type column collapses and unions wrap one token per line, which is
+ * unreadable; the notes column should take the slack instead.
+ */
+.sl-markdown-content table {
+  display: table;
+  width: 100%;
+  table-layout: auto;
+}
+
+.sl-markdown-content th:first-child,
+.sl-markdown-content td:first-child {
+  white-space: nowrap;
+}
+
+.sl-markdown-content table code {
+  white-space: nowrap;
+}
+
+/* Variant headings are a code span; keep them heading-sized, not display-sized. */
+.sl-markdown-content h2 > code {
+  font-size: 1rem;
+}
+
+/*
+ * Screenshot pairs. Only one of the two is ever in the layout, so the page
+ * does not reflow when the theme changes.
+ */
+.shot img {
+  border-radius: 0.5rem;
+  border: 1px solid var(--sl-color-gray-5);
+}
+
+:root[data-theme="light"] .shot-dark,
+:root[data-theme="dark"] .shot-light {
+  display: none;
+}

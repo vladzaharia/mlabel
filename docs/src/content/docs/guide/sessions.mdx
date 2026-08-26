@@ -1,0 +1,79 @@
+---
+title: Sessions and resuming
+description: Autosave, picking up where you left off, and what happens when the source file has changed.
+sidebar:
+  order: 4
+---
+
+import Shot from "../../../components/Shot.astro";
+
+## Autosave
+
+Your labels are saved continuously — there is no save button and no "unsaved changes"
+state. The session records which record you were on, every label you have entered, and your
+session answers.
+
+It is keyed to the **pair** of config and input file. Opening a different data file, or the
+same file with a different config, is a different session.
+
+Only one session is kept at a time. Starting work on a different file replaces it.
+
+## Resuming
+
+<Shot
+  name="resume-dialog"
+  alt="The resume dialog, offering to restore a saved session or start fresh."
+/>
+
+Reopen the same config and data file and MLabel offers to restore your progress. Decline
+and you start clean — the saved session is discarded.
+
+The prompt only appears when there is something worth restoring. A session that matches
+what the file would load anyway — because every value in it was auto-copied rather than
+entered by you — is not offered, since restoring it would change nothing.
+
+## "This file has changed"
+
+MLabel fingerprints the source file by content when it saves. On resume, it compares.
+
+If the file has changed since you last worked on it, the dialog says so. Restoring anyway
+is allowed but rarely what you want: labels are stored by row position, so if rows were
+added, removed or reordered, your labels will land on the wrong records.
+
+The fingerprint compares **size and content hash only** — not the modification time.
+Re-downloading a byte-identical file does not read as a change.
+
+:::note
+Sessions written by an older version of MLabel are discarded rather than trusted. The file
+holds typed values whose meaning depends on the config schema, and a mismatched read is
+worse than starting fresh.
+:::
+
+## Where it lives
+
+| Platform | Path                                                |
+| -------- | --------------------------------------------------- |
+| macOS    | `~/Library/Application Support/MLabel/session.json` |
+| Windows  | `%APPDATA%\MLabel\session.json`                     |
+
+Deleting the file discards the session. Nothing else is affected — your data files and
+exports are untouched.
+
+Writes are atomic and flushed to disk, and a save immediately followed by a clear can never
+race. A crash mid-write leaves the previous session intact rather than a truncated file.
+
+## Exporting clears the session
+
+A **successful** export deletes the saved session. Your files on disk are now the record of
+the work, so there is nothing left to resume.
+
+Your labels are still in memory, so **Keep editing** returns you to the same records with
+everything in place — and the moment you change anything, a fresh session starts saving
+again.
+
+The one gap worth knowing: between a successful export and your next edit, there is no
+saved session. Quitting in that window and reopening the same files offers nothing to
+resume. Your exported `*-output` and `*-remaining` files are unaffected, and reloading
+`*-remaining` picks the work back up.
+
+A **failed** export leaves the session completely untouched.

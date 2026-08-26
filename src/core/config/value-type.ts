@@ -29,13 +29,23 @@ export const TextSize = z.enum(["sm", "md", "lg"]);
  * A bare string is shorthand for `{ title }` — the overwhelmingly common case
  * — and the loader normalizes it away so nothing downstream sees two shapes.
  */
-export const TextDisplay = z.strictObject({
-  title: z.string().optional(),
-  /** Rendered under the caption. */
-  description: z.string().optional(),
-  /** Rendered in the ⓘ popover beside the caption. */
-  help: z.string().optional(),
-});
+export const TextDisplay = z
+  .strictObject({
+    title: z
+      .string()
+      .meta({ description: "The caption shown in place of the machine name." })
+      .optional(),
+    /** Rendered under the caption. */
+    description: z.string().meta({ description: "Shown under the caption." }).optional(),
+    /** Rendered in the ⓘ popover beside the caption. */
+    help: z.string().meta({ description: "Shown in the ⓘ popover beside the caption." }).optional(),
+  })
+  .meta({
+    id: "TextDisplay",
+    title: "Text display",
+    description:
+      "Captions for one entity. A bare string is shorthand for `{ title }`, which is how most display blocks are written.",
+  });
 export type TextDisplay = z.infer<typeof TextDisplay>;
 
 /**
@@ -44,8 +54,17 @@ export type TextDisplay = z.infer<typeof TextDisplay>;
  * rejected rather than silently ignored.
  */
 export const FieldDisplay = TextDisplay.extend({
-  titlePosition: TitlePosition.optional(),
-  textSize: TextSize.optional(),
+  titlePosition: TitlePosition.meta({
+    description: "Where the caption sits relative to the value. Defaults to `left`.",
+  }).optional(),
+  textSize: TextSize.meta({
+    description: "Size of the rendered value. Defaults to `md`.",
+  }).optional(),
+}).meta({
+  id: "FieldDisplay",
+  title: "Field display",
+  description:
+    "Captions plus layout. Only fields take the layout keys — choices, cards and table columns take a plain text display.",
 });
 export type FieldDisplay = z.infer<typeof FieldDisplay>;
 
@@ -71,11 +90,19 @@ export type FieldDisplay = z.infer<typeof FieldDisplay>;
 export const Tone = z.enum(["muted", "info", "success", "warning", "danger", "accent"]);
 export type Tone = z.infer<typeof Tone>;
 
-export const Style = z.strictObject({
-  tone: Tone.optional(),
-  /** Short explanation shown beside the styled value. */
-  note: z.string().optional(),
-});
+export const Style = z
+  .strictObject({
+    tone: Tone.meta({
+      description:
+        "Semantic tone. Each maps to a contrast-audited token pair rather than a fixed colour, so both themes stay legible.",
+    }).optional(),
+    /** Short explanation shown beside the styled value. */
+    note: z
+      .string()
+      .meta({ description: "Short explanation shown beside the styled value." })
+      .optional(),
+  })
+  .meta({ id: "Style", title: "Style" });
 export type Style = z.infer<typeof Style>;
 
 // --- Choices ---------------------------------------------------------------
@@ -84,16 +111,32 @@ export type Style = z.infer<typeof Style>;
  * One option of an `enum`. `name` is the literal string written to the data
  * file — the same sense as a field's `name`, which is its column header.
  */
-export const Choice = z.strictObject({
-  // Trimmed and non-empty: an empty choice coerces back to null on re-read,
-  // making it both unselectable and impossible to round-trip.
-  name: z.string().trim().min(1),
-  display: TextDisplay.optional(),
-  /** Selects this choice while its field has focus. Unique within the field. */
-  shortcut: z.string().optional(),
-  /** Applied to the widget while this choice is the selected one. */
-  selectedStyle: Style.optional(),
-});
+export const Choice = z
+  .strictObject({
+    // Trimmed and non-empty: an empty choice coerces back to null on re-read,
+    // making it both unselectable and impossible to round-trip.
+    name: z.string().trim().min(1).meta({
+      description: "The literal string written to the data file when this choice is selected.",
+    }),
+    display: TextDisplay.optional(),
+    /** Selects this choice while its field has focus. Unique within the field. */
+    shortcut: z
+      .string()
+      .meta({
+        description:
+          "Chord that picks this choice. Fires app-wide, not only while the field has focus, so it shares one namespace with every other shortcut in the config.",
+      })
+      .optional(),
+    /** Applied to the widget while this choice is the selected one. */
+    selectedStyle: Style.meta({
+      description: "Applied to the widget while this choice is the selected one.",
+    }).optional(),
+  })
+  .meta({
+    id: "Choice",
+    title: "Choice",
+    description: "One option of an `enum`.",
+  });
 export type Choice = z.infer<typeof Choice>;
 
 // --- Composite table columns ----------------------------------------------
@@ -105,28 +148,52 @@ export type Choice = z.infer<typeof Choice>;
  * nests to any depth, covers `map<_, object>` as well as arrays, and is
  * structurally impossible to attach to a non-object.
  */
-export const TableColumn = z.strictObject({
-  name: z.string().min(1),
-  /** Object field names combined into this one column. */
-  use: z.array(z.string().min(1)).min(1),
-  /**
-   * How multiple values share the cell; defaults to `chips` at render time.
-   *
-   * Deliberately not a Zod `.default()`: this type sits inside the recursive
-   * `ValueType`, and a default would make the schema's input and output types
-   * differ, which `z.ZodType<S, S>` can't express.
-   */
-  layout: z.enum(["chips", "stack", "inline"]).optional(),
-  display: TextDisplay.optional(),
-});
+export const TableColumn = z
+  .strictObject({
+    name: z.string().min(1).meta({ description: "The column heading." }),
+    /** Object field names combined into this one column. */
+    use: z
+      .array(z.string().min(1))
+      .min(1)
+      .meta({ description: "Object field names combined into this one column." }),
+    /**
+     * How multiple values share the cell; defaults to `chips` at render time.
+     *
+     * Deliberately not a Zod `.default()`: this type sits inside the recursive
+     * `ValueType`, and a default would make the schema's input and output types
+     * differ, which `z.ZodType<S, S>` can't express.
+     */
+    layout: z
+      .enum(["chips", "stack", "inline"])
+      .meta({
+        description: "How multiple values share the cell. Defaults to `chips`.",
+      })
+      .optional(),
+    display: TextDisplay.optional(),
+  })
+  .meta({
+    id: "TableColumn",
+    title: "Table column",
+    description: "One displayed column, combining one or more of the object's own fields.",
+  });
 export type TableColumn = z.infer<typeof TableColumn>;
 
 /** How a composite column renders when the author doesn't say. */
 export const DEFAULT_COLUMN_LAYOUT = "chips" as const;
 
-export const TableView = z.strictObject({
-  columns: z.array(TableColumn).min(1),
-});
+export const TableView = z
+  .strictObject({
+    columns: z
+      .array(TableColumn)
+      .min(1)
+      .meta({ description: "The displayed columns, left to right." }),
+  })
+  .meta({
+    id: "TableView",
+    title: "Table view",
+    description:
+      "How an object's fields group into displayed columns. Lives on the `object` type beside the `fields` its columns name, so it nests to any depth and covers `map<_, object>` as well as arrays.",
+  });
 export type TableView = z.infer<typeof TableView>;
 
 // --- Type variants ---------------------------------------------------------
@@ -199,27 +266,57 @@ export function typeVariants<S extends z.ZodRawShape>(shared: S, perKind: PerKin
       ...shared,
       ...perKind("text"),
       type: z.literal("text").meta({ description: "A string." }),
-      minLength: z.number().int().nonnegative().optional(),
-      maxLength: z.number().int().nonnegative().optional(),
-      pattern: z.string().optional(),
+      minLength: z
+        .number()
+        .int()
+        .nonnegative()
+        .meta({ description: "Shortest accepted value, in characters." })
+        .optional(),
+      maxLength: z
+        .number()
+        .int()
+        .nonnegative()
+        .meta({ description: "Longest accepted value, in characters." })
+        .optional(),
+      pattern: z
+        .string()
+        .meta({
+          description:
+            "JavaScript regular expression the value must match. Compiled when the config loads, so a malformed pattern fails at load rather than at render.",
+        })
+        .optional(),
     }),
     z.strictObject({
       ...shared,
       ...perKind("integer"),
       type: z.literal("integer").meta({ description: "A whole number." }),
-      min: z.number().optional(),
-      max: z.number().optional(),
+      min: z.number().meta({ description: "Smallest accepted value, inclusive." }).optional(),
+      max: z.number().meta({ description: "Largest accepted value, inclusive." }).optional(),
       // A widget hint only, never a validity constraint: three slider clicks
       // legitimately produce 0.30000000000000004.
-      step: z.number().positive().optional(),
+      step: z
+        .number()
+        .positive()
+        .meta({
+          description:
+            "Increment for the number and slider widgets. A hint only, never a validity constraint — three slider clicks legitimately produce 0.30000000000000004.",
+        })
+        .optional(),
     }),
     z.strictObject({
       ...shared,
       ...perKind("number"),
       type: z.literal("number").meta({ description: "A number, whole or fractional." }),
-      min: z.number().optional(),
-      max: z.number().optional(),
-      step: z.number().positive().optional(),
+      min: z.number().meta({ description: "Smallest accepted value, inclusive." }).optional(),
+      max: z.number().meta({ description: "Largest accepted value, inclusive." }).optional(),
+      step: z
+        .number()
+        .positive()
+        .meta({
+          description:
+            "Increment for the number and slider widgets. A hint only, never a validity constraint.",
+        })
+        .optional(),
     }),
     z.strictObject({
       ...shared,
@@ -235,14 +332,20 @@ export function typeVariants<S extends z.ZodRawShape>(shared: S, perKind: PerKin
       ...shared,
       ...perKind("enum"),
       type: z.literal("enum").meta({ description: "One of a fixed set of `choices`." }),
-      choices: z.array(Choice).min(1),
+      choices: z
+        .array(Choice)
+        .min(1)
+        .meta({ description: "The permitted values, in the order they are offered." }),
     }),
     z.strictObject({
       ...shared,
       ...perKind("object"),
       type: z.literal("object").meta({ description: "A record with named `fields`." }),
       get fields() {
-        return z.array(NestedField).min(1);
+        return z.array(NestedField).min(1).meta({
+          description:
+            "The object's own named members. Unlike a column name, these are JSON keys from the source payload, so colons, slashes and unicode are all allowed.",
+        });
       },
       table: TableView.optional(),
     }),
@@ -251,7 +354,10 @@ export function typeVariants<S extends z.ZodRawShape>(shared: S, perKind: PerKin
       ...perKind("array"),
       type: z.literal("array").meta({ description: "A list of `items`." }),
       get items() {
-        return ValueType;
+        return ValueType.meta({
+          description:
+            "The type of every element. An `array` of `enum` is how a multi-select is declared.",
+        });
       },
     }),
     z.strictObject({
@@ -259,10 +365,12 @@ export function typeVariants<S extends z.ZodRawShape>(shared: S, perKind: PerKin
       ...perKind("map"),
       type: z.literal("map").meta({ description: "A dictionary of `keys` → `values`." }),
       get keys() {
-        return ValueType.optional();
+        return ValueType.meta({
+          description: "The type of each key. Defaults to text when omitted.",
+        }).optional();
       },
       get values() {
-        return ValueType;
+        return ValueType.meta({ description: "The type of each value." });
       },
     }),
   ] as const;
@@ -282,9 +390,19 @@ export const ValueType: z.ZodType<ValueTypeShape, ValueTypeShape> = z
 export const NestedField: z.ZodType<NestedFieldShape, NestedFieldShape> = z
   .discriminatedUnion(
     "type",
-    typeVariants({ name: z.string().min(1), display: TextDisplay.optional() }),
+    typeVariants({
+      name: z.string().min(1).meta({
+        description:
+          "The key this member has in the source payload. Deliberately unconstrained, unlike a column name — real payloads use colons, slashes and unicode.",
+      }),
+      display: TextDisplay.optional(),
+    }),
   )
-  .meta({ id: "NestedField", title: "Nested field" });
+  .meta({
+    id: "NestedField",
+    title: "Nested field",
+    description: "A named member inside an `object`.",
+  });
 
 /**
  * The caption to show for something, falling back to its machine name.

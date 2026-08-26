@@ -2,6 +2,11 @@
   <img src="build/icon.png" alt="MLabel" width="96" height="96" />
   <h1>MLabel</h1>
   <p><strong>A fully local, zero-network desktop app for manual data labeling.</strong></p>
+  <p>
+    <a href="https://mlabel.vlad.gg"><strong>Documentation</strong></a> ·
+    <a href="https://github.com/vladzaharia/mlabel/releases/latest">Download</a> ·
+    <a href="https://mlabel.vlad.gg/config/">Config schema</a>
+  </p>
 </div>
 
 MLabel ingests tabular data, shows you one record at a time, and exports labeled data
@@ -13,45 +18,64 @@ machine: nothing you load or label ever leaves it.
 
 ## Download
 
-Grab the latest build for your platform from the
+Grab the latest build from the
 [**Releases**](https://github.com/vladzaharia/mlabel/releases/latest) page.
 
-| Platform                          | Download                               | First run                                                                                                                      |
-| --------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **macOS** (Apple Silicon / Intel) | `MLabel-<version>-<arch>-mac.zip`      | Unzip and drag `MLabel.app` to Applications. Builds are signed & notarized, so they open normally.                             |
-| **Windows — installer**           | `MLabel-<version>-<arch>.exe` (Setup)  | Recommended. Installs MLabel and **auto-updates** itself. SmartScreen may prompt (unsigned) — choose _More info → Run anyway_. |
-| **Windows — portable**            | `MLabel-<version>-<arch>-portable.exe` | A single self-contained exe; no install. It checks for updates and links you to the new download (no self-update).             |
+| Platform                | Download                               | Notes                                                                        |
+| ----------------------- | -------------------------------------- | ---------------------------------------------------------------------------- |
+| **macOS**               | `MLabel-<version>-<arch>.dmg`          | Signed & notarized. Install from the dmg, not the zip.                       |
+| **Windows — installer** | `MLabel-<version>-<arch>.exe` (Setup)  | Recommended. Auto-updates. SmartScreen will prompt (unsigned).               |
+| **Windows — portable**  | `MLabel-<version>-<arch>-portable.exe` | Single self-contained exe; links you to updates rather than self-installing. |
 
-### Configure & label
+Full instructions: [Download](https://mlabel.vlad.gg/start/download/) ·
+[macOS](https://mlabel.vlad.gg/start/install-macos/) ·
+[Windows](https://mlabel.vlad.gg/start/install-windows/)
 
-1. Launch MLabel and select a config `.jsonc` (see [`examples/config.jsonc`](examples/config.jsonc)),
-   or drop one onto the window. A config adjacent to the executable is picked up automatically.
-2. Select (or drag in) a CSV that matches the config's input schema.
+### Label something
+
+1. Launch MLabel and pick a config `.jsonc` (see [`examples/config.jsonc`](examples/config.jsonc)),
+   or drop one on the window. A config next to the executable is picked up automatically.
+2. Pick (or drag in) a CSV matching the config's input schema.
 3. Label one record at a time. On **Done**, MLabel writes `*-output.*` (complete records) and
-   `*-remaining.*` (untouched/incomplete records) next to your input.
+   `*-remaining.*` (unfinished ones) next to your input.
 
-## Auto-update
+→ [Your first labeling run](https://mlabel.vlad.gg/start/first-run/)
 
-Installed builds (macOS and the Windows installer) check GitHub Releases on startup, download
-in the background, and apply the update on the next restart. The chrome bar shows the current
-status ("Checking…", "Up to date", "Downloading…", "Restart to update").
+## Configs
 
-This is the **only** network the app ever performs, and it is opt-out. To keep MLabel fully
-offline, set this in your config:
+Everything the app shows and captures comes from one file. Point it at the published schema
+for autocomplete and inline validation:
 
 ```jsonc
 {
-  "network": { "updateChecks": false }, // no network calls of any kind
-  "input": {
-    /* … */
-  },
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  "input": { "fields": [{ "name": "text", "type": "text" }] },
   "output": {
-    /* … */
+    "fields": [
+      { "name": "label", "type": "enum", "choices": [{ "name": "good" }, { "name": "bad" }] },
+    ],
   },
 }
 ```
 
-When `network` is absent or `updateChecks` is `true`, update checks run.
+Check one without launching the app:
+
+```bash
+pnpm validate path/to/config.jsonc
+```
+
+→ [Anatomy of a config](https://mlabel.vlad.gg/config/) ·
+[Value types](https://mlabel.vlad.gg/config/types/) ·
+[Every error explained](https://mlabel.vlad.gg/config/errors/) ·
+[Authoring as an agent](https://mlabel.vlad.gg/config/agents/)
+
+## Zero network
+
+The GitHub-Releases update check is the only remote request MLabel can make, and it is
+opt-out — `"network": { "updateChecks": false }` disables it and every other network call.
+
+→ [Network policy](https://mlabel.vlad.gg/config/network/)
 
 ## Develop
 
@@ -59,7 +83,7 @@ Requires [Node 22+](https://nodejs.org) and [pnpm](https://pnpm.io).
 
 ```bash
 pnpm install
-pnpm dev        # run the app with hot reload
+pnpm dev        # the app, with hot reload
 ```
 
 | Task                      | Command                                          |
@@ -70,32 +94,21 @@ pnpm dev        # run the app with hot reload
 | Format / check            | `pnpm format` / `pnpm format:check`              |
 | Test (all / node / dom)   | `pnpm test` · `pnpm test:node` · `pnpm test:dom` |
 | Emit config JSON Schema   | `pnpm schema`                                    |
+| Validate a config         | `pnpm validate <file>`                           |
 | Build                     | `pnpm build`                                     |
 | Package locally (mac/win) | `pnpm build:mac` / `pnpm build:win`              |
 
-Architecture and conventions live in [`CLAUDE.md`](CLAUDE.md).
-
-## Release
-
-Pushing a `v*` tag runs [`.github/workflows/release.yml`](.github/workflows/release.yml): it
-verifies, builds the bundle once, packages macOS + Windows in parallel, and publishes a GitHub
-Release with the installers and update metadata.
+The docs site lives in [`docs/`](docs/) as a standalone package:
 
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+pnpm -C docs install && pnpm -C docs dev
 ```
 
-macOS signing/notarization requires these repository secrets
-(**Settings → Secrets and variables → Actions**):
+→ [Architecture](https://mlabel.vlad.gg/dev/architecture/) ·
+[Contributing](https://mlabel.vlad.gg/dev/contributing/) ·
+[Releasing](https://mlabel.vlad.gg/dev/releasing/)
 
-| Secret              | Purpose                                       |
-| ------------------- | --------------------------------------------- |
-| `APPLE_API_KEY_B64` | base64 of the App Store Connect `.p8` key     |
-| `APPLE_API_KEY_ID`  | key ID                                        |
-| `APPLE_API_ISSUER`  | issuer UUID                                   |
-| `APPLE_TEAM_ID`     | Apple Developer Team ID                       |
-| `CSC_LINK`          | base64 of the Developer ID Application `.p12` |
-| `CSC_KEY_PASSWORD`  | password for that `.p12`                      |
+Agent-facing conventions live in [`CLAUDE.md`](CLAUDE.md).
 
 ## License
 

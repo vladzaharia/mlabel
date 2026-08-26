@@ -1,0 +1,84 @@
+---
+title: Set up your config
+description: Where a config comes from, the four ways to load one, and how to make MLabel pick it up automatically.
+sidebar:
+  order: 5
+---
+
+import Shot from "../../../components/Shot.astro";
+
+MLabel cannot do anything without a config. It is the file that says what your data looks
+like and what you are being asked to record.
+
+## Getting one
+
+**If someone is running a labeling project for you,** they will give you a `.jsonc` file.
+Save it somewhere you will find it again — next to the data you are labeling is a good
+default.
+
+**If you are setting up the project yourself,** start from the annotated example in the
+repository, [`examples/config.jsonc`](https://github.com/vladzaharia/mlabel/blob/main/examples/config.jsonc),
+and read [Anatomy of a config](/config/). Then check your work without launching the app:
+
+```bash
+pnpm validate path/to/your-config.jsonc
+```
+
+## Loading one
+
+<Shot
+  name="start-need-config"
+  alt="MLabel's opening screen, prompting for a config file with a drop zone in the centre."
+/>
+
+There are four ways, in the order MLabel tries them:
+
+1. **A config next to the executable.** On startup MLabel looks beside its own executable
+   for a file named `config.jsonc`, `mlabel.config.jsonc`, or `mlabel.jsonc`, in that
+   order. If it finds one, it loads it and you never see the config screen. This is how
+   you [ship the app and the config together](/admin/deploying/).
+2. **The most recent config**, if there was no adjacent one. MLabel remembers the last
+   config you opened and reloads it on the next launch.
+3. **Drag and drop.** Drop a `.jsonc` anywhere on the window.
+4. **The picker.** Click **Choose config** and select the file.
+
+:::tip
+Options 1 and 2 mean that in day-to-day use you normally launch MLabel and go straight to
+choosing a data file. The config screen is a first-run experience.
+:::
+
+## If the config is rejected
+
+<Shot
+  name="config-invalid"
+  alt="The config error screen, listing each problem with its line, column and dotted path."
+/>
+
+MLabel refuses to load a config it does not fully understand, and lists every problem at
+once rather than stopping at the first. Each one carries a line, a column and the path to
+the offending key.
+
+The most common causes are a misspelled key (every object is strict — unknown keys are
+errors, not silently ignored) and a missing or wrong `version`. See
+[Every error explained](/config/errors/) for the full catalogue.
+
+## Editor support
+
+Point your config at the published JSON Schema and any editor that understands JSON Schema
+will autocomplete keys, offer only the values that are legal in context, and underline
+mistakes as you type:
+
+```jsonc
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  // …
+}
+```
+
+This is worth doing even for a config someone else wrote — it turns "why won't this load"
+into a squiggle under the exact character.
+
+## Next
+
+[Your first labeling run](/start/first-run/) →

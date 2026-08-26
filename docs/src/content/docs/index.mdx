@@ -1,0 +1,74 @@
+---
+title: MLabel
+description: A fully local, zero-network desktop app for manual data labeling, driven entirely by one .jsonc config file.
+template: splash
+hero:
+  tagline: Label tabular data one record at a time, on your machine, with nothing hard-coded. One <code>.jsonc</code> file decides everything you see and everything you capture.
+  image:
+    file: ../../assets/icon.svg
+  actions:
+    - text: Download
+      link: /start/download/
+      icon: down-arrow
+      variant: primary
+    - text: Write a config
+      link: /config/
+      icon: pencil
+      variant: minimal
+    - text: GitHub
+      link: https://github.com/vladzaharia/mlabel
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+## What it is
+
+MLabel ingests tabular data, shows you one record at a time, and exports labeled data
+matching a configured output schema. It runs entirely on your machine: nothing you load
+or label ever leaves it.
+
+<CardGrid stagger>
+  <Card title="Nothing is hard-coded" icon="setting">
+    Fields, types, widgets, layout, validation and keyboard shortcuts all come from your config.
+    Adding a column means editing one file, not shipping a build.
+  </Card>
+  <Card title="Local by construction" icon="approve-check">
+    The only remote request MLabel can make is its update check, and a single config key switches
+    even that off. Everything else is denied at the network layer.
+  </Card>
+  <Card title="Nothing is lost" icon="document">
+    Finished records go to `*-output`; anything unfinished is re-emitted to `*-remaining`, ready to
+    load straight back in.
+  </Card>
+  <Card title="Built for teams" icon="puzzle">
+    Split a file across labelers, then join their finished work back together — with schema
+    validation and duplicate detection on the way in.
+  </Card>
+</CardGrid>
+
+## Start here
+
+<CardGrid>
+  <LinkCard
+    title="Download and install"
+    href="/start/download/"
+    description="Pick the right build for macOS or Windows and get it running."
+  />
+  <LinkCard
+    title="Your first labeling run"
+    href="/start/first-run/"
+    description="Config, data, label, export — end to end."
+  />
+  <LinkCard
+    title="Write a config"
+    href="/config/"
+    description="The anatomy of a config file, key by key."
+  />
+  <LinkCard
+    title="Authoring as an agent"
+    href="/config/agents/"
+    description="A procedure and a rejection list for models writing configs."
+  />
+</CardGrid>

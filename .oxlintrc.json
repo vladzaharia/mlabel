@@ -78,6 +78,7 @@
     "release/",
     "coverage/",
     "**/*.generated.json",
-    "src/renderer/src/components/ui/**"
+    "src/renderer/src/components/ui/**",
+    "docs/"
   ]
 }

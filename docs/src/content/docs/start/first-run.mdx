@@ -1,0 +1,92 @@
+---
+title: Your first labeling run
+description: Config, data, label, export — the whole loop end to end.
+sidebar:
+  order: 6
+---
+
+import Shot from "../../../components/Shot.astro";
+import { Steps } from "@astrojs/starlight/components";
+
+This walks the complete loop once. It assumes you have MLabel
+[installed](/start/download/) and a config [ready](/start/setup/).
+
+<Steps>
+
+1. ### Load the config
+
+   Drop your `.jsonc` on the window, or click **Choose config**. If MLabel found a config
+   next to its executable or remembered your last one, this step is already done.
+
+   <Shot
+     name="start-need-config"
+     alt="The config screen with a large drop zone and a Choose config button."
+   />
+
+2. ### Load the data
+
+   Now MLabel asks for a data file. Drop a `.csv` on the window or pick one.
+
+   <Shot name="start-need-input" alt="The data screen, prompting for a CSV file to label." />
+
+   The file must have the columns your config's `input.fields` declares. Extra columns are
+   ignored with a warning; a **missing** column is an error and the file is refused —
+   nothing is loaded, so a mismatched file can never be exported over.
+
+3. ### Answer the setup questions, if there are any
+
+   If the config declares any [session fields](/config/fill/#session), you are asked them
+   once, up front. The answers are written onto every row you export — think "who is
+   labeling" or "which guideline version".
+
+   Configs with no session fields skip this screen entirely.
+
+4. ### Label
+
+   <Shot
+     name="labeling"
+     alt="The labeling view: input cards on the left showing the record, an output form on the right."
+   />
+
+   The record is on one side, the form on the other. Fill it in, then move on:
+
+   | Key                             | Action                |
+   | ------------------------------- | --------------------- |
+   | <kbd>→</kbd> / <kbd>Enter</kbd> | Next record           |
+   | <kbd>←</kbd>                    | Previous record       |
+   | <kbd>1</kbd>–<kbd>9</kbd>       | Pick the *n*th choice |
+   | <kbd>?</kbd>                    | Show every shortcut   |
+
+   Progress along the bottom shows how many records are complete. A record counts as
+   complete when every required field holds a valid value — see
+   [Labeling](/guide/labeling/).
+
+   Your work is saved continuously. Closing the app and reopening it offers to
+   [resume](/guide/sessions/).
+
+5. ### Done
+
+   Press **Done** (or <kbd>⌘/Ctrl</kbd>+<kbd>Enter</kbd>) whenever you like — you do not
+   have to finish everything first.
+
+   <Shot
+     name="done"
+     alt="The completion screen showing counts of exported and remaining records, with buttons to reveal each file."
+   />
+
+   MLabel writes two files next to your input:
+
+   - `yourfile-output.csv` — every complete record, in the output schema.
+   - `yourfile-remaining.csv` — everything unfinished, in the _input_ schema.
+
+   **Reveal** opens either one in your file manager. The remaining file loads straight back
+   into MLabel as input, so you can stop and pick up later, or hand the rest to someone
+   else.
+
+</Steps>
+
+## What next
+
+- [Reading a record](/guide/reading-a-record/) — tables, tones, and what the colours mean.
+- [Keyboard shortcuts](/guide/keyboard/) — the fastest way to work.
+- [Exporting](/guide/exporting/) — exactly what lands in each file.

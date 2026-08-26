@@ -20,3 +20,13 @@ examples/*-remaining.*
 
 # Local git worktrees
 .worktrees/
+
+# Docs site build output and generated content. The schema reference is
+# regenerated from schema/mlabel.schema.json on every build, and the served
+# schema is copied from schema/ — committing either would create a second copy
+# that silently drifts. Screenshots under src/assets/shots ARE committed: they
+# need a built app on macOS to capture, which the Ubuntu Pages runner can't do.
+docs/dist/
+docs/.astro/
+docs/src/content/docs/reference/
+docs/public/mlabel.schema.json

@@ -1,0 +1,14 @@
+# This file scopes pnpm settings to the docs site only.
+#
+# `docs/` is deliberately NOT a member of a root pnpm workspace: the root
+# `.npmrc` pins `node-linker=hoisted` for electron-builder, and hoisting Astro's
+# Vite alongside the app's would be an avoidable source of breakage in the
+# Electron build. Separate lockfile, separate node_modules, no interaction.
+allowBuilds:
+  # Both compile native/binary artifacts at install time. esbuild is Astro's
+  # bundler; sharp is what optimizes the screenshots at build time.
+  esbuild: true
+  sharp: true
+minimumReleaseAgeExclude:
+  - "@astrojs/starlight@0.41.9"
+  - astro@7.2.7

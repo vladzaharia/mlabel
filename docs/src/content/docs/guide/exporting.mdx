@@ -1,0 +1,79 @@
+---
+title: Exporting
+description: What lands in the output and remaining files, why a second export is refused, and what round-trips exactly.
+sidebar:
+  order: 5
+---
+
+import Shot from "../../../components/Shot.astro";
+
+Press **Done**, or <kbd>⌘/Ctrl</kbd>+<kbd>Enter</kbd>. You do not have to finish every
+record first.
+
+<Shot
+  name="done"
+  alt="The completion screen showing how many records were exported and how many remain, with a Reveal button for each file."
+/>
+
+## Two files
+
+Both are written next to your input file, named after it.
+
+| File                   | Contains                  | In which schema        |
+| ---------------------- | ------------------------- | ---------------------- |
+| `<name>-output.csv`    | Every **complete** record | Your **output** schema |
+| `<name>-remaining.csv` | Everything else           | The **input** schema   |
+
+A record is complete when every required output field holds a valid value — see
+[Labeling](/guide/labeling/#what-complete-means). Partial and untouched records both go to
+`*-remaining`.
+
+`*-remaining` is written in the _input_ schema precisely so it can be loaded straight back
+into MLabel with the same config. That is what lets you stop early, or hand the rest to
+someone else. If nothing is left over, no remaining file is written at all.
+
+Every exported row carries your session answers and, if the config declares one, a
+timestamp — merged in the same way whichever file it lands in.
+
+## A second export is refused
+
+Exporting again over existing files fails with:
+
+> These files already exist: `data-output.csv`, `data-remaining.csv`.
+
+This is deliberate, and there is no "overwrite?" prompt. Re-exporting is easy to do by
+accident and the previous artifacts may be the only copy of hours of work.
+
+**To export again, move or delete the previous files first.** Then press **Done** again.
+
+## Both files, or neither
+
+If the second write fails — a full disk, a permission problem — the first is removed again.
+An export never leaves a half-finished pair on disk to be mistaken for a complete one.
+Writes are atomic, so an interrupted export cannot leave a truncated file either.
+
+## After exporting
+
+- **Reveal** opens either file in Finder or Explorer.
+- **Keep editing** returns you to labeling with everything still in place.
+- **Label another file** goes back to the file picker.
+
+A successful export clears your saved session — see
+[Sessions](/guide/sessions/#exporting-clears-the-session) for exactly what that means.
+
+## What round-trips, and what doesn't
+
+`*-remaining` is **value-faithful, not byte-faithful**. Reloading it gives you back exactly
+the same values, in the same column order, in the same dialect — that is guaranteed and
+property-tested.
+
+Incidental formatting is **not** preserved:
+
+- a byte-order mark,
+- whitespace padding in headers,
+- the original quoting style (quotes are applied where needed, not where they were),
+- blank lines,
+- whether the file ended with a newline.
+
+For loading the file back into MLabel, or into anything that parses CSV, this is
+immaterial. If you are diffing against the original file byte-for-byte, expect noise.

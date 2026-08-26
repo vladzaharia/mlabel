@@ -54,17 +54,20 @@ what Prepare's join flow depends on.
 
 ## Commands
 
-| Task             | Command                                                               |
-| ---------------- | --------------------------------------------------------------------- |
-| Dev (HMR)        | `pnpm dev`                                                            |
-| Typecheck        | `pnpm typecheck` (node + web projects)                                |
-| Lint             | `pnpm lint` / `pnpm lint:fix`                                         |
-| Format           | `pnpm format` / `pnpm format:check` (oxfmt)                           |
-| Test (all)       | `pnpm test` · node only: `pnpm test:node` · dom only: `pnpm test:dom` |
-| Emit JSON Schema | `pnpm schema`                                                         |
-| Build app        | `pnpm build`                                                          |
-| Package mac/win  | `pnpm build:mac` / `pnpm build:win` (local: build + package)          |
-| Publish (CI)     | `pnpm package:mac` / `pnpm package:win` (package prebuilt `out/`)     |
+| Task              | Command                                                               |
+| ----------------- | --------------------------------------------------------------------- |
+| Dev (HMR)         | `pnpm dev`                                                            |
+| Typecheck         | `pnpm typecheck` (node + web projects)                                |
+| Lint              | `pnpm lint` / `pnpm lint:fix`                                         |
+| Format            | `pnpm format` / `pnpm format:check` (oxfmt)                           |
+| Test (all)        | `pnpm test` · node only: `pnpm test:node` · dom only: `pnpm test:dom` |
+| Emit JSON Schema  | `pnpm schema`                                                         |
+| Validate a config | `pnpm validate <file>` (same loader the app uses; exits non-zero)     |
+| Docs site         | `pnpm -C docs install` · `pnpm -C docs dev` · `pnpm -C docs build`    |
+| Screenshots       | `pnpm build && pnpm -C docs screenshots` (macOS; commits PNGs)        |
+| Build app         | `pnpm build`                                                          |
+| Package mac/win   | `pnpm build:mac` / `pnpm build:win` (local: build + package)          |
+| Publish (CI)      | `pnpm package:mac` / `pnpm package:win` (package prebuilt `out/`)     |
 
 ## Conventions
 
@@ -81,6 +84,30 @@ what Prepare's join flow depends on.
 - **Tests** are co-located `*.test.ts(x)`; pure-logic tests go in the `node` Vitest
   project (use `fast-check` + golden files), component tests in the `dom` project.
 - **TDD** for everything in `src/core/` and `src/main/`: red → green → refactor.
+
+## Docs (`docs/` → https://mlabel.vlad.gg)
+
+Astro Starlight, a **standalone package with its own lockfile** — deliberately _not_ a pnpm
+workspace member, because `.npmrc` pins `node-linker=hoisted` for electron-builder and
+hoisting Astro's Vite beside the app's is an avoidable source of breakage. Deploys from
+`main` on changes to `docs/**`, `schema/**` or `src/core/config/**`.
+
+Generated, never hand-edited: `docs/src/content/docs/reference/**` (from
+`schema/mlabel.schema.json`), `docs/public/mlabel.schema.json`, `dist/llms*.txt`. All are
+gitignored. Screenshots under `docs/src/assets/shots/` **are** committed — capturing needs a
+built app on macOS, which the Ubuntu Pages runner can't do.
+
+**When you change anything under `src/core/config/`:**
+
+1. Put author-facing prose in `.meta({ description })`, not only JSDoc. Descriptions reach
+   editor hovers, the JSON Schema and the generated reference; a JSDoc comment reaches none.
+2. Give any new reusable shape `.meta({ id, title })` so it lands in `$defs` under a stable
+   name, and add it to `PAGE_ORDER` in `docs/scripts/generate-reference.ts` — the generator
+   **throws** if a named schema has no page.
+3. Run `pnpm schema` and commit. `json-schema.test.ts` compares the committed file against
+   what the code emits (as parsed JSON, not bytes — oxfmt reformats it afterwards).
+4. Run `pnpm -C docs build`. `scripts/docs-examples.test.ts` re-validates every complete
+   config example on the site; fragments containing `…` are skipped.
 
 ## Gotchas
 

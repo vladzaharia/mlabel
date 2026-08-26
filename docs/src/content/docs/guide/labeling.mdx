@@ -1,0 +1,85 @@
+---
+title: Labeling
+description: Moving through records, what counts as complete, and how progress is tracked.
+sidebar:
+  order: 1
+---
+
+import Shot from "../../../components/Shot.astro";
+
+<Shot
+  name="labeling"
+  alt="The labeling view: read-only input cards showing the record, and the output form beside them."
+/>
+
+The record you are judging is on one side; the form you fill in is on the other. Both
+layouts come entirely from the config — see [Cards](/config/cards/).
+
+## Moving between records
+
+| Key                       | Action                         |
+| ------------------------- | ------------------------------ |
+| <kbd>→</kbd>              | Next record                    |
+| <kbd>←</kbd>              | Previous record                |
+| <kbd>Enter</kbd>          | Next record                    |
+| <kbd>⇧</kbd>+<kbd>→</kbd> | Next **unfinished** record     |
+| <kbd>⇧</kbd>+<kbd>←</kbd> | Previous **unfinished** record |
+
+<kbd>Enter</kbd> is ignored where it already means something — inside a textarea, on a focused
+button, or while a dropdown is open — so it never fires twice.
+
+The shift-arrow pair is how you sweep up leftovers: work through the file quickly, skipping
+anything that needs thought, then jump between just the gaps.
+
+## What "complete" means
+
+A record is **complete** when every _required_ output field holds a value that passes its
+own rules. Nothing else counts — how many fields you touched is irrelevant.
+
+Required-ness defaults sensibly and can be overridden per field:
+
+- fields **you** answer (`user`, `session`) are required by default,
+- fields the **app** provides (`copy`, `timestamp`) are not,
+- an explicit `"required": true` or `false` always wins.
+
+Three states show in the progress bar:
+
+| State       | Meaning                                                       |
+| ----------- | ------------------------------------------------------------- |
+| `unlabeled` | You have not entered anything on this record.                 |
+| `partial`   | You have started, but a required field is missing or invalid. |
+| `complete`  | Ready to export.                                              |
+
+:::note
+Session answers do not make a record count as started. If they did, every untouched record
+would show as partially labeled the moment you answered the setup questions.
+:::
+
+## Validation
+
+Values are checked as you enter them, against the constraints the config declares — length,
+range, whether a number is whole, whether a choice is one of the permitted ones.
+
+An invalid value is flagged inline on the field. It does not block you from moving on; it
+blocks the record from being **complete**, which means it goes to `*-remaining` rather than
+`*-output` when you export.
+
+## Input problems
+
+Sometimes a source cell cannot be read as the type the config declares — the text `abc` in
+a column declared `number`, say. MLabel does not refuse the file over it. The cell shows as
+empty with a note attached, and you carry on. The value is preserved verbatim in
+`*-remaining` if the record ends up there.
+
+This is deliberate: a labeler cannot fix the source data, so a bad cell is information
+rather than a task.
+
+## Saving
+
+Everything is saved continuously, keyed to the config and input file you have open. You can
+quit at any point. See [Sessions and resuming](/guide/sessions/).
+
+## Finishing
+
+Press **Done**, or <kbd>⌘/Ctrl</kbd>+<kbd>Enter</kbd>. You do not have to complete every
+record first — see [Exporting](/guide/exporting/) for what lands where.
