@@ -16,23 +16,28 @@
 }
 
 /*
- * Reference tables are key / type / required / notes. Without explicit widths
- * the type column collapses and unions wrap one token per line, which is
- * unreadable; the notes column should take the slack instead.
+ * Reference tables are key / type / required / notes, and the four columns do
+ * not fit a phone. Starlight already makes tables scroll inside their own box;
+ * the earlier `display: table` here overrode that and pushed the whole page
+ * sideways instead, so the table stays a scroll container and only stretches to
+ * fill when there is room for it.
  */
 .sl-markdown-content table {
-  display: table;
-  width: 100%;
-  table-layout: auto;
+  min-width: 100%;
 }
 
+/*
+ * The key column is held on one line — those are identifiers, and breaking them
+ * mid-token is worse than scrolling. Everything else wraps, including long
+ * values like a filesystem path.
+ */
 .sl-markdown-content th:first-child,
 .sl-markdown-content td:first-child {
   white-space: nowrap;
 }
 
-.sl-markdown-content table code {
-  white-space: nowrap;
+.sl-markdown-content td:not(:first-child) code {
+  overflow-wrap: anywhere;
 }
 
 /* Variant headings are a code span; keep them heading-sized, not display-sized. */
@@ -43,8 +48,21 @@
 /*
  * Screenshot pairs. Only one of the two is ever in the layout, so the page
  * does not reflow when the theme changes.
+ *
+ * The figure carries `not-content`, which opts out of Starlight's markdown
+ * styles — including `img { max-width: 100% }`. Without restating it the
+ * captures render at their natural 1280px inside a ~590px column and push the
+ * whole page into horizontal overflow, so these three declarations are
+ * load-bearing rather than cosmetic.
  */
+.shot {
+  margin: 1.5rem 0;
+}
+
 .shot img {
+  display: block;
+  max-width: 100%;
+  height: auto;
   border-radius: 0.5rem;
   border: 1px solid var(--sl-color-gray-5);
 }
