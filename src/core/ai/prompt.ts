@@ -1,6 +1,7 @@
 import type { InputField } from "../config";
 import { titleOf } from "../config";
 import type { CoercedValue } from "../types/values";
+import { MAX_REASON, MAX_REASONING } from "./schema";
 
 /**
  * Building what the model is asked.
@@ -70,8 +71,11 @@ function instructions(fields: readonly InputField[], context?: string): string {
     "  common one. Do not invent a concern to seem useful.",
     "- Judge only what is in front of you. You cannot look anything up.",
     "- Use `warning` only when a human would want to slow down and check. Otherwise `info`.",
-    "- Write `reasoning` first, in one or two plain sentences. It is not shown to anyone.",
-    "- Each `reason` is one short sentence a reviewer can act on.",
+    // Both budgets are enforced by the grammar as well. They are stated here
+    // because a limit the model is cut off at, without having been told about
+    // it, is a limit it writes into the middle of a sentence.
+    `- Write \`reasoning\` first, in one or two plain sentences, under ${String(MAX_REASONING)} characters. It is not shown to anyone.`,
+    `- Each \`reason\` is one short sentence a reviewer can act on, under ${String(MAX_REASON)} characters.`,
     "",
     "The columns in this file:",
     columns,
