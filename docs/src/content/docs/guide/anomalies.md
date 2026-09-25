@@ -54,23 +54,35 @@ that raised the most was right least often, and the most accurate model is also 
 
 :::caution
 These numbers come from one file of one kind — account records checked for automated signups,
-where 60% of rows really were automated. So **60% is what guessing scores**, and a model at
-44% is worse than a coin toss. Your data is not that data; treat the ranking as a starting
-point and check a model on rows you already know the answer to.
-
-Over the same 150 records the config's own [display rules](/config/rules/) were worth looking
-at **90%** of the time, and caught far more of what was there — but those rules were written
-by someone looking at this very data, and the models saw it cold. That is not a fair fight,
-and it is not meant to be: tuning a rule to your data is exactly what rules are for. It does
-mean 90% flatters them, and the real gap is narrower than the two numbers suggest.
-
-The practical reading stands either way. Where you can describe the thing you are looking
-for, describe it — a rule you tuned will beat a general model on your data. The model is for
-the shapes you cannot write down in advance.
+where 60% of rows really were automated. **60% is therefore what guessing scores**, and a
+model at 44% is worse than a coin toss. Your data is not that data: treat the ranking as a
+starting point, and check a model on rows you already know the answer to.
 :::
 
 Start with the default. Move to Ministral 3 only if you would rather see more and sift it
 yourself; it raises three times as much and is right less often when it does.
+
+### How that compares to writing a rule
+
+Over the same 150 records the config's own [display rules](/config/rules/) were worth looking
+at **90%** of the time, and caught far more of what was there. But those rules were written
+by someone looking at this very data, and the models saw it cold — so 90% flatters them, and
+the real gap is narrower than the two numbers suggest.
+
+It is not meant to be a fair fight. Tuning a rule to your data is exactly what rules are for,
+and the practical advice survives the caveat: where you can describe the thing you are looking
+for, describe it — then check it against rows you already know the answer to, the same way you
+would check a model. A rule that has been measured will beat a general model on your data. A
+rule that has only been written carefully might not, and will not tell you which.
+
+That check matters more for a rule than for a model, not less. A model's note arrives with a
+dashed rail and a ✦ because it is a guess and should look like one. A rule arrives with a
+solid border — someone who knows this data decided this — and then fires on every matching
+row, identically, for as long as the config lives. An unmeasured rule is a guess wearing the
+markings of a fact.
+
+And 90% is what rules reach _after_ being scored against labelled rows. Getting there needs
+some labelled rows; describing harder is not a substitute.
 
 All are Apache-2.0 and are fetched from Hugging Face over a single verified download. The
 file's checksum is pinned in the app, so a changed upload fails rather than runs. Nothing is

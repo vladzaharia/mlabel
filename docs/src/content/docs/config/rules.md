@@ -30,8 +30,9 @@ author points at something worth noticing.
 This is a **structural** guarantee, not a promise. Rules are evaluated by a module that
 nothing on the export path imports — there is no code path from a rule to a written file.
 
-So a rule is always safe to add. The worst a wrong one can do is mislead a labeler; it can
-never corrupt the data.
+So a rule can never corrupt the data. The worst a wrong one can do is mislead a labeler —
+which is not nothing, and is worth [checking for](#check-a-rule-before-you-trust-it) before
+you rely on one.
 
 ## The keys
 
@@ -368,6 +369,32 @@ cannot fix and may reasonably disagree with.
 
 Write notes accordingly: "Unusually confident — check carefully" invites judgement.
 "This is wrong" pre-empts it, and biases your own dataset.
+
+## Check a rule before you trust it
+
+A rule is safe for your **data** — nothing it does can reach the output file. It is not
+automatically safe for your labeler's **judgement**, and that is the harder thing to protect.
+
+A rule carries a solid border, which says: someone who understands this data decided this.
+Then it fires on every matching row, identically, for as long as the config lives. Where a
+model's note is drawn as a guess on purpose, a rule that was never measured is a guess wearing
+the markings of a fact — and it is the confident, plausible-looking rules that do the damage,
+because nobody thinks to question them.
+
+Rules that read perfectly well and were wrong, found only by measuring:
+
+- one marking nearly half a file as _typical_, and wrong on a tenth of those — steering the
+  labeler toward the wrong answer on precisely the rows it got wrong;
+- one whose threshold was off by a single character, so it missed the exact case that had
+  prompted someone to write it;
+- one shipped amber that fired twice, wrongly both times;
+- one whose pattern could not compile, so the config loaded cleanly and the rule never fired
+  at all.
+
+None announced itself. Three looked _more_ convincing before they were checked than after.
+
+So: write the rule, then run it against rows whose answer you already know, and keep the ones
+that earn it. A hundred labelled rows is enough to catch all four of the faults above.
 
 ## Full reference
 
