@@ -133,6 +133,11 @@ export class InferenceEngine {
     switch (message.type) {
       case "loaded":
         this.#loadedPath = modelPath;
+        // Which chat wrapper was resolved decides whether the thought-channel
+        // override applied, and an empty reply for every record looks the same
+        // whichever way that went. Cheap to record once per load; the one fact
+        // worth having when a newly-added model answers with nothing.
+        console.info(`[ai] loaded with chat wrapper: ${message.wrapperName}`);
         this.events.onLoaded();
         return;
       case "load-failed":

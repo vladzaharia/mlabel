@@ -116,7 +116,7 @@ async function load(modelPath: string, schema: Record<string, unknown>): Promise
   )) as unknown as LlamaGrammar;
 
   loaded = { model, context, session, grammar };
-  send({ type: "loaded" });
+  send({ type: "loaded", wrapperName: chatWrapper.wrapperName });
 }
 
 async function analyze(id: number, prefix: string, suffix: string): Promise<void> {
