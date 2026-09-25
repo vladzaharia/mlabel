@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "./loader";
 import { configObject, type ConfigSpec } from "@test/fixtures/config";
+import { NAMED_KEYS, parseChord } from "../shortcuts";
 
 /**
  * Build a config and then break it in one specific way.
@@ -292,5 +293,262 @@ describe("composite table columns", () => {
   // `table` lives on the object type rather than on the field.
   it("rejects a column naming a field the object does not have", () => {
     expect(all(withColumns(["toxic", "ghost"]))).toMatch(/unknown object field "ghost"/);
+  });
+});
+
+describe("display rules — new operators and scopes", () => {
+  /** A config with two numeric columns, a list of objects, and one rule. */
+  const withRule = (rule: Record<string, unknown>, cards?: unknown): string =>
+    tweak(
+      {
+        input: [
+          "email",
+          { name: "now", type: { type: "number" } },
+          { name: "usual", type: { type: "number" } },
+          {
+            name: "recent",
+            type: {
+              type: "array",
+              items: {
+                type: "object",
+                // `sender` deliberately has no top-level column of the same
+                // name, so a rule testing it can only resolve via the item.
+                fields: [
+                  { name: "email", type: "text" },
+                  { name: "sender", type: "text" },
+                ],
+              },
+            },
+          },
+          // The other list shape a per-item rule has to serve: one CSV cell
+          // holding several comma-joined addresses.
+          { name: "recentEmails", type: { type: "array", items: { type: "text" } } },
+        ],
+      },
+      (c) => {
+        c["input"].rules = [rule];
+        if (cards !== undefined) c["input"].cards = cards;
+      },
+    );
+
+  const surge = {
+    name: "surge",
+    when: { op: "exceedsFactor", field: "now", otherField: "usual", factor: 3 },
+    style: { tone: "warning" },
+  };
+
+  it("accepts a factor comparison", () => {
+    expect(loadConfig(withRule(surge)).ok).toBe(true);
+  });
+
+  it("requires a factor", () => {
+    const { factor: _drop, ...when } = surge.when;
+    expect(all(withRule({ ...surge, when }))).toMatch(/factor/);
+  });
+
+  it("rejects a factor of zero or less", () => {
+    expect(all(withRule({ ...surge, when: { ...surge.when, factor: 0 } }))).not.toBe("");
+    expect(all(withRule({ ...surge, when: { ...surge.when, factor: -2 } }))).not.toBe("");
+  });
+
+  it("requires otherField, since a factor comparison has no literal form", () => {
+    const { otherField: _drop, ...when } = surge.when;
+    expect(all(withRule({ ...surge, when }))).not.toBe("");
+  });
+
+  it("rejects a literal value on a relational operator", () => {
+    const when = { op: "sameDomain", field: "email", otherField: "email", value: "x" };
+    expect(all(withRule({ ...surge, when }))).not.toBe("");
+  });
+
+  it("still catches a comparand naming an unknown column", () => {
+    const when = { ...surge.when, otherField: "ghost" };
+    expect(all(withRule({ ...surge, when }))).toMatch(/unknown input field "ghost"/);
+  });
+
+  it("accepts appliesToCards naming a declared card", () => {
+    const cards = [{ name: "velocity", rows: [{ use: ["now", "usual"] }] }];
+    expect(loadConfig(withRule({ ...surge, appliesToCards: ["velocity"] }, cards)).ok).toBe(true);
+  });
+
+  it("rejects appliesToCards naming an undeclared card", () => {
+    const cards = [{ name: "velocity", rows: [{ use: ["now", "usual"] }] }];
+    expect(all(withRule({ ...surge, appliesToCards: ["ghost"] }, cards))).toMatch(
+      /unknown input card "ghost"/,
+    );
+  });
+
+  // `resolveCards` invents a card named "fields" when none are declared, so a
+  // bare "unknown card" here would send an author hunting for a typo.
+  it("explains that a card-scoped rule needs cards to exist", () => {
+    expect(all(withRule({ ...surge, appliesToCards: ["velocity"] }))).toMatch(
+      /declares no `input.cards`/,
+    );
+  });
+
+  const perItem = {
+    name: "same-domain",
+    forEach: "recent",
+    when: { op: "sameDomain", field: "email", otherField: "email" },
+    style: { tone: "warning" },
+  };
+
+  it("accepts a forEach rule over a list of objects", () => {
+    expect(loadConfig(withRule(perItem)).ok).toBe(true);
+  });
+
+  it("resolves the tested field against the list's items", () => {
+    // `sender` exists only on the item type, so this can only load if the
+    // validator widened the known names with the element's own fields.
+    const when = { op: "sameLocalPart", field: "sender", otherField: "email" };
+    expect(loadConfig(withRule({ ...perItem, when })).ok).toBe(true);
+  });
+
+  it("still requires the comparand to name a record column, not an item field", () => {
+    // `otherField` always reads the record, so an item-only name is an error.
+    const when = { op: "sameLocalPart", field: "sender", otherField: "sender" };
+    expect(all(withRule({ ...perItem, when }))).toMatch(/unknown input field "sender"/);
+  });
+
+  // Composition made every per-leaf check reachable only through a walk. A
+  // `matches` buried in an `allOf` that escapes validation is worse than a
+  // loud error: `evaluateCondition` swallows a bad pattern and returns false,
+  // so the author gets a rule that loads cleanly and silently never fires.
+  it("compiles a regex nested inside a composing condition", () => {
+    const rule = {
+      name: "nested",
+      when: {
+        op: "allOf",
+        conditions: [
+          { op: "notEmpty", field: "email" },
+          // A JavaScript regex has no inline flags; this cannot compile.
+          { op: "matches", field: "email", pattern: "(?i)abc" },
+        ],
+      },
+      style: { tone: "warning" },
+    };
+    expect(all(withRule(rule))).toMatch(/Invalid regular expression/);
+  });
+
+  it("checks a nested otherField against the known columns", () => {
+    const rule = {
+      name: "nested",
+      when: {
+        op: "not",
+        condition: { op: "sameDomain", field: "email", otherField: "ghost" },
+      },
+      style: { tone: "warning" },
+    };
+    expect(all(withRule(rule))).toMatch(/unknown input field "ghost"/);
+  });
+
+  it("accepts a well-formed composing condition", () => {
+    const rule = {
+      name: "nested",
+      when: {
+        op: "allOf",
+        conditions: [
+          { op: "sameLocalPart", field: "email", otherField: "recentEmails" },
+          { op: "not", condition: { op: "matches", field: "email", pattern: "@gmail\\.com$" } },
+        ],
+      },
+      style: { tone: "warning" },
+    };
+    expect(all(withRule(rule))).toBe("");
+  });
+
+  it("rejects forEach over a field that is not a list at all", () => {
+    expect(all(withRule({ ...perItem, forEach: "email" }))).toMatch(/not an array/);
+  });
+
+  // A CSV cell holding ten comma-joined addresses coerces to a list of strings.
+  // Requiring objects here left the per-item rules unusable on the shape they
+  // were built for, so a scalar element answers to the list's own name.
+  it("accepts forEach over a list of scalars", () => {
+    const rule = {
+      name: "same-domain",
+      forEach: "recentEmails",
+      when: { op: "sameDomain", field: "recentEmails", otherField: "email" },
+      style: { tone: "warning" },
+    };
+    expect(all(withRule(rule))).toBe("");
+  });
+
+  it("rejects forEach over an unknown field", () => {
+    expect(all(withRule({ ...perItem, forEach: "ghost" }))).toMatch(/unknown input field "ghost"/);
+  });
+
+  it("rejects a tested field that is neither an item field nor a column", () => {
+    const when = { ...perItem.when, field: "ghost" };
+    expect(all(withRule({ ...perItem, when }))).toMatch(/unknown input field "ghost"/);
+  });
+
+  it("rejects combining forEach with appliesTo or appliesToCards", () => {
+    expect(all(withRule({ ...perItem, appliesTo: ["recent"] }))).toMatch(/forEach/);
+    const cards = [{ name: "velocity", rows: [{ use: ["now"] }] }];
+    expect(all(withRule({ ...perItem, appliesToCards: ["velocity"] }, cards))).toMatch(/forEach/);
+  });
+});
+
+describe("shortcut chords", () => {
+  const withShortcut = (shortcut: string): string =>
+    tweak({ output: [{ name: "verdict", kind: "choice", choices: ["good", "bad"] }] }, (c) => {
+      outputFields(c)[0]!["shortcut"] = shortcut;
+    });
+
+  it("accepts a bare letter or digit", () => {
+    expect(loadConfig(withShortcut("v")).ok).toBe(true);
+    expect(loadConfig(withShortcut("mod+7")).ok).toBe(true);
+  });
+
+  it("accepts a named key", () => {
+    expect(loadConfig(withShortcut("mod+up")).ok).toBe(true);
+    expect(loadConfig(withShortcut("alt+home")).ok).toBe(true);
+  });
+
+  it("accepts the Mac modifier keycap names", () => {
+    expect(loadConfig(withShortcut("cmd+j")).ok).toBe(true);
+    expect(loadConfig(withShortcut("opt+j")).ok).toBe(true);
+  });
+
+  it("rejects a word that is not a named key", () => {
+    expect(all(withShortcut("banana"))).not.toBe("");
+  });
+
+  // The app owns punctuation like `?` and `,`; keeping it out of the config
+  // grammar means no config can claim them however the reserved list changes.
+  it("rejects punctuation", () => {
+    expect(all(withShortcut("?"))).not.toBe("");
+    expect(all(withShortcut("mod+,"))).not.toBe("");
+  });
+
+  it("rejects a chord the app already drives", () => {
+    expect(all(withShortcut("enter"))).toMatch(/reserved/i);
+    expect(all(withShortcut("space"))).toMatch(/reserved/i);
+    expect(all(withShortcut("shift+right"))).toMatch(/reserved/i);
+  });
+
+  // The schema must never accept a chord the runtime cannot fire.
+  it("accepts nothing parseChord would refuse", () => {
+    const keys = [
+      "a",
+      "Z",
+      "0",
+      "9",
+      ...NAMED_KEYS.map((n) => n.token),
+      "esc",
+      "return",
+      "spacebar",
+      "del",
+    ];
+    const modifierSets = ["", "mod+", "shift+", "cmd+", "opt+", "mod+shift+", "ctrl+alt+"];
+    for (const key of keys) {
+      for (const mods of modifierSets) {
+        const text = `${mods}${key}`;
+        if (loadConfig(withShortcut(text)).ok) {
+          expect(parseChord(text), text).not.toBeNull();
+        }
+      }
+    }
   });
 });

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isReservedChord } from "../shortcuts";
+import { CHORD_KEY_ALIASES, isReservedChord, NAMED_KEYS } from "../shortcuts";
 import {
   Choice,
   FieldDisplay,
@@ -45,10 +45,37 @@ const Identifier = z
     "must be a column name: letters, digits, _ or -, with optional inner spaces",
   );
 
-/** A keyboard chord, e.g. `"p"` or `"mod+s"` (mod = Cmd on macOS, Ctrl elsewhere). */
+/**
+ * Cap on `ai.context`, in characters.
+ *
+ * It rides in front of every record inside a 4096-token window, so it competes
+ * with the record it is supposed to explain. Roughly 500 tokens leaves the row
+ * and the model's answer plenty of room, and the limit is a load error rather
+ * than a silent truncation — a config author who wrote three pages should find
+ * out at load, not wonder why the model stopped seeing the last column.
+ */
+const MAX_AI_CONTEXT = 2000;
+
+/**
+ * A keyboard chord, e.g. `"p"`, `"mod+s"` or `"shift+up"` (mod = Cmd on macOS,
+ * Ctrl elsewhere).
+ *
+ * Built from the same key table the runtime parses with, so the schema can
+ * never accept a chord `parseChord` would refuse. Deliberately narrower than
+ * `parseChord` in one respect: punctuation is not offered here. The app owns
+ * `?` and `mod+,`, and keeping punctuation out of the config grammar means no
+ * config can claim them however the reserved list changes later.
+ */
+const CHORD_MODIFIERS = "mod|ctrl|control|alt|opt|option|shift|meta|cmd|command";
+const CHORD_KEYS = ["[A-Za-z0-9]", ...NAMED_KEYS.map((k) => k.token), ...CHORD_KEY_ALIASES].join(
+  "|",
+);
 const Chord = z
   .string()
-  .regex(/^(?:(?:mod|ctrl|alt|shift|meta)\+)*[A-Za-z0-9]$/, 'e.g. "p" or "mod+s"');
+  .regex(
+    new RegExp(`^(?:(?:${CHORD_MODIFIERS})\\+)*(?:${CHORD_KEYS})$`, "i"),
+    'e.g. "p", "mod+s" or "shift+up"',
+  );
 
 // --- Who fills a field -----------------------------------------------------
 
@@ -247,6 +274,19 @@ const OPS: Record<string, string> = {
   matches: "True when the field matches the regular expression.",
   empty: "True when the field is null, an empty string, or an empty list.",
   notEmpty: "True when the field holds anything at all.",
+  exceedsFactor:
+    "True when the field is more than `factor` times the comparand — a difference in magnitude rather than merely being larger. Defined only over non-negative magnitudes: a negative value, or a comparand of zero or less, does not fire.",
+  fallsBelowFactor:
+    "True when the field is less than the comparand divided by `factor`. Defined only over non-negative magnitudes.",
+  sameDomain:
+    "True when both values carry an email domain and the domains match, compared without regard to case. A value with no `@` has no domain, so it never matches.",
+  sameLocalPart:
+    "True when both values share a local part — the text before the `@`, or the whole value when there is no `@` — compared without regard to case. That fallback is what lets a bare username be tested against a sender address.",
+  sharesPrefix:
+    "True when both values begin with the same `length` characters, compared without regard to case. For spotting identifiers minted together — a run of handles all starting `Bvd` — where what matters is that two values resemble each other, not what either looks like alone. A value shorter than `length` never matches.",
+  allOf: "True when every listed condition holds. Conditions may nest.",
+  anyOf: "True when at least one listed condition holds. Conditions may nest.",
+  not: "True when the nested condition does not hold.",
 };
 
 /** Comparison against either a literal or another field — exactly one. */
@@ -264,43 +304,147 @@ const comparison = <T extends string>(op: T, value: z.ZodType) =>
   });
 
 /**
+ * A comparison that only relates two columns — there is no literal form, so
+ * `otherField` is required rather than one of a pair.
+ */
+const relational = <T extends string>(op: T) =>
+  z.strictObject({
+    op: z.literal(op).meta({ description: OPS[op] }),
+    field: TestedField,
+    otherField: Identifier.meta({
+      description:
+        "The input field this one is measured against. Required — this operator has no literal form.",
+    }),
+  });
+
+/**
+ * A relational comparison scaled by a multiple.
+ *
+ * Separate operators for above and below rather than one signed factor: `-3`
+ * reads as nothing in particular, and is ambiguous against `-0.33`.
+ */
+const factorComparison = <T extends string>(op: T) =>
+  relational(op).extend({
+    factor: z.number().positive().meta({
+      description:
+        "The multiple to scale the comparand by. `3` reads as 'three times'. A factor of 1 is legal and degenerates into a plain `gt` / `lt`.",
+    }),
+  });
+
+/**
+ * `sameDomain`, plus the domains too common to mean anything.
+ *
+ * Without this the rule fires on most rows of a real file — two accounts both
+ * at gmail.com share nothing — and a colour that appears everywhere stops
+ * carrying information. Expressed on the operator rather than as a second
+ * overriding rule, because that alternative marks every free-provider address
+ * whether or not it matched.
+ */
+const sameDomainCondition = relational("sameDomain").extend({
+  ignore: z.array(z.string().min(1)).optional().meta({
+    description:
+      "Domains that never count as shared, compared without regard to case — the large free providers, typically. Two accounts both at `gmail.com` have nothing in common worth colouring.",
+  }),
+});
+
+/** Leading-character agreement between an element and a record column. */
+const sharesPrefixCondition = relational("sharesPrefix").extend({
+  length: z.number().int().positive().meta({
+    description:
+      "How many leading characters must agree. Low values match by coincidence — 3 or 4 is usually where a shared prefix stops being an accident.",
+  }),
+});
+
+/**
  * A rule's trigger. A discriminated union on `op` from the start, so composition
  * (`allOf` / `anyOf` / `not`, which carry no `field`) can be added later without
  * breaking existing configs.
  */
-export const Condition = z
+const LEAF_CONDITIONS = [
+  comparison("eq", Scalar),
+  comparison("ne", Scalar),
+  comparison("gt", z.number()),
+  comparison("gte", z.number()),
+  comparison("lt", z.number()),
+  comparison("lte", z.number()),
+  z.strictObject({
+    op: z.literal("in").meta({ description: OPS["in"] }),
+    field: TestedField,
+    value: z.array(Scalar).min(1).meta({ description: "The values to match against." }),
+  }),
+  z.strictObject({
+    op: z.literal("notIn").meta({ description: OPS["notIn"] }),
+    field: TestedField,
+    value: z.array(Scalar).min(1).meta({ description: "The values to match against." }),
+  }),
+  z.strictObject({
+    op: z.literal("matches").meta({ description: OPS["matches"] }),
+    field: TestedField,
+    pattern: z.string().min(1).meta({
+      description:
+        "JavaScript regular expression, tested against the value's string form. Compiled when the config loads.",
+    }),
+  }),
+  z.strictObject({
+    op: z.literal("empty").meta({ description: OPS["empty"] }),
+    field: TestedField,
+  }),
+  z.strictObject({
+    op: z.literal("notEmpty").meta({ description: OPS["notEmpty"] }),
+    field: TestedField,
+  }),
+  factorComparison("exceedsFactor"),
+  factorComparison("fallsBelowFactor"),
+  sameDomainCondition,
+  relational("sameLocalPart"),
+  sharesPrefixCondition,
+] as const;
+
+/** Everything that tests a value directly — no nesting, no recursion. */
+type LeafCondition = z.infer<z.ZodDiscriminatedUnion<typeof LEAF_CONDITIONS>>;
+
+/**
+ * A condition, including the composing ones.
+ *
+ * Written by hand rather than inferred because the composing operators refer
+ * back to this type, and TypeScript cannot resolve a type from an initialiser
+ * that mentions itself.
+ */
+export type Condition =
+  | LeafCondition
+  | { op: "allOf"; conditions: Condition[] }
+  | { op: "anyOf"; conditions: Condition[] }
+  | { op: "not"; condition: Condition };
+
+/**
+ * Composition carries no `field` of its own, which is why this union was
+ * discriminated on `op` from the start.
+ *
+ * It earns its place because the signals that actually separate two populations
+ * are usually conjunctions, and each half alone is far weaker than the pair.
+ * Without it an author has to emit both halves as separate rules and leave the
+ * reader to notice they coincided.
+ */
+export const Condition: z.ZodType<Condition> = z
   .discriminatedUnion("op", [
-    comparison("eq", Scalar),
-    comparison("ne", Scalar),
-    comparison("gt", z.number()),
-    comparison("gte", z.number()),
-    comparison("lt", z.number()),
-    comparison("lte", z.number()),
+    ...LEAF_CONDITIONS,
     z.strictObject({
-      op: z.literal("in").meta({ description: OPS["in"] }),
-      field: TestedField,
-      value: z.array(Scalar).min(1).meta({ description: "The values to match against." }),
+      op: z.literal("allOf").meta({ description: OPS["allOf"] }),
+      conditions: z
+        .array(z.lazy(() => Condition))
+        .min(1)
+        .meta({ description: "Every one of these must hold." }),
     }),
     z.strictObject({
-      op: z.literal("notIn").meta({ description: OPS["notIn"] }),
-      field: TestedField,
-      value: z.array(Scalar).min(1).meta({ description: "The values to match against." }),
+      op: z.literal("anyOf").meta({ description: OPS["anyOf"] }),
+      conditions: z
+        .array(z.lazy(() => Condition))
+        .min(1)
+        .meta({ description: "At least one of these must hold." }),
     }),
     z.strictObject({
-      op: z.literal("matches").meta({ description: OPS["matches"] }),
-      field: TestedField,
-      pattern: z.string().min(1).meta({
-        description:
-          "JavaScript regular expression, tested against the value's string form. Compiled when the config loads.",
-      }),
-    }),
-    z.strictObject({
-      op: z.literal("empty").meta({ description: OPS["empty"] }),
-      field: TestedField,
-    }),
-    z.strictObject({
-      op: z.literal("notEmpty").meta({ description: OPS["notEmpty"] }),
-      field: TestedField,
+      op: z.literal("not").meta({ description: OPS["not"] }),
+      condition: z.lazy(() => Condition).meta({ description: "The condition to negate." }),
     }),
   ])
   .meta({
@@ -309,7 +453,53 @@ export const Condition = z
     description:
       "A rule's trigger, evaluated over one record's input values. Never throws: a condition pointed at a missing or wrongly-typed value simply does not fire.",
   });
-export type Condition = z.infer<typeof Condition>;
+
+/**
+ * Every input field a condition tests, in the order it mentions them.
+ *
+ * A composing condition has no `field` of its own, so the three things that
+ * used to read `when.field` directly — validation, the default `appliesTo`, and
+ * the per-item scope check — all need the set underneath instead. De-duplicated
+ * so `allOf` over two tests of the same column does not style it twice.
+ *
+ * `otherField` is deliberately excluded: it is the comparand, not the subject,
+ * and a rule comparing A to B is about A.
+ */
+/** A condition that tests a value directly, with no nesting below it. */
+type Leaf = Exclude<Condition, { op: "allOf" | "anyOf" | "not" }>;
+
+/**
+ * Visit every value-testing condition in a tree.
+ *
+ * Every per-leaf check has to go through here rather than reading `when`
+ * directly, or a condition tucked inside an `allOf` escapes validation
+ * entirely — and the runtime is deliberately forgiving, so an unchecked
+ * mistake shows up as a rule that never fires rather than as an error.
+ */
+export function forEachLeaf(condition: Condition, visit: (leaf: Leaf) => void): void {
+  if (condition.op === "allOf" || condition.op === "anyOf") {
+    for (const child of condition.conditions) forEachLeaf(child, visit);
+  } else if (condition.op === "not") {
+    forEachLeaf(condition.condition, visit);
+  } else {
+    visit(condition);
+  }
+}
+
+export function conditionFields(condition: Condition): string[] {
+  const out: string[] = [];
+  const walk = (node: Condition): void => {
+    if (node.op === "allOf" || node.op === "anyOf") {
+      for (const child of node.conditions) walk(child);
+    } else if (node.op === "not") {
+      walk(node.condition);
+    } else if (!out.includes(node.field)) {
+      out.push(node.field);
+    }
+  };
+  walk(condition);
+  return out;
+}
 
 /**
  * A purely visual rule over displayed input values.
@@ -329,9 +519,23 @@ export const DisplayRule = z
       .min(1)
       .meta({
         description:
-          "Fields to style when the rule fires. Defaults to the field the condition tests, which is what you want for a single-field rule and never what you want when comparing two.",
+          "Fields to style when the rule fires. Defaults to the field the condition tests, which is what you want for a single-field rule and never what you want when comparing two. The default is skipped entirely when `appliesToCards` is given.",
       })
       .optional(),
+    /** Cards to annotate. A separate key from `appliesTo` — see the description. */
+    appliesToCards: z
+      .array(Identifier)
+      .min(1)
+      .meta({
+        description:
+          "Input cards to annotate when the rule fires. A card-level note states once what would otherwise repeat on every field in the group. This is a separate key from `appliesTo` because card names and field names live in separate namespaces — a card may legitimately share a name with a field, and one list could not tell them apart.",
+      })
+      .optional(),
+    /** Evaluate per element of a list, rather than once for the record. */
+    forEach: Identifier.meta({
+      description:
+        "Evaluate this rule once per element of the named input field, which must be an `array`, and style the elements it holds for. Inside the loop, an element of an `array` of `object` is addressed by its own field names, which shadow a record column of the same name; an element of a list of scalars is addressed by the list's own name. Either way every other record column stays readable, so `otherField` compares an element against the record around it. Cannot be combined with `appliesTo` or `appliesToCards` — the target is always the matching element.",
+    }).optional(),
     style: Style.meta({ description: "How the matched fields are styled." }),
   })
   .meta({
@@ -403,21 +607,49 @@ export const AppConfig = z
       .optional(),
 
     /**
-     * Network policy. The app is local-first; the only network it ever performs
-     * is the GitHub-Releases update check. Set `updateChecks: false` to forbid
-     * all network calls. Absent or `true` ⇒ update checks run.
+     * Network policy. The app is local-first and performs exactly two kinds of
+     * remote request, each with its own switch: the GitHub-Releases update
+     * check, and downloading a model for anomaly detection. Setting both to
+     * `false` forbids all network.
      */
     network: z
       .strictObject({
         updateChecks: z.boolean().default(true).meta({
           description:
-            "Whether to check GitHub Releases for updates. `false` forbids every network call the app could make. Absent or `true` means checks run.",
+            "Whether to check GitHub Releases for updates. Absent or `true` means checks run; `false` forbids that traffic entirely.",
+        }),
+        modelDownload: z.boolean().default(true).meta({
+          description:
+            "Whether the app may download an anomaly-detection model from Hugging Face. Absent or `true` means it may, once a labeler asks for it in Settings — nothing is fetched otherwise. `false` forbids that traffic entirely, and hides the feature unless a model is already on this machine.",
         }),
       })
-      .default({ updateChecks: true })
+      .default({ updateChecks: true, modelDownload: true })
       .meta({
         description:
-          "Network policy. The update check is the only remote request this app ever performs, and it is opt-out.",
+          "Network policy. These are the only remote requests this app ever performs, and both are opt-out. With both `false` the app makes no network calls at all.",
+      }),
+
+    /**
+     * On-device assistance. Off unless a labeler turns it on in Settings; this
+     * flag governs whether they are offered the choice at all.
+     */
+    ai: z
+      .strictObject({
+        anomalyDetection: z.boolean().default(true).meta({
+          description:
+            "Whether labelers may enable on-device anomaly detection for this project. Absent or `true` offers it in Settings; nothing runs or downloads until it is switched on there. `false` removes the feature entirely — no section, no panel, no suggestions. Worth setting for a task where a model's guess sitting beside the answer could bias the labeler.",
+        }),
+        context: z.string().max(MAX_AI_CONTEXT).optional().meta({
+          description:
+            "What this data is, in your own words, given to the model along with each row. Column names and types tell it what the data *is*; only you can tell it what the data *means* — what the file is, which columns relate to which, and what would count as odd here. Without this a small model is guessing at the shape of a row. Keep it to a short paragraph: it is sent with every record, and a long one crowds out the record itself. Never include instructions about what to conclude — describe the data, not the answer.",
+        }),
+      })
+      .default({ anomalyDetection: true })
+      .meta({
+        id: "AiConfig",
+        title: "AI",
+        description:
+          "On-device assistance. Suggestions are advisory: they are never written to the output file and can never fill in an answer.",
       }),
 
     input: z
@@ -730,9 +962,56 @@ function validateConfig(ctx: CheckCtx, cfg: AppConfig): void {
   collectShortcuts(ctx, cfg.output.fields, ["output", "fields"]);
 
   // A rule can only decorate something that is rendered.
+  const inputCards = cfg.input.cards;
+  const inputCardNames = new Set(inputCards?.map((c) => c.name) ?? []);
+
   cfg.input.rules?.forEach((rule, ri) => {
-    const referenced = [rule.when.field, ...(rule.appliesTo ?? [])];
-    referenced.forEach((name) => {
+    // Inside a `forEach`, the tested field resolves against the list's elements
+    // first, so the element's own fields count as known names too.
+    let testable = inputNames;
+    if (rule.forEach !== undefined) {
+      const list = cfg.input.fields.find((f) => f.name === rule.forEach);
+      if (!list) {
+        issue(
+          ctx,
+          ctx.value,
+          ["input", "rules", ri, "forEach"],
+          `Rule iterates unknown input field "${rule.forEach}".`,
+        );
+      } else if (list.type !== "array") {
+        issue(
+          ctx,
+          ctx.value,
+          ["input", "rules", ri, "forEach"],
+          `Rule iterates "${rule.forEach}", which is not an array.`,
+        );
+      } else if (list.items.type === "object") {
+        testable = new Set([...inputNames, ...list.items.fields.map((f) => f.name)]);
+      }
+      // A list of scalars contributes no new names: the element answers to the
+      // list's own name, which is already in `inputNames`.
+      if (rule.appliesTo !== undefined || rule.appliesToCards !== undefined) {
+        issue(
+          ctx,
+          ctx.value,
+          ["input", "rules", ri],
+          "`forEach` cannot be combined with `appliesTo` or `appliesToCards`: a per-item rule always styles the element it matched.",
+        );
+      }
+    }
+
+    for (const name of conditionFields(rule.when)) {
+      if (!testable.has(name)) {
+        issue(
+          ctx,
+          ctx.value,
+          ["input", "rules", ri],
+          `Rule references unknown input field "${name}".`,
+        );
+      }
+    }
+    // `appliesTo` always names record columns, never an element's fields.
+    (rule.appliesTo ?? []).forEach((name) => {
       if (!inputNames.has(name)) {
         issue(
           ctx,
@@ -742,40 +1021,72 @@ function validateConfig(ctx: CheckCtx, cfg: AppConfig): void {
         );
       }
     });
-    if ("otherField" in rule.when && rule.when.otherField !== undefined) {
-      if (!inputNames.has(rule.when.otherField)) {
+
+    if (rule.appliesToCards !== undefined) {
+      // `resolveCards` invents a card named "fields" when none are declared, so
+      // a bare "unknown card" here would send an author hunting for a typo in a
+      // name they never wrote.
+      if (!inputCards || inputCards.length === 0) {
         issue(
           ctx,
           ctx.value,
-          ["input", "rules", ri, "when", "otherField"],
-          `Rule references unknown input field "${rule.when.otherField}".`,
+          ["input", "rules", ri, "appliesToCards"],
+          "Rule annotates a card, but this config declares no `input.cards`.",
         );
+      } else {
+        rule.appliesToCards.forEach((name, ci) => {
+          if (!inputCardNames.has(name)) {
+            issue(
+              ctx,
+              ctx.value,
+              ["input", "rules", ri, "appliesToCards", ci],
+              `Rule references unknown input card "${name}".`,
+            );
+          }
+        });
       }
     }
-    if ("value" in rule.when && "otherField" in rule.when) {
-      const hasValue = rule.when.value !== undefined;
-      const hasField = rule.when.otherField !== undefined;
-      if (hasValue === hasField) {
-        issue(
-          ctx,
-          ctx.value,
-          ["input", "rules", ri, "when"],
-          "Give exactly one of `value` or `otherField`.",
-        );
+
+    // The comparand always reads the record, even inside a `forEach`.
+    // Every leaf, not just the top one. A `matches` buried inside an `allOf`
+    // still has to compile: `evaluateCondition` swallows a bad pattern and
+    // returns false, so an unchecked one is a rule that silently never fires.
+    forEachLeaf(rule.when, (leaf) => {
+      if ("otherField" in leaf && leaf.otherField !== undefined) {
+        if (!inputNames.has(leaf.otherField)) {
+          issue(
+            ctx,
+            ctx.value,
+            ["input", "rules", ri, "when", "otherField"],
+            `Rule references unknown input field "${leaf.otherField}".`,
+          );
+        }
       }
-    }
-    if (rule.when.op === "matches") {
-      try {
-        RegExp(rule.when.pattern);
-      } catch {
-        issue(
-          ctx,
-          ctx.value,
-          ["input", "rules", ri, "when", "pattern"],
-          "Invalid regular expression.",
-        );
+      if ("value" in leaf && "otherField" in leaf) {
+        const hasValue = leaf.value !== undefined;
+        const hasField = leaf.otherField !== undefined;
+        if (hasValue === hasField) {
+          issue(
+            ctx,
+            ctx.value,
+            ["input", "rules", ri, "when"],
+            "Give exactly one of `value` or `otherField`.",
+          );
+        }
       }
-    }
+      if (leaf.op === "matches") {
+        try {
+          RegExp(leaf.pattern);
+        } catch {
+          issue(
+            ctx,
+            ctx.value,
+            ["input", "rules", ri, "when", "pattern"],
+            "Invalid regular expression.",
+          );
+        }
+      }
+    });
   });
 
   // An appTitle bound to a field must name one that exists.

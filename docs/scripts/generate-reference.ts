@@ -227,6 +227,7 @@ const PAGE_ORDER: [name: string, blurb: string][] = [
   ["FieldDisplay", "Captions plus layout, for a field."],
   ["TableView", "How an object renders as a table."],
   ["TableColumn", "One column of that table."],
+  ["AiConfig", "Whether on-device anomaly detection is offered for this project."],
 ];
 
 const PAGES = new Set(PAGE_ORDER.map(([name]) => name));
