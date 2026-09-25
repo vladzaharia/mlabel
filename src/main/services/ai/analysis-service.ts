@@ -3,6 +3,7 @@ import {
   buildOutputJsonSchema,
   buildPrefix,
   buildSuffix,
+  recordBudget,
   cacheIsValid,
   findModel,
   parseModelOutput,
@@ -167,7 +168,14 @@ async function pump(): Promise<void> {
   running = target;
   publish({ recordIndex: target, status: "running", findings: [], modelId: loaded.modelId });
 
-  const suffix = buildSuffix(loaded.config.input.fields, record.inputValues);
+  // The prefix and the record share one context window, so what the record may
+  // spend depends on what the instructions already cost. Computed from the
+  // prefix that was actually built, not assumed.
+  const suffix = buildSuffix(
+    loaded.config.input.fields,
+    record.inputValues,
+    recordBudget(loaded.prefix),
+  );
   // Logged before the decode rather than after, so a call that hangs or takes
   // the worker down with it still leaves a trace of what was asked. A call that
   // only appears once it succeeds is a log that cannot explain a failure.

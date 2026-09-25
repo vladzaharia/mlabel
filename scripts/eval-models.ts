@@ -49,6 +49,15 @@ interface Args {
   data: string;
   records: number;
   models: string[];
+  /**
+   * Strip `maxLength` from the schema before handing it to the grammar.
+   *
+   * An ablation switch, because bounding the free-text fields turned out not to
+   * be a uniform improvement: it rescued Ministral 3 and silenced Qwen3.5 4B in
+   * the same run. Being able to change that one thing, with the prompt and
+   * everything else held still, is the difference between knowing and guessing.
+   */
+  noBounds: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -69,7 +78,19 @@ function parseArgs(argv: string[]): Args {
     data,
     records: Number(get("--records") ?? 12),
     models: only ? only.split(",") : MODELS.map((m) => m.id),
+    noBounds: argv.includes("--no-bounds"),
   };
+}
+
+/** Recursively drop every `maxLength`, for the `--no-bounds` ablation. */
+function stripMaxLength(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripMaxLength);
+  if (value === null || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => key !== "maxLength")
+      .map(([key, v]) => [key, stripMaxLength(v)]),
+  );
 }
 
 /** One record's outcome, classified the way the failure modes actually differ. */
@@ -325,7 +346,8 @@ async function main(): Promise<void> {
     fields: cfg.input.fields.map((f) => f.name),
     cards: (cfg.input.cards ?? []).map((c) => c.name),
   };
-  const schema = buildOutputJsonSchema(scopes);
+  const bounded = buildOutputJsonSchema(scopes);
+  const schema = (args.noBounds ? stripMaxLength(bounded) : bounded) as Record<string, unknown>;
   const prefix = buildPrefix(cfg.input.fields, cfg.ai.context);
 
   console.log(`config: ${args.config}`);

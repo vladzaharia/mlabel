@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { test, fc } from "@fast-check/vitest";
 import type { InputField } from "../config";
-import { buildPrompt, prefixIsStable } from "./prompt";
+import { buildPrompt, prefixIsStable, recordBudget } from "./prompt";
 
 const fields: InputField[] = [
   { name: "email", type: "text", display: { title: "Email" } },
@@ -33,10 +33,55 @@ describe("buildPrompt", () => {
     expect(buildPrompt(fields, {}).suffix).toContain("email: (empty)");
   });
 
-  it("truncates one enormous cell so it cannot crowd out the rest", () => {
-    const { suffix } = buildPrompt(fields, { email: "x".repeat(5000) });
-    expect(suffix.length).toBeLessThan(1500);
+  it("keeps the whole record inside its budget, however large one cell is", () => {
+    const { prefix, suffix } = buildPrompt(fields, { email: "x".repeat(50_000) });
+    // The cap is on the record, not on each value: a single wide column may use
+    // room its narrow neighbours do not need, and only the total has to hold.
+    // Compared against the derived budget rather than a constant, so the two
+    // cannot drift apart silently.
+    expect(suffix.length).toBeLessThan(recordBudget(prefix) + 500);
     expect(suffix).toContain("…");
+  });
+
+  it("gives the record less room when the instructions take more", () => {
+    // `ai.context` and the row compete for one window. A config that spends 2000
+    // characters explaining itself has to leave less for the data.
+    const roomy = recordBudget(buildPrompt(fields, {}).prefix);
+    const cramped = recordBudget(buildPrompt(fields, {}, "c".repeat(2000)).prefix);
+    expect(cramped).toBeLessThan(roomy);
+    expect(roomy - cramped).toBeGreaterThanOrEqual(2000);
+  });
+
+  it("says when it shortened a value, so the model does not read it as damage", () => {
+    // Without this the model reported the app's own truncation as a finding —
+    // an ellipsis mid-address looks exactly like corrupt data.
+    const { suffix } = buildPrompt(fields, { email: "x".repeat(50_000) });
+    expect(suffix).toContain("shortened to fit");
+    expect(suffix).toContain("50000 characters in full");
+  });
+
+  it("does not starve a narrow column to feed a wide one", () => {
+    const { suffix } = buildPrompt(fields, {
+      email: "x".repeat(50_000),
+      signups: 42,
+      at: new Date("2026-05-01T14:30:00Z"),
+    });
+    // The two small values are nowhere near any share of the budget, so they
+    // must arrive whole no matter how greedy their neighbour is.
+    expect(suffix).toContain("signups: 42");
+    expect(suffix).toContain("at: 2026-05-01T14:30:00.000Z");
+  });
+
+  it("gives a wide column more than an equal share when its neighbours are small", () => {
+    const solo = buildPrompt([fields[0]!], { email: "x".repeat(50_000) }).suffix;
+    const withNeighbours = buildPrompt(fields, {
+      email: "x".repeat(50_000),
+      signups: 42,
+      at: new Date("2026-05-01T14:30:00Z"),
+    }).suffix;
+    // An equal three-way split would give the email a third of the budget. It
+    // should get very nearly all of it, because the others want almost none.
+    expect(withNeighbours.length).toBeGreaterThan(solo.length * 0.9);
   });
 
   it("tells the model that saying nothing is the usual answer", () => {
