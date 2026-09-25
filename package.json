@@ -38,7 +38,8 @@
     "build:win": "electron-vite build && electron-builder --win",
     "package:mac": "electron-builder --mac --publish always",
     "package:win": "electron-builder --win --publish always",
-    "prepare": "lefthook install || true"
+    "prepare": "lefthook install || true",
+    "score": "tsx scripts/score-signals.ts"
   },
   "dependencies": {
     "electron-updater": "6.8.9",
