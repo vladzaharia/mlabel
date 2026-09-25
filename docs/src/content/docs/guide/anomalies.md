@@ -39,17 +39,27 @@ working on it.
 **Settings → Anomalies** (<kbd>⌘/Ctrl</kbd>+<kbd>,</kbd>). Switch it on, then download a
 model. Five are offered, smallest first:
 
-| Model          | Download | Notes                                                             |
-| -------------- | -------- | ----------------------------------------------------------------- |
-| Qwen3.5 2B     | 1.34 GB  | The default. Smallest download, and a good first try              |
-| Ministral 3 3B | 2.19 GB  | Built for structured answers; steadier at staying on the question |
-| Gemma 4 E2B    | 2.62 GB  | Quantisation-aware, so it loses less to being shrunk              |
-| Qwen3.5 4B     | 2.91 GB  | Best judgement of the Qwen pair, and slower for it                |
-| Gemma 4 E4B    | 4.22 GB  | The largest on offer; wants a machine with memory to spare        |
+| Model          | Download | Per record | How much it says                     |
+| -------------- | -------- | ---------- | ------------------------------------ |
+| Qwen3.5 2B     | 1.34 GB  | ~1.3 s     | The default. Rarely speaks up        |
+| Ministral 3 3B | 2.19 GB  | ~4.4 s     | The most forthcoming of the five     |
+| Gemma 4 E2B    | 2.62 GB  | ~0.8 s     | Quickest, and very reluctant to flag |
+| Qwen3.5 4B     | 2.91 GB  | ~6.6 s     | Talkative, and the slowest           |
+| Gemma 4 E4B    | 4.22 GB  | ~1.3 s     | The most cautious of all             |
 
-Start with the default and only move up if the notes are not useful enough. A bigger model is
-a better guesser, not a different kind of thing — it is still a guess, and it still costs you
-the wait on every record.
+Timings are from an Apple Silicon Mac; a machine without a usable GPU will be slower. The
+"how much it says" column is measured — over the same fourteen records, Ministral raised
+notes on eleven and both Gemma models on none.
+
+:::caution
+That column says how **often** a model speaks, not how often it is **right**. A model that
+says nothing is never wrong and never useful; a talkative one gives you more to check, not
+more that is true. Try two on data you know well before trusting either.
+:::
+
+Start with the default. If it stays quiet on records where you can see something is off, move
+to Ministral 3 — it is the biggest single step up in how much gets raised, for about three
+extra seconds a record.
 
 All are Apache-2.0 and are fetched from Hugging Face over a single verified download. The
 file's checksum is pinned in the app, so a changed upload fails rather than runs. Nothing is
