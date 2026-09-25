@@ -2,6 +2,7 @@ import type { CoercedValue } from "./values";
 import type { ValidationIssue } from "../adapters/interfaces";
 import type { AppConfig } from "../config/schema";
 import type { ConfigIssue } from "../config/loader";
+import type { Finding } from "../ai/types";
 
 /** A label-value map as it crosses IPC: `null` means "not yet provided". */
 export type LabelMap = Record<string, CoercedValue | null>;
@@ -170,4 +171,121 @@ export type UpdateStatus =
   | { kind: "downloading"; version: string; percent: number }
   | { kind: "downloaded"; version: string }
   | { kind: "available-external"; version: string; url: string }
-  | { kind: "error"; message?: string };
+  | { kind: "error"; message?: string }
+  // A state the UI could never express before: with updates turned off there
+  // was simply nothing on screen, which reads the same as nothing having
+  // happened yet.
+  | { kind: "disabled" };
+
+/** How the app picks between light and dark. */
+export type ThemeMode = "system" | "light" | "dark";
+
+/** The named colour schemes. */
+export type ColorTheme = "cobalt" | "parchment" | "fjord" | "vespers";
+
+/**
+ * Everything the app remembers about how a labeler likes to work.
+ *
+ * Distinct from a session, which is about one file's worth of labels. This
+ * outlives every file and is not tied to a config.
+ */
+export interface AppSettings {
+  version: number;
+  themeMode: ThemeMode;
+  colorTheme: ColorTheme;
+  /**
+   * Chord overrides, keyed by binding. An empty array means *deliberately
+   * unbound*, which is a different thing from an absent key meaning *use the
+   * default*.
+   */
+  shortcuts: Record<string, string[]>;
+  /**
+   * Whether the labeler wants update checks. Only ever *narrows* the config's
+   * `network.updateChecks` — a setting can never enable network a config forbade.
+   */
+  updateChecks: boolean;
+  /**
+   * Whether the labeler has switched on anomaly detection. Off by default: the
+   * config only decides whether they are offered the choice.
+   */
+  aiEnabled: boolean;
+  /** Which model they picked. */
+  aiModelId: string;
+}
+
+/** Static facts about the running build, for the settings pane. */
+export interface AppInfo {
+  version: string;
+  platform: string;
+  /**
+   * `process.arch`. Shown beside the platform because on macOS it is the
+   * difference between a build that can run a model and one that cannot —
+   * "darwin" alone does not answer the question a labeler is asking.
+   */
+  arch: string;
+  /** False in development, where the updater deliberately does nothing. */
+  packaged: boolean;
+  /** Whether the updater was armed at startup. */
+  updatesArmed: boolean;
+  /** `network.updateChecks` for the loaded config; true when none is loaded. */
+  updatesAllowedByConfig: boolean;
+  /** `ai.anomalyDetection` for the loaded config. */
+  aiAllowedByConfig: boolean;
+  /** `network.modelDownload` for the loaded config. */
+  modelDownloadAllowedByConfig: boolean;
+  /** Whether this build ships an inference binary at all. */
+  aiPlatformSupported: boolean;
+}
+
+export type ModelCallStatus = "running" | "clean" | "findings" | "failed" | "canceled";
+
+/**
+ * One run of the model over one record, kept so a labeler can see exactly what
+ * was asked and exactly what came back.
+ *
+ * The full prompt is here on purpose. A suggestion a reviewer is told to verify
+ * is only verifiable if they can see what the model was given — and the two
+ * failure modes this feature actually has, a truncated value and a misleading
+ * `ai.context`, are both invisible from the finding alone.
+ *
+ * In memory and capped, like the network log. Records pass through it; it does
+ * not accumulate them.
+ */
+export interface ModelCallEntry {
+  id: number;
+  /** Epoch milliseconds when the call started. */
+  at: number;
+  /** Which row, zero-based. */
+  recordIndex: number;
+  modelId: string;
+  status: ModelCallStatus;
+  /** Wall-clock time of the decode, once it finished. */
+  elapsedMs?: number;
+  /** The instructions and the file's shape — identical for every record. */
+  prefix: string;
+  /** The record under inspection, as the model saw it. */
+  suffix: string;
+  /** Exactly what came back, before parsing. */
+  raw?: string;
+  /** What survived parsing. Empty for a clean record and for a failure alike. */
+  findings: Finding[];
+  /** Why it failed, when it did. */
+  error?: string;
+}
+
+export type NetworkEventKind = "update-check" | "update-download" | "model-download" | "denied";
+export type NetworkOutcome = "started" | "success" | "error" | "denied";
+
+/** One network call the app made, or refused to make. */
+export interface NetworkLogEntry {
+  id: number;
+  /** Epoch milliseconds. */
+  at: number;
+  kind: NetworkEventKind;
+  /** Plain-language description, e.g. "Check for updates". */
+  label: string;
+  /** Host contacted; empty for events that name no URL. */
+  host: string;
+  outcome: NetworkOutcome;
+  detail?: string;
+}

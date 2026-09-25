@@ -1,4 +1,7 @@
+import type { Analysis, EngineState } from "./ai/types";
 import type {
+  AppInfo,
+  AppSettings,
   ConfigLoadResponse,
   ExportRequest,
   ExportResponse,
@@ -7,6 +10,8 @@ import type {
   JoinKind,
   JoinRequest,
   JoinRunResponse,
+  NetworkLogEntry,
+  ModelCallEntry,
   PrepareFilePickResponse,
   RecentPaths,
   SessionData,
@@ -30,6 +35,11 @@ import type {
 export type ThemeListener = (isDark: boolean) => void;
 export type UpdateStatusListener = (status: UpdateStatus) => void;
 export type SetModeListener = (mode: "label" | "prepare") => void;
+export type OpenSettingsListener = () => void;
+export type AiStatusListener = (state: EngineState) => void;
+export type AiAnalysisListener = (analysis: Analysis) => void;
+export type ModelCallListener = (entry: ModelCallEntry) => void;
+export type NetworkLogListener = (entry: NetworkLogEntry) => void;
 
 export interface IpcApi {
   /** Liveness check used by the renderer on boot. */
@@ -91,6 +101,46 @@ export interface IpcApi {
   // --- Session (autosave / resume) ---
   saveSession: (data: SessionData) => Promise<void>;
   clearSession: () => Promise<void>;
+  /** The persisted session exactly as it sits on disk, for the settings pane. */
+  getSessionInfo: () => Promise<SessionData | null>;
+
+  // --- Settings ---
+  /** Static facts about this build: version, platform, update arming. */
+  getAppInfo: () => Promise<AppInfo>;
+  getSettings: () => Promise<AppSettings>;
+  /**
+   * Merge a patch and persist it, applying any side effects. Returns what is
+   * now in force, so the renderer mirrors disk without a second round trip.
+   */
+  setSettings: (patch: Partial<AppSettings>) => Promise<AppSettings>;
+  resetSettings: () => Promise<AppSettings>;
+  /** Subscribe to "open Settings" commands pushed from the native menu. */
+  onOpenSettings: (listener: OpenSettingsListener) => () => void;
+
+  // --- On-device anomaly detection ---
+  /** What the engine can do right now, plus which models are on disk. */
+  getAiStatus: () => Promise<{ state: EngineState; downloaded: string[]; cached: Analysis[] }>;
+  /** Begin fetching a model. Progress arrives via `onAiStatus`. */
+  downloadModel: (modelId: string) => Promise<void>;
+  cancelModelDownload: () => Promise<void>;
+  deleteModel: (modelId: string) => Promise<void>;
+  /** Where the labeler is, so analysis can work ahead of them. */
+  setAiIndex: (index: number) => Promise<void>;
+  onAiStatus: (listener: AiStatusListener) => () => void;
+  onAiAnalysis: (listener: AiAnalysisListener) => () => void;
+  /**
+   * Every run of the model this session, oldest first, prompts included.
+   *
+   * The counterpart to `getNetworkLog`: a labeler told to verify the results
+   * needs to see what was asked, not only what came back.
+   */
+  getModelLog: () => Promise<ModelCallEntry[]>;
+  onModelCall: (listener: ModelCallListener) => () => void;
+
+  // --- Network ---
+  /** Every call recorded this session, oldest first. */
+  getNetworkLog: () => Promise<NetworkLogEntry[]>;
+  onNetworkLog: (listener: NetworkLogListener) => () => void;
 
   // --- Export ---
   exportLabels: (request: ExportRequest) => Promise<ExportResponse>;
@@ -127,6 +177,18 @@ export const IPC_INVOKE = {
   unloadConfig: "config:unload",
   saveSession: "session:save",
   clearSession: "session:clear",
+  getSessionInfo: "session:info",
+  getAppInfo: "app:info",
+  getSettings: "settings:get",
+  setSettings: "settings:set",
+  resetSettings: "settings:reset",
+  getNetworkLog: "network:log",
+  getAiStatus: "ai:status",
+  downloadModel: "ai:download",
+  cancelModelDownload: "ai:download-cancel",
+  deleteModel: "ai:delete",
+  setAiIndex: "ai:index",
+  getModelLog: "ai:model-log",
   exportLabels: "export:run",
   getRecent: "recent:get",
   installUpdate: "update:install",
@@ -148,4 +210,9 @@ export const IPC_EVENT = {
   themeChanged: "theme:changed",
   updateStatus: "update:status",
   setMode: "menu:set-mode",
+  openSettings: "menu:open-settings",
+  networkLog: "network:log-entry",
+  aiStatus: "ai:status-changed",
+  aiAnalysis: "ai:analysis",
+  modelCall: "ai:model-call",
 } as const;

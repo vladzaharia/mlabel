@@ -1,6 +1,7 @@
-import { ipcMain, nativeTheme, shell } from "electron";
+import { app, ipcMain, nativeTheme, shell } from "electron";
 import {
   IPC_INVOKE,
+  type AppSettings,
   type ExportRequest,
   type JoinKind,
   type JoinRequest,
@@ -24,9 +25,28 @@ import {
   runJoin,
   runSplit,
 } from "./services/prepare-service";
-import { clearSession, getRecent } from "./services/session-store";
+import { clearSession, getRecent, readSessionRaw } from "./services/session-store";
 import { isAllowedExternalUrl } from "./services/network-policy";
-import { checkForUpdatesManually, installUpdate } from "./services/updater";
+import {
+  checkForUpdatesManually,
+  installUpdate,
+  isUpdatesArmed,
+  setUpdatesAllowed,
+} from "./services/updater";
+import { getSettings, resetSettings, setSettings } from "./services/settings-store";
+import { setUpdatesEnabled } from "./services/network-guard";
+import { networkLog } from "./services/network-log";
+import { modelLog } from "./services/ai/model-log";
+import { effectiveUpdateChecks, isPlatformSupported } from "@core";
+import {
+  aiStatus,
+  cancelDownload,
+  configAllowsAi,
+  configAllowsDownload,
+  deleteModel,
+  startDownload,
+} from "./services/ai/ai-service";
+import { setIndex as setAiIndex } from "./services/ai/analysis-service";
 import { appState, isRevealable } from "./state";
 
 /** Register every request-response IPC handler. One handler per IpcApi method. */
@@ -44,6 +64,46 @@ export function registerIpc(): void {
 
   ipcMain.handle(IPC_INVOKE.saveSession, (_event, data: SessionData) => saveSessionStamped(data));
   ipcMain.handle(IPC_INVOKE.clearSession, () => clearSession());
+  ipcMain.handle(IPC_INVOKE.getSessionInfo, () => readSessionRaw());
+
+  ipcMain.handle(IPC_INVOKE.getAppInfo, () => ({
+    version: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    packaged: app.isPackaged,
+    updatesArmed: isUpdatesArmed(),
+    updatesAllowedByConfig: appState.config?.network.updateChecks !== false,
+    aiAllowedByConfig: configAllowsAi(),
+    modelDownloadAllowedByConfig: configAllowsDownload(),
+    aiPlatformSupported: isPlatformSupported(process.platform, process.arch),
+  }));
+  ipcMain.handle(IPC_INVOKE.getSettings, () => getSettings());
+  ipcMain.handle(IPC_INVOKE.setSettings, (_event, patch: Partial<AppSettings>) => {
+    const settings = setSettings(patch);
+    // One write path, so the gate can never drift from what is on disk. The
+    // config stays the floor: a preference may narrow it, never widen it.
+    if (patch.updateChecks !== undefined) {
+      const configAllows = appState.config?.network.updateChecks !== false;
+      const allowed = effectiveUpdateChecks(configAllows, settings.updateChecks);
+      setUpdatesEnabled(allowed);
+      setUpdatesAllowed(allowed);
+    }
+    return settings;
+  });
+  ipcMain.handle(IPC_INVOKE.resetSettings, () => resetSettings());
+
+  ipcMain.handle(IPC_INVOKE.getNetworkLog, () => [...networkLog.entries()]);
+  ipcMain.handle(IPC_INVOKE.getModelLog, () => [...modelLog.entries()]);
+
+  ipcMain.handle(IPC_INVOKE.getAiStatus, () => aiStatus());
+  ipcMain.handle(IPC_INVOKE.downloadModel, (_event, modelId: string) => startDownload(modelId));
+  ipcMain.handle(IPC_INVOKE.cancelModelDownload, () => {
+    cancelDownload();
+  });
+  ipcMain.handle(IPC_INVOKE.deleteModel, (_event, modelId: string) => deleteModel(modelId));
+  ipcMain.handle(IPC_INVOKE.setAiIndex, (_event, index: number) => {
+    setAiIndex(index);
+  });
 
   ipcMain.handle(IPC_INVOKE.exportLabels, (_event, request: ExportRequest) =>
     exportLabels(request),

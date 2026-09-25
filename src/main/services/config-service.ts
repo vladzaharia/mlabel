@@ -7,7 +7,10 @@ import type { ConfigLoadResponse } from "@core";
 import { appState } from "../state";
 import { getRecent } from "./session-store";
 import { setUpdatesEnabled } from "./network-guard";
-import { startUpdates } from "./updater";
+import { effectiveUpdateChecks } from "@core";
+import { getSettings } from "./settings-store";
+import { applyAiPolicy } from "./ai/ai-service";
+import { setUpdatesAllowed, startUpdates } from "./updater";
 
 const CONFIG_NAMES = ["config.jsonc", "mlabel.config.jsonc", "mlabel.jsonc"];
 
@@ -47,11 +50,17 @@ async function loadConfigFile(path: string): Promise<ConfigLoadResponse> {
   const result = loadConfig(text);
   if (!result.ok) return { status: "invalid", path, issues: result.issues };
   appState.setConfig(result.config, path);
-  // The config is the single gate for all network activity: open (or close)
-  // the hard webRequest gate first, then start update checks only if permitted.
-  const updatesEnabled = result.config.network.updateChecks !== false;
+  // The config is the floor for all network activity, and a labeler's own
+  // preference can only narrow it further — never widen it. Open (or close) the
+  // hard webRequest gate first, then start update checks only if permitted.
+  const configAllows = result.config.network.updateChecks !== false;
+  const updatesEnabled = effectiveUpdateChecks(configAllows, getSettings().updateChecks);
   setUpdatesEnabled(updatesEnabled);
+  setUpdatesAllowed(updatesEnabled);
   if (updatesEnabled) startUpdates();
+  // The AI gate follows the same shape: the config is a floor the labeler's
+  // own preference can only narrow.
+  applyAiPolicy();
   return { status: "loaded", config: result.config, path };
 }
 

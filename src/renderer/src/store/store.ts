@@ -1,6 +1,8 @@
 import { create } from "zustand";
+import type { Analysis, AppSettings, EngineState, ShortcutOverrides } from "@core";
 import {
   evaluateRecord,
+  findIncomplete,
   resolveLabelValues,
   reviveLabelMap,
   sessionAnswered,
@@ -47,6 +49,19 @@ export const COLOR_THEMES: { id: ColorTheme; name: string; swatch: string }[] = 
 interface AppState {
   themeMode: ThemeMode;
   colorTheme: ColorTheme;
+  /** Everything the labeler has set. `settings.json` is the source of truth. */
+  settings: AppSettings;
+  /**
+   * Chord overrides, lifted out of `settings` so the provider can select on
+   * them without re-resolving every time an unrelated preference changes.
+   */
+  shortcutOverrides: ShortcutOverrides;
+  /** What the inference engine can do right now. */
+  aiState: EngineState;
+  /** Findings by record index, pushed from main as they land. */
+  analyses: Record<number, Analysis>;
+  /** Which models are on this machine. */
+  downloadedModels: string[];
   systemDark: boolean;
 
   phase: Phase;
@@ -90,6 +105,13 @@ interface AppActions {
   setUpdateStatus: (status: UpdateStatus) => void;
   cycleTheme: () => void;
   setColorTheme: (theme: ColorTheme) => void;
+  /** Merge a patch into the persisted settings. */
+  updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
+  /** Throw away the in-progress labels and the saved session with them. */
+  clearSessionData: () => Promise<void>;
+  setAiState: (state: EngineState) => void;
+  setAnalysis: (analysis: Analysis) => void;
+  refreshAi: () => Promise<void>;
 
   pickConfig: () => Promise<void>;
   pickInput: () => Promise<void>;
@@ -142,6 +164,59 @@ function readColorTheme(): ColorTheme {
   return COLOR_THEMES.some((t) => t.id === saved) ? (saved as ColorTheme) : "cobalt";
 }
 
+/**
+ * Keep the two theme keys in localStorage as a **paint cache**, not a source of
+ * truth.
+ *
+ * `settings.json` is authoritative, but reading it is asynchronous — and the
+ * store resolves the theme synchronously at `create()` time so the very first
+ * paint is already correct. Dropping the cache would reintroduce a flash of the
+ * wrong theme on every launch. Nothing reads these for anything but that first
+ * frame; `bootstrap` reconciles immediately after.
+ */
+function cacheTheme(key: string, value: string): void {
+  globalThis.localStorage?.setItem(key, value);
+}
+
+/** Apply settings to the live app, and mirror the bits the store selects on. */
+function applySettings(
+  set: (patch: Partial<AppStore>) => void,
+  settings: AppSettings,
+  systemDark?: boolean,
+): void {
+  set({
+    settings,
+    themeMode: settings.themeMode,
+    colorTheme: settings.colorTheme,
+    shortcutOverrides: settings.shortcuts,
+  });
+  cacheTheme(THEME_KEY, settings.themeMode);
+  cacheTheme(COLOR_THEME_KEY, settings.colorTheme);
+  applyColorTheme(settings.colorTheme);
+  if (systemDark !== undefined) applyThemeClass(resolveDark(settings.themeMode, systemDark));
+}
+
+/**
+ * Read the persisted settings, seeding them from the paint cache the first time.
+ *
+ * A labeler upgrading from a build that only had localStorage keeps the theme
+ * they chose: if `settings.json` has never been written, whatever the cache
+ * holds is the best record of their preference there is.
+ */
+async function loadSettings(
+  set: (patch: Partial<AppStore>) => void,
+  get: () => AppStore,
+): Promise<void> {
+  let settings = await window.api.getSettings();
+  const cachedMode = readThemeMode();
+  const cachedColor = readColorTheme();
+  const untouched = settings.themeMode === "system" && settings.colorTheme === "cobalt";
+  if (untouched && (cachedMode !== "system" || cachedColor !== "cobalt")) {
+    settings = await window.api.setSettings({ themeMode: cachedMode, colorTheme: cachedColor });
+  }
+  applySettings(set, settings, get().systemDark);
+}
+
 export function resolveDark(mode: ThemeMode, systemDark: boolean): boolean {
   return mode === "system" ? systemDark : mode === "dark";
 }
@@ -157,6 +232,19 @@ function applyColorTheme(theme: ColorTheme): void {
 export const useStore = create<AppStore>((set, get) => ({
   themeMode: readThemeMode(),
   colorTheme: readColorTheme(),
+  settings: {
+    version: 1,
+    themeMode: readThemeMode(),
+    colorTheme: readColorTheme(),
+    shortcuts: {},
+    updateChecks: true,
+    aiEnabled: false,
+    aiModelId: "qwen3.5-2b",
+  },
+  shortcutOverrides: {},
+  aiState: { kind: "no-model" },
+  analyses: {},
+  downloadedModels: [],
   systemDark: true,
 
   phase: "boot",
@@ -188,6 +276,8 @@ export const useStore = create<AppStore>((set, get) => ({
     const systemDark = await window.api.getTheme();
     set({ systemDark });
     applyThemeClass(resolveDark(get().themeMode, systemDark));
+
+    await loadSettings(set, get);
 
     const response = await window.api.getStartupConfig();
     if (response.status === "loaded") {
@@ -222,14 +312,70 @@ export const useStore = create<AppStore>((set, get) => ({
     const order: ThemeMode[] = ["system", "light", "dark"];
     const nextMode = order[(order.indexOf(get().themeMode) + 1) % order.length]!;
     set({ themeMode: nextMode });
-    globalThis.localStorage?.setItem(THEME_KEY, nextMode);
+    cacheTheme(THEME_KEY, nextMode);
     applyThemeClass(resolveDark(nextMode, get().systemDark));
+    void get().updateSettings({ themeMode: nextMode });
   },
 
   setColorTheme(theme) {
     set({ colorTheme: theme });
-    globalThis.localStorage?.setItem(COLOR_THEME_KEY, theme);
+    cacheTheme(COLOR_THEME_KEY, theme);
     applyColorTheme(theme);
+    void get().updateSettings({ colorTheme: theme });
+  },
+
+  setAiState(state) {
+    set({ aiState: state });
+    // A finished download changes what is on disk, which the settings pane
+    // shows; nothing else would notice.
+    if (state.kind === "ready" || state.kind === "no-model") void get().refreshAi();
+  },
+
+  setAnalysis(analysis) {
+    set({ analyses: { ...get().analyses, [analysis.recordIndex]: analysis } });
+  },
+
+  async refreshAi() {
+    const status = await window.api.getAiStatus();
+    set({
+      aiState: status.state,
+      downloadedModels: status.downloaded,
+      analyses: Object.fromEntries(status.cached.map((a) => [a.recordIndex, a])),
+    });
+  },
+
+  async updateSettings(patch) {
+    // Optimistic, then reconciled: the handler sanitises, so what comes back is
+    // what is actually on disk rather than what was asked for.
+    set({ settings: { ...get().settings, ...patch } });
+    const settings = await window.api.setSettings(patch);
+    applySettings(set, settings);
+  },
+
+  async clearSessionData() {
+    const { records, config } = get();
+    const labels: Record<number, LabelMap> = {};
+    // Reseed rather than empty: the auto-copied input values were never the
+    // labeler's answers, and throwing them away would leave copied columns
+    // blank on export.
+    for (const record of records) labels[record.index] = { ...record.labelValues };
+
+    // State first, `clearSession()` second. The autosave subscriber fires on
+    // this `set` and pushes a fresh save; the write queue is latest-wins and
+    // ordered, so the clear pushed afterwards is the one that lands. Reversing
+    // these two lines resurrects the session. `submitDone` relies on the same
+    // ordering for the same reason.
+    const stillNeedsPrefill = sessionFields(config?.output.fields ?? []).length > 0;
+    set({
+      labels,
+      prefill: {},
+      index: 0,
+      pendingResume: null,
+      pendingResumeStale: false,
+      phase: stillNeedsPrefill ? "need-prefill" : "labeling",
+    });
+    await window.api.clearSession();
+    announce("Session cleared", "assertive");
   },
 
   async pickConfig() {
@@ -388,18 +534,21 @@ export const useStore = create<AppStore>((set, get) => ({
    * arrival — the difference between a guided sweep and a bad afternoon.
    */
   gotoIncomplete(direction) {
-    const { records, labels, prefill, config, index } = get();
-    if (!config) return;
-    for (let i = index + direction; i >= 0 && i < records.length; i += direction) {
-      const record = records[i];
-      if (!record) continue;
-      const values = labels[record.index] ?? record.labelValues;
-      const merged = resolveLabelValues(values, prefill, config.output.fields);
-      if (evaluateRecord(merged, config.output.fields).status !== "complete") {
-        set({ index: i });
-        return;
-      }
+    const state = get();
+    if (!state.config) return;
+    const found = findIncomplete(
+      state.index,
+      direction,
+      state.records.length,
+      recordIsComplete(state),
+    );
+    if (found === null) {
+      // Previously a silent no-op, which reads as a broken key — and would read
+      // the same way through the new toolbar buttons.
+      announce(`No unfinished records ${direction === 1 ? "ahead" : "behind"}.`);
+      return;
     }
+    set({ index: found });
   },
 
   async submitDone() {
@@ -532,20 +681,62 @@ function applyInputResponse(
 }
 
 /** Completed-record count, recomputed from labels (drives the progress bar). */
-export function selectCompletedCount(state: AppStore): number {
-  const { config, records, labels } = state;
-  if (!config) return 0;
-  let n = 0;
-  for (const record of records) {
+/**
+ * Whether one record needs no more work.
+ *
+ * The merge — a record's own seeded values, overlaid by anything the labeler
+ * typed, then resolved against the session answers — has to be identical
+ * everywhere it is asked, or the progress count and the jump buttons would
+ * disagree about the same file.
+ */
+function recordIsComplete(state: AppStore): (index: number) => boolean {
+  const { config, records, labels, prefill } = state;
+  return (index) => {
+    const record = records[index];
+    if (!config || !record) return true;
     const values = labels[record.index] ?? record.labelValues;
-    const merged = resolveLabelValues(values, state.prefill, config.output.fields);
-    if (evaluateRecord(merged, config.output.fields).status === "complete") n += 1;
+    const merged = resolveLabelValues(values, prefill, config.output.fields);
+    return evaluateRecord(merged, config.output.fields).status === "complete";
+  };
+}
+
+export function selectCompletedCount(state: AppStore): number {
+  if (!state.config) return 0;
+  const isComplete = recordIsComplete(state);
+  let n = 0;
+  for (let i = 0; i < state.records.length; i++) {
+    if (isComplete(i)) n += 1;
   }
   return n;
 }
 
+/**
+ * Whether the jump-to-unfinished controls have anywhere to go.
+ *
+ * Booleans rather than one object on purpose: zustand compares selector results
+ * with `Object.is`, so returning a fresh `{ before, after }` every render would
+ * re-render forever.
+ */
+export const selectHasIncompleteAfter = (state: AppStore): boolean =>
+  state.config !== null &&
+  findIncomplete(state.index, 1, state.records.length, recordIsComplete(state)) !== null;
+
+export const selectHasIncompleteBefore = (state: AppStore): boolean =>
+  state.config !== null &&
+  findIncomplete(state.index, -1, state.records.length, recordIsComplete(state)) !== null;
+
 export const selectCurrentRecord = (state: AppStore): RecordView | undefined =>
   state.records[state.index];
+
+// --- Tell main where the labeler is, so analysis can work ahead of them. ---
+// Separate from the autosave subscriber below because it is not phase-gated:
+// the panel is on screen during labeling, and the queue should be warming up
+// before anyone has answered anything.
+useStore.subscribe((state, prev) => {
+  if (state.index === prev.index && state.records === prev.records) return;
+  if (!state.settings.aiEnabled) return;
+  void window.api.setAiIndex(state.index);
+});
 
 // --- Autosave: write-through on every labeling-relevant state change. ---
 // Using the two-arg subscriber so we can bail out when only unrelated state

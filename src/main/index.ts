@@ -7,6 +7,9 @@ import { installAppMenu, updateMenuContext } from "./menu";
 import { createQuitFlushHandler } from "./quit-flush";
 import { offerRelocateToApplications } from "./services/app-location";
 import { installNetworkGuard } from "./services/network-guard";
+import { flushSettings, initSettings } from "./services/settings-store";
+import { networkLog } from "./services/network-log";
+import { modelLog } from "./services/ai/model-log";
 import { flushSession } from "./services/session-store";
 import { checkForUpdatesManually, onUpdatesArmed } from "./services/updater";
 import {
@@ -118,6 +121,10 @@ async function bootstrap(): Promise<void> {
 
   installCsp();
   installNetworkGuard();
+  // Before `registerIpc`, and that ordering matters: loading a config composes
+  // the effective update-check policy from these settings, and the renderer can
+  // trigger a config load the moment IPC is listening.
+  await initSettings();
   registerIpc();
 
   app.on("browser-window-created", (_event, win) => optimizer.watchWindowShortcuts(win));
@@ -138,6 +145,26 @@ async function bootstrap(): Promise<void> {
       win.webContents.send(IPC_EVENT.setMode, mode);
     },
     onCheckForUpdates: checkForUpdatesManually,
+    onOpenSettings: () => {
+      win.webContents.send(IPC_EVENT.openSettings);
+    },
+  });
+
+  // Push each network call to the renderer as it happens, so the settings pane
+  // stays live rather than showing whatever was there when it opened.
+  networkLog.subscribe((entry) => {
+    for (const open of BrowserWindow.getAllWindows()) {
+      open.webContents.send(IPC_EVENT.networkLog, entry);
+    }
+  });
+
+  // Same for model runs. These fire twice per record — once when the call
+  // starts and once when it lands — so a row appears as "Running…" rather than
+  // materialising several seconds later already finished.
+  modelLog.subscribe((entry) => {
+    for (const open of BrowserWindow.getAllWindows()) {
+      open.webContents.send(IPC_EVENT.modelCall, entry);
+    }
   });
 
   // When the updater arms, re-enable the "Check for Updates…" menu item.
@@ -161,7 +188,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on(
     "before-quit",
-    createQuitFlushHandler([flushSession, flushWindowState], () => app.quit()),
+    createQuitFlushHandler([flushSession, flushWindowState, flushSettings], () => app.quit()),
   );
 
   void bootstrap();

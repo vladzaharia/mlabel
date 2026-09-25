@@ -16,10 +16,11 @@ surrounding whitespace, but not otherwise normalised — `Model Score` is not `m
 
 **Extra** columns are only a warning; they are ignored.
 
-## A value shows as empty with a note
+## A value shows as empty with a warning icon
 
 The cell could not be read as the type the config declares — text where a number was
 expected, an unparseable date, an `enum` value that is not one of the permitted choices.
+Hover the icon, or tab to it, for the specific reason.
 
 You cannot fix this from inside MLabel, and you are not expected to. Label what you can. The
 original value is preserved in `*-remaining` if the record ends up there. If it affects many

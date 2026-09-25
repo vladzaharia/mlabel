@@ -63,6 +63,8 @@ export interface OutputSpec {
   maxLength?: number;
   pattern?: string;
   required?: boolean;
+  /** A chord that focuses this field, as `output.fields[].shortcut`. */
+  shortcut?: string;
   displayName?: string;
   description?: string;
   help?: string;
@@ -165,6 +167,7 @@ function outputField(
     minLength,
     maxLength,
     required,
+    shortcut,
     ...rest
   } = spec;
   const block = display(rest);
@@ -186,6 +189,7 @@ function outputField(
     ...(minLength === undefined ? {} : { minLength }),
     ...(maxLength === undefined ? {} : { maxLength }),
     ...(required === undefined ? {} : { required }),
+    ...(shortcut === undefined ? {} : { shortcut }),
     ...(block === undefined ? {} : { display: block }),
   };
 }

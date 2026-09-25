@@ -56,7 +56,13 @@ function useLabelingAnnouncements(): void {
   }, [completed, total]);
 }
 
-export function LabelingView({ onDone }: { onDone: () => void }): React.JSX.Element {
+export function LabelingView({
+  onDone,
+  onSettings,
+}: {
+  onDone: () => void;
+  onSettings?: () => void;
+}): React.JSX.Element {
   const [helpOpen, setHelpOpen] = useState(false);
   useKeyboardShortcuts({ onDone, onToggleHelp: () => setHelpOpen((o) => !o) });
   useLabelingAnnouncements();
@@ -111,7 +117,7 @@ export function LabelingView({ onDone }: { onDone: () => void }): React.JSX.Elem
           <OutputForm />
         </div>
       </main>
-      <BottomBar onHelp={() => setHelpOpen((o) => !o)} />
+      <BottomBar onHelp={() => setHelpOpen((o) => !o)} onSettings={onSettings} />
       <ResumeDialog />
       <ShortcutsDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </>

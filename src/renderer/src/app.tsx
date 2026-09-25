@@ -1,4 +1,4 @@
-import { useEffect, type DragEvent, type ReactNode } from "react";
+import { useEffect, useState, type DragEvent, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useStore } from "./store/store";
 import type { Phase } from "./store/store";
@@ -14,6 +14,8 @@ import { Button } from "./components/ui/button";
 import { Toaster } from "./components/ui/sonner";
 import { baseName, chromePadding, cn } from "./lib/utils";
 import { LiveAnnouncer } from "./a11y/LiveAnnouncer";
+import { ShortcutProvider } from "./shortcuts/ShortcutProvider";
+import { SettingsDialog } from "./settings/SettingsDialog";
 import { announce } from "./a11y/announcer";
 
 function phaseAnnouncement(
@@ -45,6 +47,7 @@ function phaseAnnouncement(
 }
 
 export function App(): React.JSX.Element {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const phase = useStore((s) => s.phase);
   const config = useStore((s) => s.config);
   const bootstrap = useStore((s) => s.bootstrap);
@@ -54,6 +57,20 @@ export function App(): React.JSX.Element {
   const backToConfig = useStore((s) => s.backToConfig);
   const backToInput = useStore((s) => s.backToInput);
   const setUpdateStatus = useStore((s) => s.setUpdateStatus);
+
+  // Routed exactly like Prepare mode: the native menu pushes an event, the
+  // renderer decides what to do with it.
+  useEffect(() => window.api.onOpenSettings(() => setSettingsOpen(true)), []);
+
+  useEffect(() => {
+    const offStatus = window.api.onAiStatus(useStore.getState().setAiState);
+    const offAnalysis = window.api.onAiAnalysis(useStore.getState().setAnalysis);
+    void useStore.getState().refreshAi();
+    return () => {
+      offStatus();
+      offAnalysis();
+    };
+  }, []);
 
   useEffect(() => {
     void bootstrap();
@@ -93,63 +110,71 @@ export function App(): React.JSX.Element {
   }
 
   return (
-    <div
-      className="app-base flex h-full flex-col"
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={handleDrop}
-    >
-      {phase === "boot" && <BootSplash />}
-      {phase === "need-config" && (
-        <DraggableShell>
-          <main className="flex flex-1 flex-col">
-            <StartScreen kind="config" />
-          </main>
-        </DraggableShell>
-      )}
-      {phase === "config-invalid" && (
-        <DraggableShell>
-          <main className="flex flex-1 flex-col">
-            <ConfigIssueScreen />
-          </main>
-        </DraggableShell>
-      )}
-      {phase === "need-input" && (
-        <DraggableShell onBack={backToConfig} backLabel="Change config…" showConfig>
-          <main className="flex flex-1 flex-col">
-            <StartScreen kind="input" />
-          </main>
-        </DraggableShell>
-      )}
-      {phase === "input-invalid" && (
-        <DraggableShell onBack={backToInput} backLabel="Back">
-          <main className="flex flex-1 flex-col">
-            <InputIssueScreen />
-          </main>
-        </DraggableShell>
-      )}
-      {phase === "need-prefill" && (
-        <DraggableShell onBack={backToInput} backLabel="Back">
-          <PrefillScreen />
-        </DraggableShell>
-      )}
-      {phase === "labeling" && <LabelingView onDone={() => void handleDone()} />}
-      {phase === "prepare" && (
-        <DraggableShell>
-          <main className="flex min-h-0 flex-1 flex-col">
-            <PrepareView />
-          </main>
-        </DraggableShell>
-      )}
-      {phase === "done" && (
-        <DraggableShell>
-          <main className="flex flex-1 flex-col">
-            <DoneScreen />
-          </main>
-        </DraggableShell>
-      )}
-      <LiveAnnouncer />
-      <Toaster />
-    </div>
+    <ShortcutProvider>
+      <div
+        className="app-base flex h-full flex-col"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+      >
+        {phase === "boot" && <BootSplash />}
+        {phase === "need-config" && (
+          <DraggableShell>
+            <main className="flex flex-1 flex-col">
+              <StartScreen kind="config" />
+            </main>
+          </DraggableShell>
+        )}
+        {phase === "config-invalid" && (
+          <DraggableShell>
+            <main className="flex flex-1 flex-col">
+              <ConfigIssueScreen />
+            </main>
+          </DraggableShell>
+        )}
+        {phase === "need-input" && (
+          <DraggableShell onBack={backToConfig} backLabel="Change config…" showConfig>
+            <main className="flex flex-1 flex-col">
+              <StartScreen kind="input" />
+            </main>
+          </DraggableShell>
+        )}
+        {phase === "input-invalid" && (
+          <DraggableShell onBack={backToInput} backLabel="Back">
+            <main className="flex flex-1 flex-col">
+              <InputIssueScreen />
+            </main>
+          </DraggableShell>
+        )}
+        {phase === "need-prefill" && (
+          <DraggableShell onBack={backToInput} backLabel="Back">
+            <PrefillScreen />
+          </DraggableShell>
+        )}
+        {phase === "labeling" && (
+          <LabelingView onDone={() => void handleDone()} onSettings={() => setSettingsOpen(true)} />
+        )}
+        {phase === "prepare" && (
+          <DraggableShell>
+            <main className="flex min-h-0 flex-1 flex-col">
+              <PrepareView />
+            </main>
+          </DraggableShell>
+        )}
+        {phase === "done" && (
+          <DraggableShell>
+            <main className="flex flex-1 flex-col">
+              <DoneScreen />
+            </main>
+          </DraggableShell>
+        )}
+        {/* Top level, not inside LabelingView: Settings has to open on the
+            config picker, in Prepare and on the done screen too, where there is
+            no bottom bar to host a button. */}
+        <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+        <LiveAnnouncer />
+        <Toaster />
+      </div>
+    </ShortcutProvider>
   );
 }
 

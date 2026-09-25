@@ -8,14 +8,24 @@ const mocks = vi.hoisted(() => ({
   getPath: vi.fn<(name: string) => string>(),
   showOpenDialog: vi.fn(),
   setUpdatesEnabled: vi.fn(),
+  setUpdatesAllowed: vi.fn(),
   startUpdates: vi.fn(),
+  getSettings: vi.fn(() => ({ updateChecks: true })),
+  applyAiPolicy: vi.fn(),
 }));
 
 vi.mock("electron", () => ({
   app: { isPackaged: false, getPath: mocks.getPath },
   dialog: { showOpenDialog: mocks.showOpenDialog },
 }));
-vi.mock("./updater", () => ({ startUpdates: mocks.startUpdates }));
+vi.mock("./updater", () => ({
+  startUpdates: mocks.startUpdates,
+  setUpdatesAllowed: mocks.setUpdatesAllowed,
+}));
+vi.mock("./settings-store", () => ({ getSettings: mocks.getSettings }));
+// Mocked at the boundary: the real module reaches the inference engine, and
+// through it `utilityProcess`, which has no place in a config-loading test.
+vi.mock("./ai/ai-service", () => ({ applyAiPolicy: mocks.applyAiPolicy }));
 vi.mock("./network-guard", () => ({ setUpdatesEnabled: mocks.setUpdatesEnabled }));
 
 // Imported after the mocks so electron/updater/network-guard resolve to them.
@@ -108,6 +118,46 @@ describe("config-service: pickConfig", () => {
 
     expect(result).toEqual({ status: "canceled" });
     expect(mocks.setUpdatesEnabled).not.toHaveBeenCalled();
+    expect(mocks.startUpdates).not.toHaveBeenCalled();
+  });
+});
+
+describe("config-service: the config is the floor, the setting only narrows", () => {
+  let dir: string;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    dir = mkdtempSync(join(tmpdir(), "mlabel-config-floor-"));
+    mocks.getPath.mockReturnValue(dir);
+  });
+
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  async function load(configAllows: boolean, userAllows: boolean): Promise<void> {
+    mocks.getSettings.mockReturnValue({ updateChecks: userAllows });
+    const path = join(dir, "config.jsonc");
+    writeFileSync(path, configFor(configAllows), "utf8");
+    mocks.showOpenDialog.mockResolvedValue({ canceled: false, filePaths: [path] });
+    await pickConfig();
+  }
+
+  it("opens the gate only when both agree", async () => {
+    await load(true, true);
+    expect(mocks.setUpdatesEnabled).toHaveBeenCalledWith(true);
+    expect(mocks.startUpdates).toHaveBeenCalled();
+  });
+
+  it("closes the gate when the labeler turns checks off", async () => {
+    await load(true, false);
+    expect(mocks.setUpdatesEnabled).toHaveBeenCalledWith(false);
+    expect(mocks.startUpdates).not.toHaveBeenCalled();
+  });
+
+  // The guarantee that matters: no preference can open a gate the config shut.
+  it("cannot reopen a gate the config shut", async () => {
+    await load(false, true);
+    expect(mocks.setUpdatesEnabled).toHaveBeenCalledWith(false);
+    expect(mocks.setUpdatesAllowed).toHaveBeenCalledWith(false);
     expect(mocks.startUpdates).not.toHaveBeenCalled();
   });
 });

@@ -17,6 +17,10 @@ vi.mock("electron", () => ({
   dialog: { showOpenDialog: vi.fn() },
 }));
 
+// Mocked at the boundary: the real module reaches the inference engine and a
+// BrowserWindow, neither of which belongs in a file-loading test.
+vi.mock("./ai/analysis-service", () => ({ setInput: vi.fn(), setIndex: vi.fn() }));
+
 // Imported after the electron mock so `app.getPath` resolves to the temp dir.
 import { appState } from "../state";
 import { exportLabels, loadInputFromPath } from "./coordinator";
