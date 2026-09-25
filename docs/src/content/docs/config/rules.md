@@ -394,7 +394,22 @@ Rules that read perfectly well and were wrong, found only by measuring:
 None announced itself. Three looked _more_ convincing before they were checked than after.
 
 So: write the rule, then run it against rows whose answer you already know, and keep the ones
-that earn it. A hundred labelled rows is enough to catch all four of the faults above.
+that earn it.
+
+Be clear about what that does and does not catch, because the four faults above need four
+different things:
+
+- **A hundred labelled rows will catch the loudest one** — a rule firing on a large slice of
+  the file and pointing the wrong way. That is also the most common and the most damaging, so
+  a small labelled sample is worth a great deal.
+- **It will not catch a rule that fires twice.** At that rate there is roughly a three-in-four
+  chance it never fires in a hundred rows at all, and still better than one in three at three
+  hundred. A bigger sample is not the answer; reading the handful of rows it _did_ fire on is.
+- **A threshold set too tight is a silent miss.** Scoring tells you how often what fired was
+  right and nothing whatever about what never fired. Test the case that made you write the
+  rule — if it does not light up, the rule does not work, however good its precision looks.
+- **A pattern that cannot compile** needs no rows at all. `pnpm validate <config>` reports it
+  by path before anyone opens the app.
 
 ## Full reference
 
