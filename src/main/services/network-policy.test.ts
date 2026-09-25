@@ -5,14 +5,21 @@ import { isAllowedExternalUrl, isNavigationAllowed, isRequestAllowed } from "./n
 import { dmgAssetUrl, portableAssetUrl } from "./update-status";
 import type { PolicyContext } from "./network-policy";
 
-const contexts: PolicyContext[] = (["renderer", "updater"] as const).flatMap((scope) =>
+const contexts: PolicyContext[] = (["renderer", "updater", "model"] as const).flatMap((scope) =>
   [true, false].flatMap((updatesEnabled) =>
-    [true, false].map((isDev) => ({ scope, updatesEnabled, isDev })),
+    [true, false].flatMap((modelDownloadEnabled) =>
+      [true, false].map((isDev) => ({ scope, updatesEnabled, modelDownloadEnabled, isDev })),
+    ),
   ),
 );
 
-const updaterOn: PolicyContext = { scope: "updater", updatesEnabled: true, isDev: false };
-const updaterOff: PolicyContext = { scope: "updater", updatesEnabled: false, isDev: false };
+const updaterOn: PolicyContext = {
+  scope: "updater",
+  updatesEnabled: true,
+  modelDownloadEnabled: false,
+  isDev: false,
+};
+const updaterOff: PolicyContext = { ...updaterOn, updatesEnabled: false };
 
 describe("isRequestAllowed", () => {
   it("denies unparseable URLs in every context", () => {
@@ -46,11 +53,21 @@ describe("isRequestAllowed", () => {
       "ws://[::1]:5173/",
     ];
     for (const url of urls) {
-      expect(isRequestAllowed(url, { scope: "renderer", updatesEnabled: false, isDev: true })).toBe(
-        true,
-      );
       expect(
-        isRequestAllowed(url, { scope: "renderer", updatesEnabled: false, isDev: false }),
+        isRequestAllowed(url, {
+          scope: "renderer",
+          updatesEnabled: false,
+          modelDownloadEnabled: false,
+          isDev: true,
+        }),
+      ).toBe(true);
+      expect(
+        isRequestAllowed(url, {
+          scope: "renderer",
+          updatesEnabled: false,
+          modelDownloadEnabled: false,
+          isDev: false,
+        }),
       ).toBe(false);
     }
   });
@@ -59,6 +76,7 @@ describe("isRequestAllowed", () => {
     expect(
       isRequestAllowed("http://github.com/vladzaharia/mlabel/releases", {
         scope: "updater",
+        modelDownloadEnabled: false,
         updatesEnabled: true,
         isDev: true,
       }),
@@ -72,9 +90,14 @@ describe("isRequestAllowed", () => {
       "https://example.com/",
     ];
     for (const url of urls) {
-      expect(isRequestAllowed(url, { scope: "renderer", updatesEnabled: true, isDev: false })).toBe(
-        false,
-      );
+      expect(
+        isRequestAllowed(url, {
+          scope: "renderer",
+          updatesEnabled: true,
+          modelDownloadEnabled: false,
+          isDev: false,
+        }),
+      ).toBe(false);
     }
   });
 
@@ -199,5 +222,144 @@ describe("electron-updater session contract", () => {
     );
     expect(source).toContain('NET_SESSION_NAME = "electron-updater"');
     expect(source).toContain("session: this.cachedSession");
+  });
+});
+
+// --- Model download -------------------------------------------------------
+
+const modelOn: PolicyContext = {
+  scope: "model",
+  updatesEnabled: false,
+  modelDownloadEnabled: true,
+  isDev: false,
+};
+const modelOff: PolicyContext = { ...modelOn, modelDownloadEnabled: false };
+
+const HF_URLS = [
+  "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf",
+  // The resolve endpoint answers with a 302 to a regional CDN, and the redirect
+  // is a separate request that has to pass the guard on its own.
+  "https://us.aws.cdn.hf.co/repos/ab/cd/deadbeef/Qwen3.5-2B-Q4_K_M.gguf",
+  "https://eu-west-3.aws.cdn.hf.co/repos/ab/cd/deadbeef/model.gguf",
+  "https://cdn-lfs.hf.co/repos/ab/cd/model.gguf",
+  "https://transfer.xethub.hf.co/xorbs/default/abc",
+];
+
+describe("isRequestAllowed — model scope", () => {
+  it("allows the Hugging Face endpoints a download actually uses", () => {
+    for (const url of HF_URLS) expect(isRequestAllowed(url, modelOn), url).toBe(true);
+  });
+
+  it("denies everything while model downloads are disabled", () => {
+    for (const url of HF_URLS) expect(isRequestAllowed(url, modelOff), url).toBe(false);
+  });
+
+  // Suffix matching is only safe if it is anchored on a dot. These are the
+  // shapes an attacker reaches for first.
+  it("is not fooled by a lookalike host", () => {
+    const lookalikes = [
+      "https://evilhf.co/model.gguf",
+      "https://hf.co.evil.com/model.gguf",
+      "https://huggingface.co.evil.com/model.gguf",
+      "https://nothuggingface.co/model.gguf",
+      "https://xhf.co/model.gguf",
+    ];
+    for (const url of lookalikes) expect(isRequestAllowed(url, modelOn), url).toBe(false);
+  });
+
+  it("requires clean HTTPS", () => {
+    const dirty = [
+      "http://huggingface.co/model.gguf",
+      "https://user:pass@huggingface.co/model.gguf",
+      "https://huggingface.co:8443/model.gguf",
+    ];
+    for (const url of dirty) expect(isRequestAllowed(url, modelOn), url).toBe(false);
+  });
+
+  // The two capabilities are independent: neither flag may open the other's door.
+  it("does not let the model scope reach the update endpoints", () => {
+    const release = "https://github.com/vladzaharia/mlabel/releases/latest";
+    expect(isRequestAllowed(release, modelOn)).toBe(false);
+  });
+
+  it("does not let the updater scope reach Hugging Face", () => {
+    const withBoth: PolicyContext = { ...updaterOn, modelDownloadEnabled: true };
+    for (const url of HF_URLS) expect(isRequestAllowed(url, withBoth), url).toBe(false);
+  });
+
+  it("does not let the renderer reach Hugging Face, whatever is enabled", () => {
+    const renderer: PolicyContext = {
+      scope: "renderer",
+      updatesEnabled: true,
+      modelDownloadEnabled: true,
+      isDev: false,
+    };
+    for (const url of HF_URLS) expect(isRequestAllowed(url, renderer), url).toBe(false);
+  });
+
+  it("never allows a model host to be opened in a browser", () => {
+    // `openExternal` hands a URL to the OS; only release pages belong there.
+    expect(isAllowedExternalUrl("https://huggingface.co/unsloth/Qwen3.5-2B-GGUF")).toBe(false);
+  });
+});
+
+// The model download is the one place the app fetches something large from a
+// host it does not own, so the shape of what it may reach is pinned here rather
+// than left to the downloader to get right.
+describe("the two network capabilities cannot borrow each other's permission", () => {
+  const scopes = ["renderer", "updater", "model"] as const;
+
+  it("denies everything when both flags are off, in every scope", () => {
+    const urls = [
+      "https://github.com/vladzaharia/mlabel/releases/latest",
+      "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/model.gguf",
+      "https://example.com/",
+    ];
+    for (const scope of scopes) {
+      const ctx: PolicyContext = {
+        scope,
+        updatesEnabled: false,
+        modelDownloadEnabled: false,
+        isDev: false,
+      };
+      for (const url of urls) expect(isRequestAllowed(url, ctx), `${scope} ${url}`).toBe(false);
+    }
+  });
+
+  // Turning on model downloads must not, as a side effect, reopen anything the
+  // update flag had closed.
+  it("enabling model downloads does not reopen the update endpoints", () => {
+    const ctx: PolicyContext = {
+      scope: "updater",
+      updatesEnabled: false,
+      modelDownloadEnabled: true,
+      isDev: false,
+    };
+    expect(isRequestAllowed("https://github.com/vladzaharia/mlabel/releases/latest", ctx)).toBe(
+      false,
+    );
+  });
+
+  test.prop([
+    fc.constantFrom(...scopes),
+    fc.boolean(),
+    fc.boolean(),
+    fc.webUrl({ withQueryParameters: true }),
+  ])("never allows a host outside the two known families", (scope, updates, models, url) => {
+    const host = new URL(url).hostname;
+    const known =
+      host === "github.com" ||
+      host.endsWith(".githubusercontent.com") ||
+      host === "huggingface.co" ||
+      host === "hf.co" ||
+      host.endsWith(".hf.co");
+    if (known) return;
+    const ctx: PolicyContext = {
+      scope,
+      updatesEnabled: updates,
+      modelDownloadEnabled: models,
+      isDev: false,
+    };
+    expect(isRequestAllowed(url, ctx)).toBe(false);
   });
 });
