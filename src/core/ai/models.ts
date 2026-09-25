@@ -60,7 +60,7 @@ export const MODELS: readonly ModelSpec[] = [
     sha256: "0af96165ea615bea39a04118d63f0b6d35908aea850ee4a51aa6151d851b8b35",
     license: "Apache-2.0",
     parameters: "2.3B",
-    note: "Smallest download. A good first try.",
+    note: "Smallest and quickest. Rarely speaks up.",
   },
   {
     id: "ministral-3-3b",
@@ -71,7 +71,7 @@ export const MODELS: readonly ModelSpec[] = [
     sha256: "c11f7554656fe23d608d8bfac849d7ee3ce3cb00557416afa3cfa8e9b8ede9c2",
     license: "Apache-2.0",
     parameters: "3.4B",
-    note: "Built for structured answers. Steadier at staying on the question.",
+    note: "The most forthcoming of the five, and not much slower for it.",
   },
   {
     id: "gemma-4-e2b",
@@ -82,7 +82,7 @@ export const MODELS: readonly ModelSpec[] = [
     sha256: "e531007218dfab990486a5de7676a6932d6ea8dea233d1f698d7c21cf8a16889",
     license: "Apache-2.0",
     parameters: "2B active",
-    note: "Quantisation-aware, so it loses less to being shrunk.",
+    note: "The quickest by a distance. Very reluctant to flag anything.",
   },
   {
     id: "qwen3.5-4b",
@@ -93,7 +93,7 @@ export const MODELS: readonly ModelSpec[] = [
     sha256: "b252c5610a42ca82d20fe2a12813e9d069eed89292907e26c783eeb0bc961bc7",
     license: "Apache-2.0",
     parameters: "4.2B",
-    note: "Best judgement of the Qwen pair, and slower for it.",
+    note: "Says more than the 2B and takes about five times as long.",
   },
   {
     id: "gemma-4-e4b",
@@ -104,7 +104,7 @@ export const MODELS: readonly ModelSpec[] = [
     sha256: "df0fd4ee07072c607c29a0a1cb4f98918426cca12f45a2776bdd6ee6d09a4de3",
     license: "Apache-2.0",
     parameters: "4B active",
-    note: "The largest on offer. Wants a machine with memory to spare.",
+    note: "The largest download, and the most cautious. Wants spare memory.",
   },
 ];
 
