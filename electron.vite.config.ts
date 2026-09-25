@@ -17,9 +17,15 @@ const coreAlias = { "@core": resolve("src/core") };
 // electron-updater (and its deps) must stay external: it relies on dynamic
 // requires and a packaged app-update.yml, so bundling it breaks updates. It ships
 // in the asar via package.json "dependencies".
+// node-llama-cpp must stay external for the same class of reason as
+// electron-updater, plus one of its own: it resolves its prebuilt `.node` and
+// `.dylib` binaries by walking its own directory layout, which bundling
+// destroys. `lifecycle-utils` is its runtime dependency and follows it out.
 const nodeExternals = [
   "electron",
   "electron-updater",
+  "node-llama-cpp",
+  "lifecycle-utils",
   ...builtinModules,
   ...builtinModules.map((m) => `node:${m}`),
 ];
@@ -30,7 +36,12 @@ export default defineConfig({
     build: {
       rollupOptions: {
         external: nodeExternals,
-        input: { index: resolve("src/main/index.ts") },
+        input: {
+          index: resolve("src/main/index.ts"),
+          // A second entry, not an import: this is forked as its own process,
+          // so it needs to exist as a file the engine can point `fork` at.
+          "ai-worker": resolve("src/main/services/ai/worker.ts"),
+        },
         output: { format: "es", entryFileNames: "[name].mjs" },
       },
     },

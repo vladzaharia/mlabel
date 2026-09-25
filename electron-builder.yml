@@ -18,9 +18,24 @@ publish:
 files:
   - out/**
   - package.json
+  # node-llama-cpp carries a prebuilt binary set per platform/arch. Shipping all
+  # of them would add hundreds of megabytes of binaries that can never run on
+  # the machine they landed on, so take only this target's.
+  - "!node_modules/node-llama-cpp/bins/**/*"
+  - "node_modules/node-llama-cpp/bins/${os}-${arch}*/**/*"
+  - "!node_modules/@node-llama-cpp/*/bins/**/*"
+  - "node_modules/@node-llama-cpp/${os}-${arch}*/bins/**/*"
+  # 33 MB of llama.cpp source, for building from scratch. Building is force-
+  # disabled inside an asar anyway, so it is pure weight.
+  - "!node_modules/node-llama-cpp/llama/gitRelease.bundle"
 asar: true
 asarUnpack:
+  # `**/*.node` alone is NOT enough here. The macOS prebuild also ships
+  # `libggml-*.dylib` / `.so` companions, and `dlopen` cannot read a shared
+  # library out of an asar — it needs a real path on disk.
   - "**/*.node"
+  - "node_modules/node-llama-cpp/bins"
+  - "node_modules/@node-llama-cpp/*"
 
 mac:
   # Ship both: a zip (REQUIRED for Squirrel.Mac auto-update; latest-mac.yml points
