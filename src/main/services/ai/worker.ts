@@ -29,13 +29,19 @@ const CONTEXT_SIZE = 4096;
 /**
  * Generation cap for one record.
  *
- * `reasoning` is a free-text field and the grammar cannot bound it — the JSON
- * Schema subset `node-llama-cpp` compiles to GBNF ignores `maxLength`. So the
- * only backstop against a model that starts repeating itself is this, and a
- * decode that hits it produces a *truncated* object rather than a malformed
- * one. That is reported as a failure rather than parsed, because a cut-off
- * answer whose `findings` list never opened is indistinguishable from a clean
- * record, and "clean" is the one wrong answer that costs a reviewer something.
+ * The backstop against a model that starts repeating itself in `reasoning`,
+ * which is the observed way a decode runs long. A decode that hits this cap
+ * produces a *truncated* object rather than a malformed one, and that is
+ * reported as a failure rather than parsed: a cut-off answer whose `findings`
+ * list never opened is indistinguishable from a clean record, and "clean" is
+ * the one wrong answer that costs a reviewer something.
+ *
+ * Worth knowing if you are tuning this: `node-llama-cpp` *does* honour
+ * `maxLength` on a string, all the way through to the GBNF, so the free-text
+ * fields could be bounded in the schema and the cap made unreachable. It is
+ * not done here yet because the library warns that length bounds the prompt
+ * does not also describe tend to produce hallucinated filler, and that
+ * trade-off has not been measured against real models.
  */
 const MAX_TOKENS = 700;
 
