@@ -25,7 +25,8 @@
  * and the parser under test are the ones that ship.
  */
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { createInterface } from "node:readline";
 import electronPath from "electron";
 import { loadConfig } from "../src/core/config/loader";
@@ -58,6 +59,18 @@ interface Args {
    * everything else held still, is the difference between knowing and guessing.
    */
   noBounds: boolean;
+  /**
+   * Directory to write one `<modelId>.json` of verdicts into, for `pnpm score`.
+   *
+   * How often a model speaks is not how often it is right, and this harness can
+   * only measure the first. On a file that is 60% positive, flagging most rows
+   * scores about 60% precision by accident — indistinguishable from judgement
+   * unless it is checked against labels. `score-signals.ts` does that check, and
+   * takes `[{ guid, flagged }]`, so this emits exactly that.
+   */
+  flaggedDir?: string;
+  /** Column holding the row's stable identity, for joining to the labels. */
+  key: string;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -79,6 +92,8 @@ function parseArgs(argv: string[]): Args {
     records: Number(get("--records") ?? 12),
     models: only ? only.split(",") : MODELS.map((m) => m.id),
     noBounds: argv.includes("--no-bounds"),
+    ...(get("--flagged-dir") === undefined ? {} : { flaggedDir: get("--flagged-dir") }),
+    key: get("--key") ?? "guid",
   };
 }
 
@@ -399,6 +414,7 @@ async function main(): Promise<void> {
     };
     let msTotal = 0;
     const examples: string[] = [];
+    const verdicts: { guid: string; flagged: boolean }[] = [];
 
     for (const record of records) {
       const suffix = buildSuffix(cfg.input.fields, record.inputValues);
@@ -430,6 +446,14 @@ async function main(): Promise<void> {
       msTotal += ms;
       counts[outcome.verdict] += 1;
 
+      // Only a finding counts as flagged. A record the model failed on is not a
+      // judgement of "clean" and must not be scored as one — scoring a crash as
+      // a confident negative is how a broken model comes out looking careful.
+      const guid = record.inputValues[args.key];
+      if (guid !== null && guid !== undefined) {
+        verdicts.push({ guid: String(guid), flagged: outcome.verdict === "findings" });
+      }
+
       if (outcome.verdict === "findings" && examples.length < 3) {
         examples.push(
           outcome.findings.map((f) => `${f.field ?? f.card ?? "row"}: ${f.reason}`).join(" | "),
@@ -449,6 +473,12 @@ async function main(): Promise<void> {
         `  [${spec.id}] record ${String(record.index)}: ${outcome.verdict} ` +
           `(${(ms / 1000).toFixed(1)}s)${outcome.error ? ` — ${outcome.error}` : ""}\n`,
       );
+    }
+    if (args.flaggedDir !== undefined) {
+      mkdirSync(args.flaggedDir, { recursive: true });
+      const path = join(args.flaggedDir, `${spec.id}.json`);
+      writeFileSync(path, `${JSON.stringify(verdicts, null, 2)}\n`, "utf8");
+      process.stderr.write(`  wrote ${String(verdicts.length)} verdicts to ${path}\n`);
     }
     summaries.push({ spec, wrapper, counts, msTotal, loadMs, examples });
   }

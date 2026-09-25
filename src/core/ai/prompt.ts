@@ -165,7 +165,7 @@ function instructions(fields: readonly InputField[], context?: string): string {
     // nothing to report. The grammar can hold the line without the instructions
     // making brevity sound like the goal.
     "- Write `reasoning` first, in one or two plain sentences. It is not shown to anyone.",
-    "- Each `reason` is one short sentence a reviewer can act on.",
+    "- Each `reason` is something a reviewer can act on.",
     "",
     "The columns in this file:",
     columns,
