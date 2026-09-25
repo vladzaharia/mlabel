@@ -209,11 +209,22 @@ function main(): void {
 
   if (args.flagged) {
     const raw: unknown = JSON.parse(readFileSync(args.flagged, "utf8"));
+    // An object entry carries its own verdict and `flagged: false` means *not
+    // flagged*. Taking the guid from every entry regardless — which is what this
+    // did — scores a file of verdicts as though every row had been flagged, and
+    // the result is precision exactly equal to the base rate at lift 1.00. That
+    // is a plausible-looking number for "this model is useless", so it does not
+    // announce itself as a bug. A bare string entry is still a flagged guid.
     const flagged = new Set<string>(
       Array.isArray(raw)
-        ? raw.map((entry) =>
-            typeof entry === "string" ? entry : String((entry as { guid?: unknown }).guid ?? ""),
-          )
+        ? raw
+            .filter(
+              (entry) =>
+                typeof entry === "string" || (entry as { flagged?: unknown }).flagged !== false,
+            )
+            .map((entry) =>
+              typeof entry === "string" ? entry : String((entry as { guid?: unknown }).guid ?? ""),
+            )
         : [],
     );
     console.log(
