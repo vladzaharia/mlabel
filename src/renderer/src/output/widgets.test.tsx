@@ -7,6 +7,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import type { OutputField } from "@core/config";
 import { buildConfig } from "@test/fixtures/config";
 import { CheckboxWidget } from "./widgets";
+import { useStore } from "../store/store";
+import { ShortcutProvider } from "../shortcuts/ShortcutProvider";
 import { FieldRenderer } from "./FieldRenderer";
 
 /** Built through the loader so every OutputField carries the schema defaults. */
@@ -96,6 +98,33 @@ describe("widgets: accessible name via role", () => {
   it("slider: thumb has role slider with accessible name equal to displayName", () => {
     render(<FieldRenderer field={field("confidence")} value={50} onChange={vi.fn()} />);
     expect(screen.getByRole("slider", { name: "Confidence" })).toBeInTheDocument();
+  });
+});
+
+// An unanswered dropdown holds `null`. Handing Radix `undefined` for that made
+// the control uncontrolled until the first pick and controlled forever after —
+// `useControllableState` warns on exactly that switch, and a control whose
+// character changes mid-life is one Radix stops managing consistently.
+// `""` is the value Radix reads as "no selection", so the placeholder still
+// shows and the control never changes character.
+describe("select: unanswered → answered", () => {
+  it("stays a controlled component across the first choice", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { rerender } = render(
+      <FieldRenderer field={field("bucket")} value={null} onChange={vi.fn()} />,
+    );
+    rerender(<FieldRenderer field={field("bucket")} value="a" onChange={vi.fn()} />);
+
+    const complaints = warn.mock.calls.filter((call) =>
+      String(call[0]).includes("uncontrolled to controlled"),
+    );
+    expect(complaints).toEqual([]);
+    warn.mockRestore();
+  });
+
+  it("still shows the placeholder while unanswered", () => {
+    render(<FieldRenderer field={field("bucket")} value={null} onChange={vi.fn()} />);
+    expect(screen.getByRole("combobox", { name: "Bucket" })).toHaveTextContent("Select…");
   });
 });
 
@@ -268,26 +297,41 @@ describe("FieldRenderer: stable error and description element ids", () => {
  * true: it fires while *this* field has focus, and nowhere else.
  */
 describe("choice shortcut hints", () => {
-  const withShortcuts = new Map(
-    buildConfig({
-      output: [
-        {
-          name: "verdict",
-          kind: "choice",
-          displayName: "Verdict",
-          choices: [
-            { value: "good", label: "Good", shortcut: "g" },
-            { value: "bad", label: "Bad" },
-          ],
-        },
-      ],
-    }).output.fields.map((f) => [f.name, f]),
-  );
+  const shortcutConfig = buildConfig({
+    output: [
+      {
+        name: "verdict",
+        kind: "choice",
+        displayName: "Verdict",
+        choices: [
+          { value: "good", label: "Good", shortcut: "g" },
+          { value: "bad", label: "Bad" },
+        ],
+      },
+    ],
+  });
+  const withShortcuts = new Map(shortcutConfig.output.fields.map((f) => [f.name, f]));
 
   const verdict = (): OutputField => withShortcuts.get("verdict")!;
 
+  /**
+   * Hints come from the resolved binding table, not from the field, so the
+   * config has to be loaded and the provider mounted — the same composition the
+   * app uses. That indirection is what lets a labeler's rebinding show here.
+   */
+  const showVerdict = (): void => {
+    useStore.setState({ config: shortcutConfig, configPath: "/a.jsonc" });
+    render(
+      <ShortcutProvider>
+        <FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />
+      </ShortcutProvider>,
+    );
+  };
+
+  afterEach(() => useStore.setState({ config: null, configPath: null, shortcutOverrides: {} }));
+
   it("renders a key cap on the choice that declared one", () => {
-    render(<FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />);
+    showVerdict();
     const caps = document.querySelectorAll("kbd");
     expect(caps).toHaveLength(1);
     expect(caps[0]?.textContent).toBe("G");
@@ -296,7 +340,7 @@ describe("choice shortcut hints", () => {
   // Inside the control it reads as part of the caption ("Correct C") rather
   // than as a key you can press.
   it("puts the key cap outside the option control, not inside it", () => {
-    render(<FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />);
+    showVerdict();
     const cap = document.querySelector("kbd");
     expect(cap).not.toBeNull();
     expect(cap?.closest('[role="radio"]')).toBeNull();
@@ -305,12 +349,12 @@ describe("choice shortcut hints", () => {
   // Otherwise the radio announces as "Good G", and every existing name-based
   // query in this file would be querying a different string than the label.
   it("keeps the key cap out of the accessible name", () => {
-    render(<FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />);
+    showVerdict();
     expect(screen.getByRole("radio", { name: "Good" })).toBeInTheDocument();
   });
 
   it("exposes the chord to assistive tech via aria-keyshortcuts", () => {
-    render(<FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />);
+    showVerdict();
     expect(screen.getByRole("radio", { name: "Good" })).toHaveAttribute("aria-keyshortcuts", "G");
   });
 

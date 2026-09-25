@@ -2,11 +2,12 @@ import { Check, ChevronDown } from "lucide-react";
 import { Checkbox, RadioGroup, Select, Slider } from "radix-ui";
 import type { OutputField, ValueTypeKind } from "@core/config";
 import { titleOf } from "@core/config";
-import { ariaChord, formatChord, isRequired } from "@core";
+import { isRequired } from "@core";
+import { useShortcuts } from "../shortcuts/ShortcutProvider";
 import { SEVERITY } from "../components/Severity";
 import { Kbd } from "../components/Kbd";
 import type { CoercedValue } from "@core";
-import { cn, isMac } from "../lib/utils";
+import { cn } from "../lib/utils";
 
 /**
  * The chord that picks a choice, shown beside it.
@@ -16,17 +17,18 @@ import { cn, isMac } from "../lib/utils";
  * press. Sitting alongside, it looks like what it is.
  */
 function ChoiceHint({
-  shortcut,
+  bindingId,
   className,
 }: {
-  shortcut: string | undefined;
+  /** The binding whose chord this option answers, e.g. `choice:verdict/good`. */
+  bindingId: string;
   className?: string;
 }): React.JSX.Element | null {
-  if (!shortcut) return null;
+  const { chordFor } = useShortcuts();
+  const chord = chordFor(bindingId);
+  if (!chord) return null;
   return (
-    <Kbd className={cn("px-1 py-0 text-[0.625rem] text-muted-foreground", className)}>
-      {formatChord(shortcut, isMac())}
-    </Kbd>
+    <Kbd className={cn("px-1 py-0 text-[0.625rem] text-muted-foreground", className)}>{chord}</Kbd>
   );
 }
 
@@ -182,6 +184,7 @@ export function RadioWidget({
   invalid,
   describedBy,
 }: WidgetProps<"enum">): React.JSX.Element {
+  const { ariaFor } = useShortcuts();
   return (
     <RadioGroup.Root
       aria-label={ariaLabel(field)}
@@ -214,9 +217,7 @@ export function RadioWidget({
             >
               <RadioGroup.Item
                 value={option.name}
-                aria-keyshortcuts={
-                  option.shortcut ? ariaChord(option.shortcut, isMac()) : undefined
-                }
+                aria-keyshortcuts={ariaFor(`choice:${field.name}/${option.name}`)}
                 className={cn(
                   "flex size-4 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   borderClass(invalid),
@@ -227,7 +228,7 @@ export function RadioWidget({
               </RadioGroup.Item>
               {titleOf(option.name, option.display)}
             </label>
-            <ChoiceHint shortcut={option.shortcut} />
+            <ChoiceHint bindingId={`choice:${field.name}/${option.name}`} />
           </span>
         );
       })}
@@ -242,9 +243,14 @@ export function SelectWidget({
   invalid,
   describedBy,
 }: WidgetProps<"enum">): React.JSX.Element {
+  const { ariaFor } = useShortcuts();
   return (
     <Select.Root
-      value={typeof value === "string" ? value : undefined}
+      // `""`, not `undefined`, for an unanswered field. Radix reads both as
+      // "no selection" and still shows the placeholder, but `undefined` means
+      // *uncontrolled* — so the widget switched character on the labeler's
+      // first pick, which is the one thing `useControllableState` warns about.
+      value={typeof value === "string" ? value : ""}
       onValueChange={(v) => onChange(v)}
     >
       <Select.Trigger
@@ -266,9 +272,7 @@ export function SelectWidget({
               <Select.Item
                 key={option.name}
                 value={option.name}
-                aria-keyshortcuts={
-                  option.shortcut ? ariaChord(option.shortcut, isMac()) : undefined
-                }
+                aria-keyshortcuts={ariaFor(`choice:${field.name}/${option.name}`)}
                 className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-accent/15"
               >
                 {/* Outside ItemText on purpose: whatever ItemText holds is what
@@ -279,7 +283,10 @@ export function SelectWidget({
                 <Select.ItemIndicator>
                   <Check size={14} className="text-accent" />
                 </Select.ItemIndicator>
-                <ChoiceHint shortcut={option.shortcut} className="ml-auto pl-2" />
+                <ChoiceHint
+                  bindingId={`choice:${field.name}/${option.name}`}
+                  className="ml-auto pl-2"
+                />
               </Select.Item>
             ))}
           </Select.Viewport>
@@ -346,6 +353,7 @@ export function CheckboxGroupWidget({
   invalid,
   describedBy,
 }: WidgetProps<"array">): React.JSX.Element {
+  const { ariaFor } = useShortcuts();
   const items = field.items.type === "enum" ? field.items.choices : [];
   const selected = new Set(Array.isArray(value) ? value.map(String) : []);
 
@@ -370,7 +378,7 @@ export function CheckboxGroupWidget({
             <Checkbox.Root
               checked={selected.has(choice.name)}
               onCheckedChange={(state) => toggle(choice.name, state === true)}
-              aria-keyshortcuts={choice.shortcut ? ariaChord(choice.shortcut, isMac()) : undefined}
+              aria-keyshortcuts={ariaFor(`choice:${field.name}/${choice.name}`)}
               className={cn(
                 "flex size-4 items-center justify-center rounded border transition-colors",
                 borderClass(invalid),
@@ -383,7 +391,7 @@ export function CheckboxGroupWidget({
             </Checkbox.Root>
             {titleOf(choice.name, choice.display)}
           </label>
-          <ChoiceHint shortcut={choice.shortcut} />
+          <ChoiceHint bindingId={`choice:${field.name}/${choice.name}`} />
         </span>
       ))}
     </fieldset>
