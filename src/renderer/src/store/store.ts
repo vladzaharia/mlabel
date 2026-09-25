@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { DEFAULT_MODEL_ID } from "@core";
 import type { Analysis, AppSettings, EngineState, ShortcutOverrides } from "@core";
 import {
   evaluateRecord,
@@ -239,7 +240,9 @@ export const useStore = create<AppStore>((set, get) => ({
     shortcuts: {},
     updateChecks: true,
     aiEnabled: false,
-    aiModelId: "qwen3.5-2b",
+    // Derived, not repeated: this is the store's pre-IPC placeholder, and a
+    // stale copy here would quietly disagree with the main process.
+    aiModelId: DEFAULT_MODEL_ID,
   },
   shortcutOverrides: {},
   aiState: { kind: "no-model" },

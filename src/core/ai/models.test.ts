@@ -36,10 +36,11 @@ describe("the model manifest", () => {
     expect(findModel(DEFAULT_MODEL_ID)).toBeDefined();
   });
 
-  it("defaults to the smallest download", () => {
-    // Turning the feature on should not open with the largest file on the list.
-    const smallest = Math.min(...MODELS.map((m) => m.bytes));
-    expect(findModel(DEFAULT_MODEL_ID)?.bytes).toBe(smallest);
+  it("does not open with the largest file on the list", () => {
+    // The default is chosen on measured precision, not on size — but switching
+    // the feature on should still not begin with a four-gigabyte download.
+    const largest = Math.max(...MODELS.map((m) => m.bytes));
+    expect(findModel(DEFAULT_MODEL_ID)?.bytes).toBeLessThan(largest);
   });
 
   it("is ordered by size", () => {

@@ -6,6 +6,7 @@
  * seven. Building it once here means `tsc` points at one file instead.
  */
 
+import { DEFAULT_MODEL_ID } from "@core";
 import type { AppSettings, IpcApi } from "@core";
 
 /** The defaults, restated here so the fixture does not import Electron glue. */
@@ -16,7 +17,7 @@ const TEST_SETTINGS: AppSettings = {
   shortcuts: {},
   updateChecks: true,
   aiEnabled: false,
-  aiModelId: "qwen3.5-2b",
+  aiModelId: DEFAULT_MODEL_ID,
 };
 
 /**

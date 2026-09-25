@@ -38,12 +38,9 @@ export interface ModelSpec {
 }
 
 /**
- * Offered smallest-first, which is also the order someone should try them in.
- *
- * Index 0 is the default (see `DEFAULT_MODEL_ID`), so the app asks for the
- * smallest download it can do something useful with rather than the best one.
- * A labeler who wants better judgement can say so; a labeler who just switched
- * the feature on should not be met with four gigabytes.
+ * Offered smallest-first, because that is the order a download list should read
+ * in. Which one is the *default* is a separate question — see
+ * `DEFAULT_MODEL_ID`, which names it rather than taking whatever sorts first.
  *
  * The list deliberately spans two model families on three architectures. If a
  * llama.cpp regression breaks one of them, the others are unaffected — which is
@@ -60,7 +57,7 @@ export const MODELS: readonly ModelSpec[] = [
     sha256: "0af96165ea615bea39a04118d63f0b6d35908aea850ee4a51aa6151d851b8b35",
     license: "Apache-2.0",
     parameters: "2.3B",
-    note: "Smallest and quickest. Rarely speaks up.",
+    note: "Smallest download. Flags the least reliably of the five.",
   },
   {
     id: "ministral-3-3b",
@@ -71,7 +68,7 @@ export const MODELS: readonly ModelSpec[] = [
     sha256: "c11f7554656fe23d608d8bfac849d7ee3ce3cb00557416afa3cfa8e9b8ede9c2",
     license: "Apache-2.0",
     parameters: "3.4B",
-    note: "The most forthcoming of the five, and not much slower for it.",
+    note: "Raises the most by far. Many will not be worth the look.",
   },
   {
     id: "gemma-4-e2b",
@@ -82,7 +79,7 @@ export const MODELS: readonly ModelSpec[] = [
     sha256: "e531007218dfab990486a5de7676a6932d6ea8dea233d1f698d7c21cf8a16889",
     license: "Apache-2.0",
     parameters: "2B active",
-    note: "The quickest by a distance. Very reluctant to flag anything.",
+    note: "The default. Speaks up rarely, and is right most often when it does.",
   },
   {
     id: "qwen3.5-4b",
@@ -93,7 +90,7 @@ export const MODELS: readonly ModelSpec[] = [
     sha256: "b252c5610a42ca82d20fe2a12813e9d069eed89292907e26c783eeb0bc961bc7",
     license: "Apache-2.0",
     parameters: "4.2B",
-    note: "Says more than the 2B and takes about five times as long.",
+    note: "Slower than the 2B, and no more dependable in what it raises.",
   },
   {
     id: "gemma-4-e4b",
@@ -104,11 +101,33 @@ export const MODELS: readonly ModelSpec[] = [
     sha256: "df0fd4ee07072c607c29a0a1cb4f98918426cca12f45a2776bdd6ee6d09a4de3",
     license: "Apache-2.0",
     parameters: "4B active",
-    note: "The largest download, and the most cautious. Wants spare memory.",
+    note: "The largest download. So cautious it almost never says anything.",
   },
 ];
 
-export const DEFAULT_MODEL_ID = MODELS[0]!.id;
+/**
+ * Named, not derived, and chosen on measured precision.
+ *
+ * It used to be `MODELS[0]`, which made "cheapest to download" the criterion by
+ * accident. Scored against 750 human labels on a file with a 59.7% positive rate
+ * — so 59.7% precision is what guessing gets you:
+ *
+ *   Gemma 4 E2B      40 flagged   75.0% precision   lift 1.26
+ *   Ministral 3 3B  130 flagged   62.3%             lift 1.04
+ *   Qwen3.5 4B       40 flagged   47.5%             lift 0.80
+ *   Qwen3.5 2B       61 flagged   44.3%             lift 0.74
+ *   Gemma 4 E4B       1 flagged    0.0%             lift 0.00
+ *
+ * Gemma 4 E2B is the only one of the five that carries information, and it is
+ * also the quickest per record. The previous default was flagging rows that were
+ * *less* likely than average to be what the labeler was hunting — worse than
+ * saying nothing, in a feature whose whole risk is anchoring someone's judgement.
+ *
+ * One file and one kind of task, so this is a default and not a verdict. Re-run
+ * `pnpm eval:models --flagged-dir …` and `pnpm score` before assuming it holds
+ * elsewhere.
+ */
+export const DEFAULT_MODEL_ID = "gemma-4-e2b";
 
 export const findModel = (id: string): ModelSpec | undefined => MODELS.find((m) => m.id === id);
 

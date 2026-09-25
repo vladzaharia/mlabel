@@ -39,27 +39,31 @@ working on it.
 **Settings → Anomalies** (<kbd>⌘/Ctrl</kbd>+<kbd>,</kbd>). Switch it on, then download a
 model. Five are offered, smallest first:
 
-| Model          | Download | Per record | How much it says                     |
-| -------------- | -------- | ---------- | ------------------------------------ |
-| Qwen3.5 2B     | 1.34 GB  | ~1.3 s     | The default. Rarely speaks up        |
-| Ministral 3 3B | 2.19 GB  | ~4.4 s     | The most forthcoming of the five     |
-| Gemma 4 E2B    | 2.62 GB  | ~0.8 s     | Quickest, and very reluctant to flag |
-| Qwen3.5 4B     | 2.91 GB  | ~6.6 s     | Talkative, and the slowest           |
-| Gemma 4 E4B    | 4.22 GB  | ~1.3 s     | The most cautious of all             |
+| Model           | Download | Per record | Raised | Worth looking at |
+| --------------- | -------- | ---------- | ------ | ---------------- |
+| Qwen3.5 2B      | 1.34 GB  | ~2.8 s     | 41%    | 44%              |
+| Ministral 3 3B  | 2.19 GB  | ~5.2 s     | 87%    | 62%              |
+| **Gemma 4 E2B** | 2.62 GB  | ~1.3 s     | 27%    | **75%**          |
+| Qwen3.5 4B      | 2.91 GB  | ~3.6 s     | 27%    | 48%              |
+| Gemma 4 E4B     | 4.22 GB  | ~1.4 s     | 1%     | 0%               |
 
-Timings are from an Apple Silicon Mac; a machine without a usable GPU will be slower. The
-"how much it says" column is measured — over the same fourteen records, Ministral raised
-notes on eleven and both Gemma models on none.
+**Gemma 4 E2B is the default**, and the two columns are why. "Raised" is how often it said
+something over 150 records; "worth looking at" is how often that something turned out to
+match a human's judgement on the same rows. They point in opposite directions — the model
+that raised the most was right least often, and the most accurate model is also the fastest.
 
 :::caution
-That column says how **often** a model speaks, not how often it is **right**. A model that
-says nothing is never wrong and never useful; a talkative one gives you more to check, not
-more that is true. Try two on data you know well before trusting either.
+These numbers come from one file of one kind — account records checked for automated signups,
+where 60% of rows really were automated. So **60% is what guessing scores**, and a model at
+44% is worse than a coin toss. Your data is not that data; treat the ranking as a starting
+point and check a model on rows you already know the answer to.
+
+For that task the config's own [display rules](/config/rules/) reached 92% — far ahead of
+every model. Where you can write the rule, write the rule.
 :::
 
-Start with the default. If it stays quiet on records where you can see something is off, move
-to Ministral 3 — it is the biggest single step up in how much gets raised, for about three
-extra seconds a record.
+Start with the default. Move to Ministral 3 only if you would rather see more and sift it
+yourself; it raises three times as much and is right less often when it does.
 
 All are Apache-2.0 and are fetched from Hugging Face over a single verified download. The
 file's checksum is pinned in the app, so a changed upload fails rather than runs. Nothing is
@@ -83,7 +87,8 @@ the authored one keeps its colour.
 
 ## What it costs
 
-- **A download of 1.3–4.2 GB**, once, depending on which model you pick.
+- **A download of 1.3–4.2 GB**, once, depending on which model you pick — 2.6 GB for the
+  default.
 - **Memory while the model is loaded** — roughly two to three times the download size, so
   about 3 GB for the default and noticeably more for the largest. It unloads after five
   minutes idle and reloads when you next need it.
