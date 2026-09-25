@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import type { ValueTypeShape } from "@core/config";
+import type { Decoration } from "@core";
 import { ValueView } from "./ValueView";
 
 afterEach(() => cleanup());
@@ -17,6 +18,137 @@ const withColumn = (use: string[]): ValueTypeShape => ({
     ],
     table: { columns: [{ name: "col", use, display: { title: "Col" } }] },
   },
+});
+
+describe("ValueView — dates", () => {
+  const date: ValueTypeShape = { type: "date" };
+
+  it("renders the calendar day the source named, not the one local time falls on", () => {
+    const value = new Date("2026-05-01T00:00:00Z");
+    render(<ValueView type={date} value={value} />);
+    expect(
+      screen.getByText(value.toLocaleDateString(undefined, { timeZone: "UTC" })),
+    ).toBeInTheDocument();
+    // The test timezone is west of UTC, so the local reading is the day before.
+    expect(screen.queryByText(value.toLocaleDateString())).not.toBeInTheDocument();
+  });
+
+  it("shows no time for a date-only value", () => {
+    render(<ValueView type={date} value={new Date("2026-05-01T00:00:00Z")} />);
+    expect(screen.getByText(/2026/)).not.toHaveTextContent(":");
+  });
+
+  it("shows the time when the value carries one", () => {
+    const value = new Date("2026-05-01T14:30:00Z");
+    render(<ValueView type={date} value={value} />);
+    expect(
+      screen.getByText(value.toLocaleString(undefined, { timeZone: "UTC" })),
+    ).toBeInTheDocument();
+  });
+
+  it("falls back to the raw text for an unreadable value", () => {
+    render(<ValueView type={date} value={"whenever" as never} />);
+    expect(screen.getByText("whenever")).toBeInTheDocument();
+  });
+});
+
+describe("ValueView — per-item decorations", () => {
+  const list: ValueTypeShape = {
+    type: "array",
+    items: {
+      type: "object",
+      fields: [{ name: "email", display: { title: "Email" }, type: "text" }],
+    },
+  };
+  const value = [{ email: "a@acme.com" }, { email: "b@other.com" }];
+  const flagged: Decoration[][] = [
+    [{ rule: "same-domain", style: { tone: "warning", note: "Same domain." } }],
+    [],
+  ];
+
+  it("marks only the rows a rule matched", () => {
+    render(<ValueView type={list} value={value} itemDecorations={flagged} />);
+    const rows = screen.getAllByRole("row").slice(1); // drop the header
+    expect(rows[0]?.className).toContain("border-warning");
+    expect(rows[1]?.className).not.toContain("border-warning");
+  });
+
+  it("shows the note beside the value it explains", () => {
+    render(<ValueView type={list} value={value} itemDecorations={flagged} />);
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(within(rows[0]!).getByText("Same domain.")).toBeInTheDocument();
+    expect(within(rows[1]!).queryByText("Same domain.")).toBeNull();
+  });
+
+  it("renders exactly as before when no rule iterated the list", () => {
+    render(<ValueView type={list} value={value} />);
+    expect(screen.getByText("a@acme.com")).toBeInTheDocument();
+    expect(screen.queryByText("Same domain.")).toBeNull();
+  });
+});
+
+// The shape a "last ten emails" column actually has: one CSV cell of
+// comma-joined addresses, read as a list of strings. `forEach` can iterate it,
+// so the chips have to be able to show what it found — without this the rule
+// fires, the decorations are produced, and nothing appears on screen.
+describe("ValueView — per-item decorations on a list of scalars", () => {
+  const list: ValueTypeShape = { type: "array", items: { type: "text" } };
+  const value = ["a@acme.com", "b@other.com", "c@acme.com"];
+  const flagged: Decoration[][] = [
+    [{ rule: "same-domain", style: { tone: "warning", note: "Same domain as this account." } }],
+    [],
+    [{ rule: "same-domain", style: { tone: "warning", note: "Same domain as this account." } }],
+  ];
+
+  const chipFor = (text: string): HTMLElement | null =>
+    screen.getByText(text).closest("[data-item]");
+
+  it("tints only the entries a rule matched", () => {
+    render(<ValueView type={list} value={value} itemDecorations={flagged} />);
+    expect(chipFor("a@acme.com")?.className).toContain("border-warning");
+    expect(chipFor("b@other.com")?.className).not.toContain("border-warning");
+    expect(chipFor("c@acme.com")?.className).toContain("border-warning");
+  });
+
+  // Ten chips each carrying the same sentence would drown the values they are
+  // about, so the note is a hover title and an `sr-only` line rather than
+  // visible text on every one.
+  it("carries the note without printing it ten times", () => {
+    render(<ValueView type={list} value={value} itemDecorations={flagged} />);
+    expect(chipFor("a@acme.com")).toHaveAttribute("title", "Same domain as this account.");
+  });
+
+  it("announces the note to a screen reader", () => {
+    render(<ValueView type={list} value={value} itemDecorations={flagged} />);
+    expect(screen.getAllByText("Same domain as this account.")).toHaveLength(2);
+  });
+
+  it("leaves an undecorated list unmarked", () => {
+    render(<ValueView type={list} value={value} />);
+    expect(chipFor("a@acme.com")?.className).not.toContain("border-warning");
+    expect(screen.queryByText("Same domain as this account.")).toBeNull();
+  });
+
+  // Every entry used to sit in a filled chip, so a list of ten read as ten
+  // highlights and the four that meant something did not stand out at all.
+  // Framing is what a rule adds; without one an entry is just a value.
+  it("gives an unflagged entry no frame of its own", () => {
+    render(<ValueView type={list} value={value} itemDecorations={flagged} />);
+    const plain = chipFor("b@other.com")?.className ?? "";
+    expect(plain).not.toMatch(/\bborder-/);
+    expect(plain).not.toMatch(/\bbg-muted\b/);
+  });
+
+  // A guess must never be mistakable for a rule the config author wrote.
+  it("draws a model's mark differently from an authored one", () => {
+    const fromModel: Decoration[][] = [
+      [{ rule: "ai", source: "model", style: { tone: "warning", note: "Looks odd." } }],
+      [],
+      [],
+    ];
+    render(<ValueView type={list} value={value} itemDecorations={fromModel} />);
+    expect(chipFor("a@acme.com")?.className).toContain("border-dashed");
+  });
 });
 
 describe("ValueView", () => {

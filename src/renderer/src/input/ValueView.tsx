@@ -1,7 +1,16 @@
 import { Check, X } from "lucide-react";
 import type { NestedFieldShape, ValueTypeShape } from "@core/config";
 import { DEFAULT_COLUMN_LAYOUT, titleOf } from "@core/config";
-import type { CoercedValue } from "@core";
+import {
+  hasModelDecoration,
+  hasTimeOfDay,
+  notesOf,
+  toneOf,
+  type CoercedValue,
+  type Decoration,
+} from "@core";
+import { SEVERITY } from "../components/Severity";
+import { cn } from "../lib/utils";
 import { Table, Td, type TableHead } from "./ValueTable";
 
 const Empty = (): React.JSX.Element => <span className="text-muted-foreground/60">—</span>;
@@ -16,9 +25,18 @@ const fieldLabel = (field: NestedFieldShape): string => titleOf(field.name, fiel
 export function ValueView({
   type,
   value,
+  itemDecorations,
 }: {
   type: ValueTypeShape;
   value: CoercedValue | undefined;
+  /**
+   * Per-element decorations from a `forEach` rule, index-aligned with `value`.
+   *
+   * Consumed only by the array branch, and deliberately not forwarded to the
+   * recursive calls below: a `forEach` rule names a top-level field, so a nested
+   * list is out of scope by construction rather than by accident.
+   */
+  itemDecorations?: readonly (readonly Decoration[])[];
 }): React.JSX.Element {
   if (isEmpty(value)) return <Empty />;
 
@@ -35,7 +53,9 @@ export function ValueView({
     case "enum":
       return <EnumPill type={type} value={String(value)} />;
     case "array":
-      return <ArrayView type={type} value={value as CoercedValue[]} />;
+      return (
+        <ArrayView type={type} value={value as CoercedValue[]} itemDecorations={itemDecorations} />
+      );
     case "map":
       return <MapView type={type} value={value as Record<string, CoercedValue>} />;
     case "object":
@@ -43,9 +63,22 @@ export function ValueView({
   }
 }
 
+/**
+ * Render a date the way the source wrote it.
+ *
+ * Formatted in UTC, to match how `parseDateish` reads it. Local formatting would
+ * undo that: a date-only value is anchored to UTC midnight, so west of Greenwich
+ * `toLocaleDateString()` renders the *previous* day — the source says 1 May and
+ * the labeler reads 30 April. The time of day appears only when the value
+ * actually carries one; see `hasTimeOfDay` for how that is known.
+ */
 function formatDate(value: CoercedValue | undefined): string {
   const date = value instanceof Date ? value : new Date(String(value));
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString();
+  if (Number.isNaN(date.getTime())) return String(value);
+  const options: Intl.DateTimeFormatOptions = { timeZone: "UTC" };
+  return hasTimeOfDay(date)
+    ? date.toLocaleString(undefined, options)
+    : date.toLocaleDateString(undefined, options);
 }
 
 function BoolPill({ value, label }: { value: boolean; label?: string }): React.JSX.Element {
@@ -85,22 +118,64 @@ function EnumPill({
 function ArrayView({
   type,
   value,
+  itemDecorations,
 }: {
   type: Extract<ValueTypeShape, { type: "array" }>;
   value: CoercedValue[];
+  itemDecorations?: readonly (readonly Decoration[])[];
 }): React.JSX.Element {
   if (!Array.isArray(value) || value.length === 0) return <Empty />;
   if (type.items.type === "object") {
-    const rows = value.map((item) => ({ data: item as Record<string, CoercedValue> }));
+    const rows = value.map((item, i) => ({
+      data: item as Record<string, CoercedValue>,
+      decorations: itemDecorations?.[i],
+    }));
     return <ObjectTable objectType={type.items} rows={rows} />;
   }
+  // A list of scalars — ten comma-joined addresses in one CSV cell, typically —
+  // carries its decorations on the chips themselves. There is no row to tint
+  // and no spare column for a note, so the tone does the pointing and the note
+  // rides in `title` and an `sr-only` line: the same sentence printed under ten
+  // chips would drown the values it is about.
+  // An unflagged entry gets no frame at all. Every entry used to sit in a
+  // filled chip, which made a list of ten read as ten highlights and left the
+  // four that meant something indistinguishable from the rest. Framing is what
+  // a rule adds; without one an entry is just a value in a list.
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {value.map((item, i) => (
-        <span key={i} className="rounded-md bg-muted px-2 py-0.5 text-xs">
-          <ValueView type={type.items} value={item} />
-        </span>
-      ))}
+    <div className="flex flex-wrap gap-x-3 gap-y-1">
+      {value.map((item, i) => {
+        const decorations = itemDecorations?.[i];
+        const tone = toneOf(decorations);
+        const notes = notesOf(decorations);
+        const fromModel = hasModelDecoration(decorations);
+        return (
+          <span
+            key={i}
+            data-item=""
+            {...(notes.length > 0 ? { title: notes.join(" ") } : {})}
+            className={cn(
+              "text-xs",
+              tone
+                ? cn(
+                    "rounded-md border px-2 py-0.5",
+                    SEVERITY[tone].borderClass,
+                    SEVERITY[tone].textClass,
+                  )
+                : "text-muted-foreground",
+              // A guess gets a dashed edge, as everywhere else it appears.
+              fromModel && "border-dashed",
+            )}
+          >
+            <ValueView type={type.items} value={item} />
+            {notes.length > 0 && (
+              <span className="sr-only">
+                {fromModel && "Suggested by the local model: "}
+                {notes.join(" ")}
+              </span>
+            )}
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -268,7 +343,11 @@ function ObjectTable({
   keyHeader,
 }: {
   objectType: ObjectType;
-  rows: { key?: string; data: Record<string, CoercedValue> }[];
+  rows: {
+    key?: string;
+    data: Record<string, CoercedValue>;
+    decorations?: readonly Decoration[];
+  }[];
   keyHeader?: string;
 }): React.JSX.Element {
   const columns = resolveColumns(objectType);
@@ -282,14 +361,31 @@ function ObjectTable({
       label={keyHeader === undefined ? "Table of values" : "Table of keyed values"}
       head={head}
     >
-      {rows.map((row, i) => (
-        <tr key={row.key ?? i} className="border-t border-border/60">
-          {keyHeader !== undefined && <Td className="font-semibold">{row.key}</Td>}
-          {columns.map((column) => (
-            <Td key={column.head.id}>{column.render(row.data)}</Td>
-          ))}
-        </tr>
-      ))}
+      {rows.map((row, i) => {
+        const tone = toneOf(row.decorations);
+        const notes = notesOf(row.decorations);
+        return (
+          <tr
+            key={row.key ?? i}
+            className={cn("border-t border-border/60", tone && SEVERITY[tone].frameClass)}
+          >
+            {keyHeader !== undefined && <Td className="font-semibold">{row.key}</Td>}
+            {columns.map((column, ci) => (
+              <Td key={column.head.id}>
+                {column.render(row.data)}
+                {/* The note rides in the first cell rather than a trailing one:
+                    an extra cell would break the column count, and in-row text
+                    is read in row order by a screen reader. */}
+                {ci === 0 && notes.length > 0 && (
+                  <p className={cn("mt-0.5 text-xs", tone && SEVERITY[tone].textClass)}>
+                    {notes.join(" ")}
+                  </p>
+                )}
+              </Td>
+            ))}
+          </tr>
+        );
+      })}
     </Table>
   );
 }

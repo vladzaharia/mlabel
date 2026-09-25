@@ -1,5 +1,5 @@
 import type { CardRow, InputField } from "@core/config";
-import type { CoercedValue, DecorationMap } from "@core";
+import type { CoercedValue, Decorations } from "@core";
 import { WrapRow } from "../components/WrapRow";
 import { InputFieldView } from "./InputFieldView";
 
@@ -14,7 +14,7 @@ export function GridRow({
   row: CardRow;
   fieldsByName: Map<string, InputField>;
   values: Readonly<Record<string, CoercedValue>>;
-  decorations: DecorationMap;
+  decorations: Decorations;
   coercionErrors: ReadonlyMap<string, string>;
 }): React.JSX.Element {
   const items = row.use.flatMap((name) => {
@@ -27,7 +27,8 @@ export function GridRow({
           <InputFieldView
             field={field}
             value={values[name]}
-            decorations={decorations.get(name)}
+            decorations={decorations.fields.get(name)}
+            itemDecorations={decorations.items.get(name)}
             coercionError={coercionErrors.get(name)}
           />
         ),

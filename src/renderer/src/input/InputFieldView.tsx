@@ -1,7 +1,8 @@
 import type { InputField } from "@core/config";
 import { titleOf } from "@core/config";
-import { notesOf, toneOf, type CoercedValue, type Decoration } from "@core";
-import { Callout } from "../components/Callout";
+import { toneOf, type CoercedValue, type Decoration } from "@core";
+import { DecorationNotes, frameFor } from "../components/DecorationNotes";
+import { ProblemBadge } from "../components/ProblemBadge";
 import { SEVERITY } from "../components/Severity";
 import { HelpBubble } from "../components/ui/popover";
 import { cn } from "../lib/utils";
@@ -13,18 +14,28 @@ export function InputFieldView({
   field,
   value,
   decorations,
+  itemDecorations,
   coercionError,
 }: {
   field: InputField;
   value: CoercedValue | undefined;
   /** What the config's display rules say about this field, if anything. */
   decorations?: readonly Decoration[];
+  /** What `forEach` rules said about each element, when this field is a list. */
+  itemDecorations?: readonly (readonly Decoration[])[];
   /** Set when the source cell failed to parse into the declared type. */
   coercionError?: string;
 }): React.JSX.Element {
   const display = field.display;
   const tone = toneOf(decorations);
-  const notes = notesOf(decorations);
+
+  // A cell that failed to parse renders as an em-dash exactly like an empty one,
+  // so without this a labeler judges a record off silently broken data. It sits
+  // in the caption gutter as an icon rather than a block: a record can carry a
+  // dozen of these, and the card-level note is what states the general case.
+  const problem = coercionError !== undefined && (
+    <ProblemBadge message={`Could not read this value: ${coercionError}`} />
+  );
 
   const label = (
     <div className="flex items-center gap-1">
@@ -32,6 +43,7 @@ export function InputFieldView({
         {titleOf(field.name, display)}
       </span>
       {display?.help && <HelpBubble>{display.help}</HelpBubble>}
+      {problem}
     </div>
   );
   const description = display?.description && (
@@ -45,27 +57,16 @@ export function InputFieldView({
         // A rule annotates read-only source data the labeler cannot change, so
         // it gets a left rail and a tint — never the full red border that means
         // "you must fix this", which would send them hunting for a fix.
-        tone && SEVERITY[tone].frameClass,
+        frameFor(tone, decorations),
         tone && SEVERITY[tone].textClass,
       )}
     >
       {/* A field *is* its type, so it can be handed straight to the formatter. */}
-      <ValueView type={field} value={value} />
+      <ValueView type={field} value={value} itemDecorations={itemDecorations} />
     </div>
   );
 
-  // A cell that failed to parse renders as an em-dash exactly like an empty one,
-  // so without this a labeler judges a record off silently broken data.
-  const problems = coercionError !== undefined && (
-    <Callout tone="warning" className="mt-1">
-      Could not read this value: {coercionError}
-    </Callout>
-  );
-  const explanation = notes.length > 0 && (
-    <p className={cn("mt-1 text-xs", tone ? SEVERITY[tone].textClass : "text-muted-foreground")}>
-      {notes.join(" ")}
-    </p>
-  );
+  const explanation = <DecorationNotes decorations={decorations} tone={tone} />;
 
   if (display?.titlePosition === "above") {
     return (
@@ -73,7 +74,6 @@ export function InputFieldView({
         {label}
         {valueEl}
         {explanation}
-        {problems}
         {description}
       </div>
     );
@@ -87,7 +87,6 @@ export function InputFieldView({
       <div className="min-w-0 flex-1 pt-0.5">
         {valueEl}
         {explanation}
-        {problems}
       </div>
     </div>
   );
