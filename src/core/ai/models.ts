@@ -109,19 +109,24 @@ export const MODELS: readonly ModelSpec[] = [
  * Named, not derived, and chosen on measured precision.
  *
  * It used to be `MODELS[0]`, which made "cheapest to download" the criterion by
- * accident. Scored against 750 human labels on a file with a 59.7% positive rate
- * — so 59.7% precision is what guessing gets you:
+ * accident. Scored against human labels over the same 150 records, on a file
+ * where 60% of rows were positive — so 60% precision is what guessing gets:
  *
- *   Gemma 4 E2B      40 flagged   75.0% precision   lift 1.26
- *   Ministral 3 3B  130 flagged   62.3%             lift 1.04
- *   Qwen3.5 4B       40 flagged   47.5%             lift 0.80
- *   Qwen3.5 2B       61 flagged   44.3%             lift 0.74
- *   Gemma 4 E4B       1 flagged    0.0%             lift 0.00
+ *   the config's own rules   87 flagged   89.7% precision   lift 1.49
+ *   Gemma 4 E2B              40 flagged   75.0%             lift 1.26
+ *   Ministral 3 3B          130 flagged   62.3%             lift 1.04
+ *   Qwen3.5 4B               40 flagged   47.5%             lift 0.80
+ *   Qwen3.5 2B               61 flagged   44.3%             lift 0.74
+ *   Gemma 4 E4B               1 flagged    0.0%             lift 0.00
  *
  * Gemma 4 E2B is the only one of the five that carries information, and it is
  * also the quickest per record. The previous default was flagging rows that were
  * *less* likely than average to be what the labeler was hunting — worse than
  * saying nothing, in a feature whose whole risk is anchoring someone's judgement.
+ *
+ * The rules row is there to keep the rest honest: a hand-written rule beat every
+ * model on this task by a distance, which is the first thing a config author
+ * should try.
  *
  * One file and one kind of task, so this is a default and not a verdict. Re-run
  * `pnpm eval:models --flagged-dir …` and `pnpm score` before assuming it holds

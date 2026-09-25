@@ -58,8 +58,9 @@ where 60% of rows really were automated. So **60% is what guessing scores**, and
 44% is worse than a coin toss. Your data is not that data; treat the ranking as a starting
 point and check a model on rows you already know the answer to.
 
-For that task the config's own [display rules](/config/rules/) reached 92% — far ahead of
-every model. Where you can write the rule, write the rule.
+Over the same 150 records the config's own [display rules](/config/rules/) were worth looking
+at **90%** of the time, and caught far more of what was there. Where you can write the rule,
+write the rule — the model is for what you cannot describe in advance.
 :::
 
 Start with the default. Move to Ministral 3 only if you would rather see more and sift it
