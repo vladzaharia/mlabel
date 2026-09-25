@@ -382,7 +382,7 @@ const LEAF_CONDITIONS = [
     field: TestedField,
     pattern: z.string().min(1).meta({
       description:
-        "JavaScript regular expression, tested against the value's string form. Compiled when the config loads.",
+        "JavaScript regular expression, tested against the value's string form. One that cannot compile is a load error, wherever it sits — including inside an `allOf`, `anyOf` or `not`. Note that JavaScript has no inline flags: `(?i)` is a syntax error rather than a case-insensitive match, so write the cases out or use a character class.",
     }),
   }),
   z.strictObject({
