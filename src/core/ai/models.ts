@@ -124,9 +124,18 @@ export const MODELS: readonly ModelSpec[] = [
  * *less* likely than average to be what the labeler was hunting — worse than
  * saying nothing, in a feature whose whole risk is anchoring someone's judgement.
  *
- * The rules row is there to keep the rest honest: a hand-written rule beat every
- * model on this task by a distance, which is the first thing a config author
- * should try.
+ * The rules row is there to keep the rest honest, with one asymmetry stated
+ * rather than buried: those rules were tuned against these very labels, and the
+ * models saw the data cold. 89.7% is therefore in-sample and optimistic, and the
+ * gap to 75% is narrower than it reads. It is unlikely to close — eight coarse
+ * booleans over 750 rows is bounded overfitting, and 6.7% recall has a long way
+ * to go to reach 86.7% — but "a rule beat every model" and "a rule beat every
+ * model on the rows it was written for" are different claims and only the second
+ * is supported here.
+ *
+ * Settling it needs source features for the other three parts of this dataset;
+ * only part 2 has them, the rest are labels alone. When they exist it is one
+ * `pnpm score` away and needs no new code.
  *
  * One file and one kind of task, so this is a default and not a verdict. Re-run
  * `pnpm eval:models --flagged-dir …` and `pnpm score` before assuming it holds

@@ -59,8 +59,14 @@ where 60% of rows really were automated. So **60% is what guessing scores**, and
 point and check a model on rows you already know the answer to.
 
 Over the same 150 records the config's own [display rules](/config/rules/) were worth looking
-at **90%** of the time, and caught far more of what was there. Where you can write the rule,
-write the rule — the model is for what you cannot describe in advance.
+at **90%** of the time, and caught far more of what was there — but those rules were written
+by someone looking at this very data, and the models saw it cold. That is not a fair fight,
+and it is not meant to be: tuning a rule to your data is exactly what rules are for. It does
+mean 90% flatters them, and the real gap is narrower than the two numbers suggest.
+
+The practical reading stands either way. Where you can describe the thing you are looking
+for, describe it — a rule you tuned will beat a general model on your data. The model is for
+the shapes you cannot write down in advance.
 :::
 
 Start with the default. Move to Ministral 3 only if you would rather see more and sift it
