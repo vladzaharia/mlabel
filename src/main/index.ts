@@ -10,6 +10,7 @@ import { installNetworkGuard } from "./services/network-guard";
 import { flushSettings, initSettings } from "./services/settings-store";
 import { networkLog } from "./services/network-log";
 import { modelLog } from "./services/ai/model-log";
+import { pruneOrphanedModels } from "./services/ai/ai-service";
 import { flushSession } from "./services/session-store";
 import { checkForUpdatesManually, onUpdatesArmed } from "./services/updater";
 import {
@@ -135,6 +136,11 @@ async function bootstrap(): Promise<void> {
   // trigger a config load the moment IPC is listening.
   await initSettings();
   registerIpc();
+
+  // Housekeeping, not startup work: reclaim weights the model list no longer
+  // names. Deliberately not awaited — it touches the disk and nothing waits on
+  // the result, and a slow or failing sweep must not delay the window.
+  void pruneOrphanedModels();
 
   app.on("browser-window-created", (_event, win) => optimizer.watchWindowShortcuts(win));
   nativeTheme.on("updated", broadcastTheme);

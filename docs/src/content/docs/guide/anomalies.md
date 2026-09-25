@@ -37,18 +37,27 @@ working on it.
 ## Turning it on
 
 **Settings → Anomalies** (<kbd>⌘/Ctrl</kbd>+<kbd>,</kbd>). Switch it on, then download a
-model. Two are offered:
+model. Five are offered, smallest first:
 
-| Model      | Download | Notes                                                     |
-| ---------- | -------- | --------------------------------------------------------- |
-| Qwen3.5 2B | 1.28 GB  | Newer, better judgement, a little slower                  |
-| Qwen3 1.7B | 1.11 GB  | Smaller and faster, on a very well-supported architecture |
+| Model          | Download | Notes                                                             |
+| -------------- | -------- | ----------------------------------------------------------------- |
+| Qwen3.5 2B     | 1.34 GB  | The default. Smallest download, and a good first try              |
+| Ministral 3 3B | 2.19 GB  | Built for structured answers; steadier at staying on the question |
+| Gemma 4 E2B    | 2.62 GB  | Quantisation-aware, so it loses less to being shrunk              |
+| Qwen3.5 4B     | 2.91 GB  | Best judgement of the Qwen pair, and slower for it                |
+| Gemma 4 E4B    | 4.22 GB  | The largest on offer; wants a machine with memory to spare        |
 
-Both are Apache-2.0 and are fetched from Hugging Face over a single verified download. The
-file's checksum is pinned in the app, so a changed upload fails rather than runs.
+Start with the default and only move up if the notes are not useful enough. A bigger model is
+a better guesser, not a different kind of thing — it is still a guess, and it still costs you
+the wait on every record.
+
+All are Apache-2.0 and are fetched from Hugging Face over a single verified download. The
+file's checksum is pinned in the app, so a changed upload fails rather than runs. Nothing is
+looked up at download time: the app knows the exact file and its hash before it asks.
 
 The download resumes if interrupted, and can be cancelled. Delete a model any time from the
-same screen.
+same screen. If an MLabel update changes the model list, weights for a model that is no
+longer offered are removed on the next launch rather than left occupying the disk.
 
 ## Where the notes appear
 
@@ -64,9 +73,10 @@ the authored one keeps its colour.
 
 ## What it costs
 
-- **A gigabyte-plus download**, once.
-- **About 3 GB of memory** while the model is loaded. It unloads after five minutes idle and
-  reloads when you next need it.
+- **A download of 1.3–4.2 GB**, once, depending on which model you pick.
+- **Memory while the model is loaded** — roughly two to three times the download size, so
+  about 3 GB for the default and noticeably more for the largest. It unloads after five
+  minutes idle and reloads when you next need it.
 - **A few seconds per record.** MLabel works ahead of you — it analyses the record you are
   on plus the next few — so in steady reading the answer is usually there before you are. On
   a machine with no usable GPU the first record after a pause will make you wait.

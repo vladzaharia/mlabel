@@ -92,7 +92,7 @@ describe("cacheIsValid", () => {
   // A cache keyed only by record index would survive a model change and present
   // the small model's opinion under the large one's name.
   it("is invalidated by a change of model", () => {
-    expect(cacheIsValid("qwen3-1.7b", "qwen3-1.7b")).toBe(true);
-    expect(cacheIsValid("qwen3-1.7b", "qwen3.5-2b")).toBe(false);
+    expect(cacheIsValid("qwen3.5-2b", "qwen3.5-2b")).toBe(true);
+    expect(cacheIsValid("qwen3.5-2b", "gemma-4-e4b")).toBe(false);
   });
 });

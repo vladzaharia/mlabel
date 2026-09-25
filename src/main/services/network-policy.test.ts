@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { test, fc } from "@fast-check/vitest";
+import { MODELS, modelUrl } from "@core";
 import { isAllowedExternalUrl, isNavigationAllowed, isRequestAllowed } from "./network-policy";
 import { dmgAssetUrl, portableAssetUrl } from "./update-status";
 import type { PolicyContext } from "./network-policy";
@@ -236,13 +237,17 @@ const modelOn: PolicyContext = {
 const modelOff: PolicyContext = { ...modelOn, modelDownloadEnabled: false };
 
 const HF_URLS = [
-  "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf",
+  // Every model the app will actually ask for, taken from the manifest rather
+  // than copied — an entry pointing somewhere the policy refuses would fail here
+  // instead of as a mysterious download error on a labeler's machine.
+  ...MODELS.map((m) => modelUrl(m)),
   // The resolve endpoint answers with a 302 to a regional CDN, and the redirect
   // is a separate request that has to pass the guard on its own.
-  "https://us.aws.cdn.hf.co/repos/ab/cd/deadbeef/Qwen3.5-2B-Q4_K_M.gguf",
+  "https://us.aws.cdn.hf.co/repos/ab/cd/deadbeef/Qwen3.5-2B-UD-Q4_K_XL.gguf",
   "https://eu-west-3.aws.cdn.hf.co/repos/ab/cd/deadbeef/model.gguf",
   "https://cdn-lfs.hf.co/repos/ab/cd/model.gguf",
   "https://transfer.xethub.hf.co/xorbs/default/abc",
+  "https://cas-bridge.xethub.hf.co/xet-bridge-us/abc/def",
 ];
 
 describe("isRequestAllowed — model scope", () => {

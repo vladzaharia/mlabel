@@ -89,12 +89,23 @@ async function load(modelPath: string, schema: Record<string, unknown>): Promise
    * which under a JSON grammar it cannot. The `reasoning` field in the schema is
    * where thinking is supposed to go, and it survives into the parsed output.
    *
+   * Worth knowing before adding a model: `openOnResponseStart` is what causes
+   * this, and `QwenChatWrapper` is the only wrapper in node-llama-cpp that sets
+   * it. A thinking channel in some other model's Jinja template is therefore not
+   * the same hazard. Gemma's `reasoning` flag is a different thing — it prepends
+   * a `<|think|>` indicator to the *system* message — so turning it off is a
+   * matter of not spending context on an instruction the grammar makes
+   * impossible to follow, not of avoiding an empty response.
+   *
    * Resolved from the model rather than constructed, so the chat template and
-   * the Qwen variation stay auto-detected; only this one setting is overridden,
-   * and it is simply ignored for a model that is not Qwen.
+   * per-family variations stay auto-detected; only these settings are
+   * overridden, and each is ignored for a model of a different family.
    */
   const chatWrapper = resolveChatWrapper(model, {
-    customWrapperSettings: { qwen: { thoughts: "modelInitiated" } },
+    customWrapperSettings: {
+      qwen: { thoughts: "modelInitiated" },
+      gemma4: { reasoning: false },
+    },
   });
   const session = new LlamaChatSession({ contextSequence: context.getSequence(), chatWrapper });
 
