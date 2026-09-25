@@ -60,6 +60,19 @@ function parse(url: string): URL | undefined {
   }
 }
 
+/**
+ * The host to show in the network log, for any string at all.
+ *
+ * Deliberately total: this runs on the request hot path and while *reporting* a
+ * request that was already refused, so a URL too malformed to parse is an
+ * ordinary input here, not an error. Falling back to a truncated prefix keeps
+ * the log honest about something having been attempted rather than dropping the
+ * entry — an unparseable URL is exactly the kind of thing a reader wants to see.
+ */
+export function hostOf(url: string): string {
+  return parse(url)?.host ?? url.slice(0, 40);
+}
+
 function isCleanHttps(u: URL): boolean {
   return u.protocol === "https:" && u.username === "" && u.password === "" && u.port === "";
 }

@@ -67,6 +67,15 @@ function createWindow(state: Pick<WindowState, "width" | "height" | "x" | "y">):
       contextIsolation: true,
       sandbox: false, // ESM preload requires an unsandboxed preload
       nodeIntegration: false,
+      // Chromium's bundled spellchecker downloads Hunspell dictionaries from
+      // redirector.gvt1.com — over a browser-process loader that Electron's
+      // `webRequest` does not wrap, so the guard cannot see it, the config gates
+      // cannot stop it, and the network log never records it. That is a remote
+      // request this app promises it cannot make.
+      //
+      // macOS is exempt because it uses the OS spellchecker and downloads
+      // nothing, so there the feature is free and stays on.
+      spellcheck: isMac,
     },
   });
 
