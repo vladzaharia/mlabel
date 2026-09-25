@@ -6,6 +6,7 @@ import { buildConfig, configObject } from "@test/fixtures/config";
 import { useStore } from "../store/store";
 import { isMac } from "../lib/utils";
 import { RadioWidget, SliderWidget } from "../output/widgets";
+import { ShortcutProvider } from "../shortcuts/ShortcutProvider";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 
 const config = buildConfig({
@@ -45,6 +46,19 @@ function Harness({
   );
 }
 
+/**
+ * The hook reads its bindings from the provider, exactly as the app composes
+ * them — so these tests exercise the real resolution, overrides included,
+ * rather than a table assembled just for the test.
+ */
+function Wrapped(props: { onDone: () => void; onToggleHelp?: () => void }): React.JSX.Element {
+  return (
+    <ShortcutProvider>
+      <Harness {...props} />
+    </ShortcutProvider>
+  );
+}
+
 function press(target: Element | Window, key: string, init: KeyboardEventInit = {}): void {
   const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
   target.dispatchEvent(event);
@@ -60,7 +74,7 @@ describe("useKeyboardShortcuts", () => {
     const labels: Record<number, LabelMap> = {};
     for (const record of records) labels[record.index] = { ...record.labelValues };
     useStore.setState({ config, records, index: 0, labels, phase: "labeling" });
-    render(<Harness onDone={onDone} onToggleHelp={onToggleHelp} />);
+    render(<Wrapped onDone={onDone} onToggleHelp={onToggleHelp} />);
   });
 
   afterEach(() => {
@@ -102,7 +116,7 @@ describe("useKeyboardShortcuts", () => {
 
   it("fires onDone for cmd/ctrl+Enter even while typing", () => {
     const input = screen.getByLabelText("text field");
-    press(input, "Enter", { metaKey: true });
+    press(input, "Enter", isMac() ? { metaKey: true } : { ctrlKey: true });
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 
@@ -142,7 +156,7 @@ describe("useKeyboardShortcuts: an open dialog owns the keyboard", () => {
   function DialogHarness(): React.JSX.Element {
     return (
       <>
-        <Harness onDone={onDone} onToggleHelp={onToggleHelp} />
+        <Wrapped onDone={onDone} onToggleHelp={onToggleHelp} />
         {/* Shaped exactly like a Radix dialog's content element — a native
             <dialog> would test markup the app never renders. */}
         {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role */}
@@ -186,7 +200,7 @@ describe("useKeyboardShortcuts: an open dialog owns the keyboard", () => {
 
   it("resumes handling once the dialog closes", () => {
     cleanup();
-    render(<Harness onDone={onDone} onToggleHelp={onToggleHelp} />);
+    render(<Wrapped onDone={onDone} onToggleHelp={onToggleHelp} />);
     press(window, "ArrowRight");
     expect(useStore.getState().index).toBe(1);
   });
@@ -201,7 +215,7 @@ describe("useKeyboardShortcuts: Enter and gap navigation", () => {
     // Record 1 is finished; 0 and 2 are not, so a sweep must skip past 1.
     labels[1] = { id: "1", verdict: "good", score: 5 };
     useStore.setState({ config, records, index: 0, labels, prefill: {}, phase: "labeling" });
-    render(<Harness onDone={onDone} />);
+    render(<Wrapped onDone={onDone} />);
   });
 
   afterEach(() => {
@@ -242,8 +256,8 @@ describe("useKeyboardShortcuts: Enter and gap navigation", () => {
     expect(useStore.getState().index).toBe(0);
   });
 
-  it("still exports on cmd+Enter rather than advancing", () => {
-    press(window, "Enter", { metaKey: true });
+  it("still exports on mod+Enter rather than advancing", () => {
+    press(window, "Enter", isMac() ? { metaKey: true } : { ctrlKey: true });
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(useStore.getState().index).toBe(0);
   });
@@ -276,6 +290,14 @@ describe("useKeyboardShortcuts: Enter and gap navigation", () => {
 function ChordHarness(): React.JSX.Element {
   useKeyboardShortcuts({ onDone: vi.fn() });
   return <input aria-label="notes" />;
+}
+
+function WrappedChordHarness(): React.JSX.Element {
+  return (
+    <ShortcutProvider>
+      <ChordHarness />
+    </ShortcutProvider>
+  );
 }
 
 const chordLabels = (): LabelMap => useStore.getState().labels[0] ?? {};
@@ -325,7 +347,7 @@ describe("useKeyboardShortcuts: choice chords fire app-wide", () => {
       labels: { 0: {} },
       phase: "labeling",
     });
-    render(<ChordHarness />);
+    render(<WrappedChordHarness />);
   });
 
   afterEach(() => cleanup());
@@ -357,5 +379,123 @@ describe("useKeyboardShortcuts: choice chords fire app-wide", () => {
     press(window, "o");
     press(window, "b");
     expect(chordLabels()["topics"]).toEqual(["billing", "outage"]);
+  });
+});
+
+/** Dispatch and report whether anything consumed the keystroke. */
+function pressFor(target: Element | Window, key: string, init: KeyboardEventInit = {}): boolean {
+  const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
+  const notCancelled = target.dispatchEvent(event);
+  return !notCancelled;
+}
+
+describe("useKeyboardShortcuts: Space advances", () => {
+  beforeEach(() => {
+    useStore.setState({ config, records, index: 0, labels: { 0: {} }, phase: "labeling" });
+    render(<Wrapped onDone={vi.fn()} />);
+  });
+  afterEach(() => cleanup());
+
+  it("moves to the next record", () => {
+    press(window, " ");
+    expect(useStore.getState().index).toBe(1);
+  });
+
+  it("consumes the keystroke, so the pane does not also scroll", () => {
+    expect(pressFor(window, " ")).toBe(true);
+  });
+
+  it("leaves Space alone where it already activates something", () => {
+    const radio = screen.getAllByRole("radio")[0]!;
+    press(radio, " ");
+    expect(useStore.getState().index).toBe(0);
+  });
+
+  it("types a space in a text field instead of advancing", () => {
+    press(screen.getByLabelText("text field"), " ");
+    expect(useStore.getState().index).toBe(0);
+  });
+
+  // A link scrolls on Space rather than activating, so the record should still
+  // move — this is why the Space and Enter guard lists differ.
+  it("still advances from a link, which only scrolls on Space", () => {
+    const link = document.createElement("a");
+    link.href = "#x";
+    document.body.append(link);
+    press(link, " ");
+    expect(useStore.getState().index).toBe(1);
+    link.remove();
+  });
+});
+
+describe("useKeyboardShortcuts: keystrokes that must not be swallowed", () => {
+  beforeEach(() => {
+    useStore.setState({ config, records, index: 0, labels: { 0: {} }, phase: "labeling" });
+    render(<Wrapped onDone={vi.fn()} onToggleHelp={vi.fn()} />);
+  });
+  afterEach(() => cleanup());
+
+  // The arrows have to keep scrolling the input pane while they also move
+  // through records, and `?` must not be eaten before anything else sees it.
+  it("navigates without consuming the arrow keys", () => {
+    expect(pressFor(window, "ArrowRight")).toBe(false);
+    expect(useStore.getState().index).toBe(1);
+    expect(pressFor(window, "ArrowLeft")).toBe(false);
+    expect(useStore.getState().index).toBe(0);
+  });
+
+  it("opens help without consuming the key", () => {
+    expect(pressFor(window, "?", { shiftKey: true })).toBe(false);
+  });
+});
+
+describe("useKeyboardShortcuts: user overrides", () => {
+  afterEach(() => {
+    cleanup();
+    useStore.setState({ shortcutOverrides: {} });
+  });
+
+  it("fires the action from the rebound key", () => {
+    useStore.setState({
+      config,
+      records,
+      index: 0,
+      labels: { 0: {} },
+      phase: "labeling",
+      shortcutOverrides: { "nav.next": ["n"] },
+    });
+    render(<Wrapped onDone={vi.fn()} />);
+    press(window, "n");
+    expect(useStore.getState().index).toBe(1);
+  });
+
+  it("stops firing it from the default key, because an override replaces", () => {
+    useStore.setState({
+      config,
+      records,
+      index: 0,
+      labels: { 0: {} },
+      phase: "labeling",
+      shortcutOverrides: { "nav.next": ["n"] },
+    });
+    render(<Wrapped onDone={vi.fn()} />);
+    press(window, "ArrowRight");
+    expect(useStore.getState().index).toBe(0);
+  });
+
+  // Distinct from "absent": the labeler deliberately took the key away.
+  it("fires nothing for an action bound to no key at all", () => {
+    const onToggleHelp = vi.fn();
+    useStore.setState({
+      config,
+      records,
+      index: 0,
+      labels: { 0: {} },
+      phase: "labeling",
+      shortcutOverrides: { "app.help": [] },
+    });
+    render(<Wrapped onDone={vi.fn()} onToggleHelp={onToggleHelp} />);
+    press(window, "?", { shiftKey: true });
+    expect(onToggleHelp).not.toHaveBeenCalled();
   });
 });
