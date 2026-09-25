@@ -62,6 +62,18 @@ export async function loadSessionFor(
   return saved;
 }
 
+/**
+ * The saved session exactly as it sits on disk, whatever file it belongs to.
+ *
+ * Deliberately *not* path-filtered like {@link loadSessionFor}: the settings
+ * pane's job is to show what is actually stored, including a session belonging
+ * to a different file — which is precisely the case someone opens it to
+ * understand.
+ */
+export async function readSessionRaw(): Promise<SessionData | null> {
+  return (await readJsonSafe<SessionData>(sessionPath())) ?? null;
+}
+
 export async function getRecent(): Promise<RecentPaths> {
   return (await readJsonSafe<RecentPaths>(recentPath())) ?? {};
 }

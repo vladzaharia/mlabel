@@ -1,7 +1,6 @@
-import { AlertCircle, Check, Download, RefreshCw, RotateCw } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { useStore } from "../store/store";
 import { Button } from "../components/ui/button";
+import { describeUpdateStatus } from "./update-status-view";
 
 const baseClass =
   "no-drag flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground";
@@ -11,75 +10,47 @@ const buttonClass = "no-drag gap-1.5 font-normal text-muted-foreground hover:tex
  * Subtle auto-update status, shown in the chrome bar (inline with "‹ Config").
  * Static for transient states; a button when the user can act (restart to
  * install, or download the portable build). Renders nothing until the first
- * status arrives — and stays hidden when update checks are disabled.
+ * status arrives, and nothing for states that have no business taking up room.
  */
 export function UpdateIndicator(): React.JSX.Element | null {
   const status = useStore((s) => s.updateStatus);
   if (!status) return null;
 
-  switch (status.kind) {
-    case "checking":
-      return <Static icon={RefreshCw} spin label="Checking for updates…" />;
-    case "up-to-date":
-      return <Static icon={Check} label="Up to date" />;
-    case "downloading":
-      return <Static icon={Download} label={`Downloading update… ${String(status.percent)}%`} />;
-    case "downloaded":
-      return (
-        <Button
-          variant="ghost"
-          size="xs"
-          className={buttonClass}
-          onClick={() => void window.api.installUpdate()}
-        >
-          <RotateCw size={13} aria-hidden="true" /> Restart to update
-        </Button>
-      );
-    case "available-external": {
-      const url = status.url;
-      return (
-        <Button
-          variant="ghost"
-          size="xs"
-          className={buttonClass}
-          onClick={() => window.api.openExternal(url).catch(console.error)}
-        >
-          <Download size={13} aria-hidden="true" /> Update available
-        </Button>
-      );
-    }
-    case "error":
-      return (
-        <Button
-          variant="ghost"
-          size="xs"
-          className={buttonClass}
-          title={status.message ?? undefined}
-          onClick={() => void window.api.checkForUpdates()}
-        >
-          <AlertCircle size={13} aria-hidden="true" /> Couldn’t check for updates — Retry
-        </Button>
-      );
-  }
-}
+  const view = describeUpdateStatus(status);
+  if (view.quiet) return null;
+  const { Icon } = view;
 
-function Static({
-  icon: Icon,
-  label,
-  spin,
-}: {
-  icon: LucideIcon;
-  label: string;
-  spin?: boolean;
-}): React.JSX.Element {
+  if (view.action) {
+    const { action } = view;
+    return (
+      <Button
+        variant="ghost"
+        size="xs"
+        className={buttonClass}
+        title={view.detail}
+        onClick={() => {
+          if (action.kind === "install") void window.api.installUpdate();
+          else if (action.kind === "recheck") void window.api.checkForUpdates();
+          else if (action.url) window.api.openExternal(action.url).catch(console.error);
+        }}
+      >
+        <Icon size={13} aria-hidden="true" />
+        {/* A button in the chrome bar says what pressing it does. The status
+            itself — "0.4.0 is ready" — is the settings pane's job, where
+            there is room for a title and a detail. */}
+        {status.kind === "error" ? "Couldn’t check for updates — Retry" : action.label}
+      </Button>
+    );
+  }
+
   return (
     <span className={baseClass}>
       <Icon
         size={13}
         aria-hidden="true"
-        className={spin ? "animate-spin [animation-duration:2s]" : undefined}
+        className={status.kind === "checking" ? "animate-spin [animation-duration:2s]" : undefined}
       />
-      {label}
+      {view.title}
     </span>
   );
 }

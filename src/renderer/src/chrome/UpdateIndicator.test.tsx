@@ -69,7 +69,7 @@ describe("UpdateIndicator", () => {
     const user = userEvent.setup();
     const url = "https://github.com/vladzaharia/mlabel/releases/download/v1.2.0/x.exe";
     show({ kind: "available-external", version: "1.2.0", url });
-    await user.click(screen.getByRole("button", { name: /Update available/i }));
+    await user.click(screen.getByRole("button", { name: /Open release page/i }));
     expect(openExternal).toHaveBeenCalledWith(url);
   });
 });
