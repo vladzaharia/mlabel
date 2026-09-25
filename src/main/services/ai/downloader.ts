@@ -3,6 +3,8 @@ import { statfs } from "node:fs/promises";
 import { session } from "electron";
 import { modelUrl, type ModelSpec } from "@core";
 import { networkLog } from "../network-log";
+import { MODEL_PARTITION, PARTITION_OPTIONS } from "../partitions";
+import { hostOf } from "../network-policy";
 import { acceptsResume, checkSpace, planResume, shouldReport } from "./download-policy";
 import { ensureModelDir, finalize, modelsDir, partialBytes, partialPath } from "./model-store";
 
@@ -20,11 +22,13 @@ import { ensureModelDir, finalize, modelsDir, partialBytes, partialPath } from "
  * The library is only ever handed a local path.
  */
 
-/** Its own partition, so this traffic is judged under the `model` scope alone. */
-export const MODEL_PARTITION = "model-download";
-
+/**
+ * The same partition `network-guard.ts` installs its handler on — imported, not
+ * retyped, because two copies of this string that drift apart would send the
+ * download out on an unguarded session while everything still looked fine.
+ */
 const modelSession = (): Electron.Session =>
-  session.fromPartition(MODEL_PARTITION, { cache: false });
+  session.fromPartition(MODEL_PARTITION, PARTITION_OPTIONS);
 
 export interface DownloadProgress {
   receivedBytes: number;
@@ -62,7 +66,17 @@ export async function downloadModel(
   signal: AbortSignal,
 ): Promise<DownloadResult> {
   const url = modelUrl(spec);
-  const host = new URL(url).host;
+  /**
+   * Starts as the host we *ask* for and is replaced with the host that actually
+   * answered, once we know it.
+   *
+   * `huggingface.co/…/resolve/main/…` answers with a 302 to a regional CDN on
+   * `*.hf.co`, so the gigabyte does not come from the host in the URL. Reporting
+   * the requested host for the whole transfer would show a reader of the network
+   * log a host the machine barely spoke to and hide the one it streamed from —
+   * which defeats the point of having the log.
+   */
+  let host = hostOf(url);
 
   await ensureModelDir(spec);
   const have = await partialBytes(spec);
@@ -99,6 +113,9 @@ export async function downloadModel(
       signal,
       headers: plan.rangeHeader === undefined ? {} : { Range: plan.rangeHeader },
     });
+
+    // Post-redirect: every entry from here on names the host that served us.
+    host = hostOf(response.url);
 
     if (!acceptsResume(response.status, plan.rangeHeader !== undefined)) {
       const error = `Download refused: HTTP ${String(response.status)}.`;
@@ -172,6 +189,3 @@ export async function downloadModel(
   });
   return verified.ok ? { ok: true } : { ok: false, error: verified.error };
 }
-
-/** Unused locally, but exported so the guard can register the same partition. */
-export const modelDownloadSession = modelSession;

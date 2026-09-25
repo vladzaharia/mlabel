@@ -15,6 +15,44 @@
     "no-restricted-imports": [
       "error",
       {
+        "paths": [
+          {
+            "name": "node:https",
+            "message": "Node's HTTP stack bypasses Chromium's webRequest, so the allowlist, the config gate and the network log all stop applying while everything still appears to work. Use session.fetch on a guarded partition (see services/partitions.ts)."
+          },
+          {
+            "name": "node:http",
+            "message": "Node's HTTP stack bypasses Chromium's webRequest, so the allowlist, the config gate and the network log all stop applying while everything still appears to work. Use session.fetch on a guarded partition (see services/partitions.ts)."
+          },
+          {
+            "name": "https",
+            "message": "Node's HTTP stack bypasses Chromium's webRequest. Use session.fetch on a guarded partition (see services/partitions.ts)."
+          },
+          {
+            "name": "http",
+            "message": "Node's HTTP stack bypasses Chromium's webRequest. Use session.fetch on a guarded partition (see services/partitions.ts)."
+          },
+          {
+            "name": "axios",
+            "message": "A library's own HTTP client bypasses the network guard. Use session.fetch on a guarded partition."
+          },
+          {
+            "name": "undici",
+            "message": "A library's own HTTP client bypasses the network guard. Use session.fetch on a guarded partition."
+          },
+          {
+            "name": "got",
+            "message": "A library's own HTTP client bypasses the network guard. Use session.fetch on a guarded partition."
+          },
+          {
+            "name": "node-fetch",
+            "message": "A library's own HTTP client bypasses the network guard. Use session.fetch on a guarded partition."
+          },
+          {
+            "name": "node-llama-cpp",
+            "message": "node-llama-cpp is imported in exactly one file: src/main/services/ai/worker.ts, which runs as a forked utilityProcess. Importing it elsewhere pulls native binaries into the wrong process and breaks asarUnpack."
+          }
+        ],
         "patterns": [
           {
             "group": [
@@ -30,20 +68,44 @@
   },
   "overrides": [
     {
-      "files": ["src/main/**", "src/preload/**"],
+      "files": ["src/main/**"],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "fetch",
+            "message": "The global fetch bypasses Chromium's webRequest. Use session.fromPartition(...).fetch on a guarded partition (see services/partitions.ts)."
+          },
+          {
+            "name": "XMLHttpRequest",
+            "message": "Bypasses the network guard. Use session.fetch on a guarded partition."
+          },
+          {
+            "name": "WebSocket",
+            "message": "Bypasses the network guard. The app has no permitted socket traffic."
+          },
+          {
+            "name": "EventSource",
+            "message": "Bypasses the network guard. The app has no permitted streaming traffic."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/main/services/ai/worker.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
-            "patterns": [
-              {
-                "group": [
-                  "@core/adapters/*/internal",
-                  "@core/adapters/*/internal/*",
-                  "**/adapters/*/internal/*"
-                ],
-                "message": "Adapter internals are private to the adapter."
-              }
+            "paths": [
+              { "name": "node:https", "message": "Use session.fetch on a guarded partition." },
+              { "name": "node:http", "message": "Use session.fetch on a guarded partition." },
+              { "name": "https", "message": "Use session.fetch on a guarded partition." },
+              { "name": "http", "message": "Use session.fetch on a guarded partition." },
+              { "name": "axios", "message": "Use session.fetch on a guarded partition." },
+              { "name": "undici", "message": "Use session.fetch on a guarded partition." },
+              { "name": "got", "message": "Use session.fetch on a guarded partition." },
+              { "name": "node-fetch", "message": "Use session.fetch on a guarded partition." }
             ]
           }
         ]
@@ -55,6 +117,12 @@
         "no-restricted-imports": [
           "error",
           {
+            "paths": [
+              { "name": "axios", "message": "The renderer makes no network requests." },
+              { "name": "undici", "message": "The renderer makes no network requests." },
+              { "name": "got", "message": "The renderer makes no network requests." },
+              { "name": "node-fetch", "message": "The renderer makes no network requests." }
+            ],
             "patterns": [
               {
                 "group": ["electron", "@core/adapters/**", "**/main/**"],
@@ -68,7 +136,21 @@
     {
       "files": ["src/core/adapters/**"],
       "rules": {
-        "no-restricted-imports": "off"
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              { "name": "node:https", "message": "Adapters read files, not sockets." },
+              { "name": "node:http", "message": "Adapters read files, not sockets." },
+              { "name": "https", "message": "Adapters read files, not sockets." },
+              { "name": "http", "message": "Adapters read files, not sockets." },
+              { "name": "axios", "message": "Adapters read files, not sockets." },
+              { "name": "undici", "message": "Adapters read files, not sockets." },
+              { "name": "got", "message": "Adapters read files, not sockets." },
+              { "name": "node-fetch", "message": "Adapters read files, not sockets." }
+            ]
+          }
+        ]
       }
     }
   ],

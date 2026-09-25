@@ -1,6 +1,7 @@
 import { app, session } from "electron";
-import { isNavigationAllowed, isRequestAllowed } from "./network-policy";
+import { hostOf, isNavigationAllowed, isRequestAllowed } from "./network-policy";
 import { networkLog } from "./network-log";
+import { MODEL_PARTITION, PARTITION_OPTIONS, UPDATER_PARTITION } from "./partitions";
 
 /**
  * Hard enforcement of the zero-network rule (thin Electron wiring around the
@@ -13,9 +14,18 @@ import { networkLog } from "./network-log";
  *   release endpoints, and fully denied until a loaded config permits updates.
  * - Navigation/window-open/permission handlers: the window can't navigate to
  *   or open remote origins, and no permission request is ever granted.
+ * - Spellchecker: disabled off macOS, because Chromium fetches its dictionaries
+ *   below `webRequest` where none of the above can see it.
  *
  * Raw Node http/fetch from the main process would bypass webRequest; none
- * exists (CLAUDE.md golden rule 1) and none may be added.
+ * exists (CLAUDE.md golden rule 1), an oxlint rule now refuses the imports that
+ * would allow it, and none may be added.
+ *
+ * Two things still leave the machine without passing through here, and the docs
+ * say so rather than overclaiming: `shell.openExternal` hands a URL to the OS
+ * browser (guarded by `isAllowedExternalUrl` and logged at its IPC handler), and
+ * Chromium's own certificate-revocation and DNS lookups sit below Electron's
+ * networking layer entirely.
  */
 
 // Hard-deny updater traffic until a config that permits updates has loaded.
@@ -34,40 +44,51 @@ export function setModelDownloadEnabled(value: boolean): void {
   modelDownloadEnabled = value;
 }
 
-/**
- * Must match electron-updater's internal `NET_SESSION_NAME` — it routes all of
- * its requests through this partition, never the default session. Guarded by a
- * contract test in network-policy.test.ts so an upgrade can't silently rename
- * it and leave updater traffic unfiltered.
- */
-const UPDATER_PARTITION = "electron-updater";
-
-/**
- * Model weights get their own partition so their traffic is judged under the
- * `model` scope alone — the updater session cannot reach Hugging Face and this
- * one cannot reach GitHub, so a bug in one cannot borrow the other's permission.
- */
-const MODEL_PARTITION = "model-download";
-
-/** Never throws on an unparseable URL — this runs on the request hot path. */
-function hostOf(url: string): string {
-  try {
-    return new URL(url).host;
-  } catch {
-    return url.slice(0, 40);
-  }
-}
-
 function deny(url: string): void {
   console.warn("[network-policy] denied:", url);
-  // Only denials are recorded here. Logging every *allowed* updater request
-  // would fill the buffer with redirect hops and download chunks and evict the
-  // one thing anyone opens this list to find.
   networkLog.record({
     kind: "denied",
     label: "Blocked request",
     host: hostOf(url),
     outcome: "denied",
+  });
+}
+
+/**
+ * Hosts already recorded, as `scope:host`.
+ *
+ * Logging every allowed request would fill a 50-entry buffer with redirect hops
+ * and download chunks and evict the one thing anyone opens this list to find.
+ * Logging none of them — the previous behaviour — left the log naming only the
+ * hosts the app *intended* to contact, which for both scopes is not the host
+ * that served the bytes: `huggingface.co` redirects to a regional `*.hf.co`, and
+ * a GitHub release redirects to its asset host.
+ *
+ * Recording the first request per host is the useful middle: every distinct host
+ * the app actually spoke to appears exactly once, and a thousand chunks add
+ * nothing. Deliberately never cleared — over a session, "did this app ever
+ * contact X" is the question being asked, and re-answering it per chunk is what
+ * we are avoiding.
+ */
+const contacted = new Set<string>();
+
+/**
+ * Record a host the app is about to open a request to, once.
+ *
+ * Only for scopes that reach a remote host. Allowed `renderer` traffic is
+ * `file:`/`devtools:` and, in dev, the Vite server — logging that would be noise
+ * about the app loading itself.
+ */
+function noteContact(scope: "updater" | "model", url: string): void {
+  const host = hostOf(url);
+  const key = `${scope}:${host}`;
+  if (contacted.has(key)) return;
+  contacted.add(key);
+  networkLog.record({
+    kind: "contacted",
+    label: scope === "updater" ? "Contacted for updates" : "Contacted for weights",
+    host,
+    outcome: "success",
   });
 }
 
@@ -88,7 +109,7 @@ export function installNetworkGuard(): void {
 
   // Options must match electron-updater's own `fromPartition` call so the
   // session it later grabs is this exact one.
-  const updaterSession = session.fromPartition(UPDATER_PARTITION, { cache: false });
+  const updaterSession = session.fromPartition(UPDATER_PARTITION, PARTITION_OPTIONS);
   updaterSession.webRequest.onBeforeRequest((details, callback) => {
     const cancel = !isRequestAllowed(details.url, {
       scope: "updater",
@@ -97,10 +118,11 @@ export function installNetworkGuard(): void {
       isDev,
     });
     if (cancel) deny(details.url);
+    else noteContact("updater", details.url);
     callback({ cancel });
   });
 
-  const modelSession = session.fromPartition(MODEL_PARTITION, { cache: false });
+  const modelSession = session.fromPartition(MODEL_PARTITION, PARTITION_OPTIONS);
   modelSession.webRequest.onBeforeRequest((details, callback) => {
     const cancel = !isRequestAllowed(details.url, {
       scope: "model",
@@ -109,12 +131,25 @@ export function installNetworkGuard(): void {
       isDev,
     });
     if (cancel) deny(details.url);
+    else noteContact("model", details.url);
     callback({ cancel });
   });
 
   for (const s of [session.defaultSession, updaterSession, modelSession]) {
     s.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
     s.setPermissionCheckHandler(() => false);
+  }
+
+  // The one egress Chromium performs below `webRequest`: the bundled
+  // spellchecker fetches Hunspell dictionaries from redirector.gvt1.com through
+  // a browser-process loader, so no handler above would ever see it. Windows
+  // already pass `spellcheck: isMac`; this closes the same door at the session,
+  // so a window created without that preference cannot reopen it.
+  //
+  // Skipped on macOS, where the OS spellchecker is used and nothing is
+  // downloaded — there the feature costs nothing and stays on.
+  if (process.platform !== "darwin") {
+    session.defaultSession.setSpellCheckerEnabled(false);
   }
 
   app.on("web-contents-created", (_event, contents) => {

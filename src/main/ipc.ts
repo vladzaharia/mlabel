@@ -26,7 +26,7 @@ import {
   runSplit,
 } from "./services/prepare-service";
 import { clearSession, getRecent, readSessionRaw } from "./services/session-store";
-import { isAllowedExternalUrl } from "./services/network-policy";
+import { hostOf, isAllowedExternalUrl } from "./services/network-policy";
 import {
   checkForUpdatesManually,
   installUpdate,
@@ -125,7 +125,28 @@ export function registerIpc(): void {
   ipcMain.handle(IPC_INVOKE.checkForUpdates, () => checkForUpdatesManually());
   ipcMain.handle(IPC_INVOKE.openExternal, (_event, url: string) => {
     // Defense in depth: only main-built release URLs may leave the app.
-    if (!isAllowedExternalUrl(url)) throw new Error(`Blocked non-release external URL: ${url}`);
+    if (!isAllowedExternalUrl(url)) {
+      // A refusal here is the same event as a refusal at `webRequest`, and a
+      // reader of the log should not have to know which layer caught it.
+      networkLog.record({
+        kind: "denied",
+        label: "Blocked request",
+        host: hostOf(url),
+        outcome: "denied",
+      });
+      throw new Error(`Blocked non-release external URL: ${url}`);
+    }
+    // Handing a URL to the OS browser is egress by any reasonable reading: the
+    // machine contacts GitHub because the labeler clicked something in this app.
+    // It leaves through the OS rather than through `webRequest`, so nothing else
+    // would ever record it, and a network panel that stayed empty here would be
+    // quietly lying about what the app caused.
+    networkLog.record({
+      kind: "update-download",
+      label: "Open release page",
+      host: hostOf(url),
+      outcome: "success",
+    });
     return shell.openExternal(url);
   });
   ipcMain.handle(IPC_INVOKE.revealPath, (_event, path: string) => {

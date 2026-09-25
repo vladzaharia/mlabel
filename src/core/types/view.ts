@@ -273,7 +273,22 @@ export interface ModelCallEntry {
   error?: string;
 }
 
-export type NetworkEventKind = "update-check" | "update-download" | "model-download" | "denied";
+export type NetworkEventKind =
+  | "update-check"
+  | "update-download"
+  | "model-download"
+  /**
+   * A host the app actually opened a request to, recorded once per host.
+   *
+   * The other kinds are *semantic* — "Download model", "Check for updates" —
+   * and name the host the app meant to talk to. That is not always the host it
+   * talked to: a Hugging Face `resolve` URL redirects to a regional `*.hf.co`
+   * CDN, and a GitHub release redirects to its asset host. Without this kind the
+   * log would show hosts the machine barely contacted and omit the ones that
+   * served the bytes.
+   */
+  | "contacted"
+  | "denied";
 export type NetworkOutcome = "started" | "success" | "error" | "denied";
 
 /** One network call the app made, or refused to make. */
