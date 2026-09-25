@@ -31,6 +31,7 @@
     "test:node": "vitest run --project node",
     "test:dom": "vitest run --project dom",
     "audit:contrast": "tsx scripts/audit-contrast.ts",
+    "eval:models": "tsx scripts/eval-models.ts",
     "schema": "tsx scripts/emit-schema.ts",
     "validate": "tsx scripts/validate-config.ts",
     "icons": "tsx scripts/gen-icons.ts",
