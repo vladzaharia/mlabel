@@ -1,0 +1,14 @@
+# Publish config for development runs.
+#
+# A packaged app carries this inside its own metadata; an unpackaged one has
+# nowhere to read it from, so electron-updater looks for this file when
+# `forceDevUpdateConfig` is set. Keep it in step with `publish:` in
+# electron-builder.yml — it points at the same release feed, so a dev run makes
+# the same request a real install would and the network log shows it.
+#
+# Checks only. `autoDownload` is off in dev and installing is gated on
+# `app.isPackaged`, so this can never try to replace a checkout.
+provider: github
+owner: vladzaharia
+repo: mlabel
+releaseType: release
