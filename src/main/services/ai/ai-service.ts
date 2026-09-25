@@ -5,7 +5,7 @@ import { appState } from "../../state";
 import { getSettings } from "../settings-store";
 import { setModelDownloadEnabled } from "../network-guard";
 import { downloadModel } from "./downloader";
-import { deleteModel as removeModel, isModelPresent } from "./model-store";
+import { deleteModel as removeModel, isModelPresent, pruneUnknownModels } from "./model-store";
 import { aiState, cachedAnalyses, shutdownAi } from "./analysis-service";
 
 /**
@@ -43,6 +43,25 @@ export function applyAiPolicy(): void {
   setModelDownloadEnabled(allowed);
   if (!allowed) cancelDownload();
   if (!configAllowsAi()) shutdownAi();
+}
+
+/**
+ * Clear out weights the manifest no longer names. Call once, at startup.
+ *
+ * The list of models changes between releases, and when it does, whatever was on
+ * disk for a dropped or re-pinned entry becomes invisible — no row renders for
+ * it, so nothing in the UI can delete it. Left alone it is a couple of gigabytes
+ * a labeler cannot account for or reclaim. Not an error path, so it only logs.
+ */
+export async function pruneOrphanedModels(): Promise<void> {
+  try {
+    const removed = await pruneUnknownModels(MODELS);
+    if (removed.length > 0) {
+      console.info(`[ai] removed ${String(removed.length)} orphaned model file(s)`);
+    }
+  } catch (err) {
+    console.warn("[ai] could not prune orphaned models:", err);
+  }
 }
 
 /** Which models are on this machine. */

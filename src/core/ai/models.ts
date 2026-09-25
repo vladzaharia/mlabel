@@ -6,11 +6,14 @@
  * remote end is not a download you can reason about. The app fetches exactly one
  * of these files, checks it against the SHA256 below, and refuses anything else.
  *
- * Verified live against the Hugging Face API: both repos are public, ungated and
+ * Verified live against the Hugging Face API: every repo is public, ungated and
  * Apache-2.0, and the files fetch with a plain anonymous GET.
  *
- * Qwen publishes no GGUF for the 3.5 line, so the weights come from well-known
- * community requantisers. Pinning the hash is what makes that acceptable — a
+ * The weights come from Unsloth rather than from each model's own publisher.
+ * Most of these lines ship no GGUF at all, and Unsloth's dynamic quantisation
+ * (`UD-*`) chooses a precision per layer instead of applying one to the whole
+ * file, which buys back most of what 4-bit costs for a few percent more bytes.
+ * Trusting a requantiser is only acceptable because the hash is pinned — a
  * changed upload fails the check rather than silently running.
  */
 
@@ -35,36 +38,73 @@ export interface ModelSpec {
 }
 
 /**
- * Offered newest-first, which is also largest-first here.
+ * Offered smallest-first, which is also the order someone should try them in.
  *
- * `qwen3.5-2b` is the default: it is the newest Qwen line that ships anything
- * under 27B at all. It is a vision-language model on a Gated-DeltaNet + sparse
- * MoE architecture, and llama.cpp had open issues against that architecture
- * through late 2026 — which is exactly why `qwen3-1.7b` stays selectable as a
- * known-good fallback on an older, thoroughly-supported architecture.
+ * Index 0 is the default (see `DEFAULT_MODEL_ID`), so the app asks for the
+ * smallest download it can do something useful with rather than the best one.
+ * A labeler who wants better judgement can say so; a labeler who just switched
+ * the feature on should not be met with four gigabytes.
+ *
+ * The list deliberately spans two model families on three architectures. If a
+ * llama.cpp regression breaks one of them, the others are unaffected — which is
+ * the job `qwen3-1.7b` used to do, done better by models worth choosing on their
+ * own merits rather than only as a fallback.
  */
 export const MODELS: readonly ModelSpec[] = [
   {
     id: "qwen3.5-2b",
     name: "Qwen3.5 2B",
     repo: "unsloth/Qwen3.5-2B-GGUF",
-    file: "Qwen3.5-2B-Q4_K_M.gguf",
-    bytes: 1_280_835_840,
-    sha256: "aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223",
+    file: "Qwen3.5-2B-UD-Q4_K_XL.gguf",
+    bytes: 1_339_752_704,
+    sha256: "0af96165ea615bea39a04118d63f0b6d35908aea850ee4a51aa6151d851b8b35",
     license: "Apache-2.0",
     parameters: "2.3B",
-    note: "Newest. Best judgement, slightly slower.",
+    note: "Smallest download. A good first try.",
   },
   {
-    id: "qwen3-1.7b",
-    name: "Qwen3 1.7B",
-    repo: "unsloth/Qwen3-1.7B-GGUF",
-    file: "Qwen3-1.7B-Q4_K_M.gguf",
-    bytes: 1_107_409_472,
-    sha256: "b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897",
+    id: "ministral-3-3b",
+    name: "Ministral 3 3B",
+    repo: "unsloth/Ministral-3-3B-Instruct-2512-GGUF",
+    file: "Ministral-3-3B-Instruct-2512-UD-Q4_K_XL.gguf",
+    bytes: 2_191_963_424,
+    sha256: "c11f7554656fe23d608d8bfac849d7ee3ce3cb00557416afa3cfa8e9b8ede9c2",
     license: "Apache-2.0",
-    parameters: "1.7B",
-    note: "Smaller and faster, on an older and very well-supported architecture.",
+    parameters: "3.4B",
+    note: "Built for structured answers. Steadier at staying on the question.",
+  },
+  {
+    id: "gemma-4-e2b",
+    name: "Gemma 4 E2B",
+    repo: "unsloth/gemma-4-E2B-it-qat-GGUF",
+    file: "gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf",
+    bytes: 2_620_370_976,
+    sha256: "e531007218dfab990486a5de7676a6932d6ea8dea233d1f698d7c21cf8a16889",
+    license: "Apache-2.0",
+    parameters: "2B active",
+    note: "Quantisation-aware, so it loses less to being shrunk.",
+  },
+  {
+    id: "qwen3.5-4b",
+    name: "Qwen3.5 4B",
+    repo: "unsloth/Qwen3.5-4B-GGUF",
+    file: "Qwen3.5-4B-UD-Q4_K_XL.gguf",
+    bytes: 2_912_109_728,
+    sha256: "b252c5610a42ca82d20fe2a12813e9d069eed89292907e26c783eeb0bc961bc7",
+    license: "Apache-2.0",
+    parameters: "4.2B",
+    note: "Best judgement of the Qwen pair, and slower for it.",
+  },
+  {
+    id: "gemma-4-e4b",
+    name: "Gemma 4 E4B",
+    repo: "unsloth/gemma-4-E4B-it-qat-GGUF",
+    file: "gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf",
+    bytes: 4_215_695_776,
+    sha256: "df0fd4ee07072c607c29a0a1cb4f98918426cca12f45a2776bdd6ee6d09a4de3",
+    license: "Apache-2.0",
+    parameters: "4B active",
+    note: "The largest on offer. Wants a machine with memory to spare.",
   },
 ];
 
@@ -78,6 +118,10 @@ export const findModel = (id: string): ModelSpec | undefined => MODELS.find((m) 
  * The plain `resolve` endpoint, which answers with a single 302 to a regional
  * CDN. No token, no custom headers: these repos are public, and needing
  * credentials would mean the app had to hold some.
+ *
+ * `main` is a moving ref, which would be alarming on its own — but the pinned
+ * SHA256 turns "the upload changed" into a failed check rather than a different
+ * model running under the same name.
  */
 export const modelUrl = (spec: ModelSpec): string =>
   `https://huggingface.co/${spec.repo}/resolve/main/${spec.file}`;

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MODELS } from "@core";
 import type { IpcApi, NetworkLogEntry, RecordView } from "@core";
 import { makeIpcApi } from "@test/fixtures/ipc";
 import { buildConfig } from "@test/fixtures/config";
@@ -426,7 +427,9 @@ describe("SettingsDialog: anomaly detection", () => {
     expect(screen.getByText(/email: a@b.com/)).toBeInTheDocument();
   });
 
-  it("offers the models once it is on", async () => {
+  // Driven from MODELS rather than a hardcoded pair, so adding or dropping a
+  // model does not quietly leave this asserting a list that no longer exists.
+  it("offers every model in the manifest once it is on", async () => {
     install({ getAppInfo: async () => info() });
     const user = userEvent.setup();
     show();
@@ -434,7 +437,9 @@ describe("SettingsDialog: anomaly detection", () => {
     await user.click(tab("Anomalies"));
     await user.click(screen.getByRole("switch", { name: "Look for anomalies" }));
 
-    expect(await screen.findByText("Qwen3.5 2B")).toBeInTheDocument();
-    expect(screen.getByText("Qwen3 1.7B")).toBeInTheDocument();
+    expect(await screen.findByText(MODELS[0]!.name)).toBeInTheDocument();
+    for (const model of MODELS) {
+      expect(screen.getByText(model.name), model.id).toBeInTheDocument();
+    }
   });
 });
