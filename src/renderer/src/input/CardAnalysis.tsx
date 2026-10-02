@@ -90,14 +90,52 @@ export function CardAnalysis({
     if (rows) lines.push(...itemLines(name, rows));
   }
 
+  const ruleLines = lines.filter((line) => !line.fromModel);
+  const modelLines = lines.filter((line) => line.fromModel);
+
   return (
     <div className="border-t border-border/60 px-4 py-3">
+      {/*
+        Two columns, because the two kinds of statement are not comparable and
+        a single list invites reading them as one. A rule fired because someone
+        who knows this data wrote down what it means; a suggestion is a guess
+        from a small model that is wrong a fair fraction of the time. Mixed in
+        one column, sorted by nothing in particular, the only thing separating
+        them is a shade of grey — and this is a tool whose output becomes
+        somebody's ground truth.
+
+        Both sides are always rendered, including when empty. Where the absence
+        of a warning has to be trusted, "nothing found" and a blank space are
+        different messages and only one of them is checkable.
+      */}
+      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        <Column empty="No rules fired." lines={ruleLines} title="Rules" />
+        <Column empty="Nothing flagged." icon lines={modelLines} title="Model" />
+      </div>
+    </div>
+  );
+}
+
+function Column({
+  title,
+  lines,
+  empty,
+  icon = false,
+}: {
+  title: string;
+  lines: readonly Line[];
+  empty: string;
+  /** The model column is marked, so the two are told apart without reading. */
+  icon?: boolean;
+}): React.JSX.Element {
+  return (
+    <section>
       <h4 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-        <Sparkles size={11} aria-hidden="true" />
-        Analysis
+        {icon && <Sparkles size={11} aria-hidden="true" />}
+        {title}
       </h4>
       {lines.length === 0 ? (
-        <p className="mt-1.5 text-xs text-muted-foreground">No anomalies detected.</p>
+        <p className="mt-1.5 text-xs text-muted-foreground">{empty}</p>
       ) : (
         <ul className="mt-1.5 flex flex-col gap-1">
           {lines.map((line) => (
@@ -128,6 +166,6 @@ export function CardAnalysis({
           ))}
         </ul>
       )}
-    </div>
+    </section>
   );
 }
