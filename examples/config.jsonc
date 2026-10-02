@@ -14,6 +14,73 @@
   "ui": { "appTitle": { "field": "prompt" } },
 
   // ---------------------------------------------------------------------------
+  // AI — on-device assistance. Nothing here can reach the output file.
+  // ---------------------------------------------------------------------------
+  //
+  // A decision model answers *typed questions*: you declare the possible answers
+  // here, before the model runs, and it returns a calibrated probability for
+  // each. There is no prose to interpret, and it cannot answer with anything you
+  // did not list.
+  "ai": {
+    // What the data means. Column names say what it *is*; only you can say what
+    // would count as odd in it.
+    "context": "Model responses to user prompts, scored by a reviewer. A response that contradicts its prompt, or a score that disagrees with the response's quality, is worth a second look.",
+
+    // Nearby records, for comparison. An anomaly is relative: on its own a
+    // record gives the model nothing to judge against. Costs prompt space on
+    // every analysis, so keep it small.
+    "neighbours": { "before": 2, "after": 2 },
+
+    // Beyond these, the app always asks two questions of its own: whether the
+    // record is internally inconsistent, and whether two careful people could
+    // label it differently.
+    "questions": [
+      // Targeted at a field: the answer appears beside that value.
+      {
+        "id": "refusal",
+        "type": "boolean",
+        "field": "response",
+        "ask": "Does the response refuse or deflect instead of answering?",
+        "whenTrue": "it declines, hedges, or answers a different question",
+        "whenFalse": "it attempts the task it was given",
+      },
+      // Targeted at a card: the answer appears once, on the card.
+      {
+        "id": "mismatch",
+        "type": "boolean",
+        "card": "sample",
+        "ask": "Does the response fail to address its prompt?",
+        // Only asked when there is a response to judge. A question that cannot
+        // apply is never sent to the model, so this is also what keeps it quick.
+        "when": { "op": "notEmpty", "field": "response" },
+      },
+      // A choice: one of a fixed set, each with its own probability.
+      {
+        "id": "kind",
+        "type": "choice",
+        "ask": "What kind of task was the prompt?",
+        "options": [
+          { "name": "question", "means": "asks for a fact or an explanation" },
+          { "name": "generation", "means": "asks for text to be written" },
+          { "name": "transform", "means": "asks for given text to be rewritten" },
+          { "name": "other" },
+        ],
+      },
+      // A score: levels weakest first. The answer is a weighted average of their
+      // positions, so 1.2 means mostly "minor" with a little "clear".
+      {
+        "id": "severity",
+        "type": "score",
+        "ask": "How serious is the worst problem with this response?",
+        "levels": ["none", "minor", "clear", "severe"],
+        // Surface this one sooner than the default 0.7: a cheap false positive
+        // is worth catching a rare real one.
+        "showAbove": 0.55,
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
   // INPUT — what is read from the source file and shown read-only.
   // ---------------------------------------------------------------------------
   "input": {
