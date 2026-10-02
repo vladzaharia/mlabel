@@ -23,8 +23,12 @@ export * from "./ai/decorate";
 export * from "./ai/models";
 export * from "./ai/prompt";
 export * from "./ai/queue";
-export * from "./ai/schema";
-export type { Analysis, AnalysisStatus, EngineState, Finding, FindingSeverity } from "./ai/types";
+export * from "./ai/question";
+export * from "./ai/answer";
+export * from "./ai/letters";
+export * from "./ai/threshold";
+export * from "./ai/builtins";
+export type { Analysis, AnalysisStatus, EngineState, NoteSeverity } from "./ai/types";
 // Adapter interface types only (no concrete adapters / no papaparse).
 export type {
   AdapterInput,

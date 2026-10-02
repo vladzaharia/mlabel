@@ -2,7 +2,7 @@ import type { CoercedValue } from "./values";
 import type { ValidationIssue } from "../adapters/interfaces";
 import type { AppConfig } from "../config/schema";
 import type { ConfigIssue } from "../config/loader";
-import type { Finding } from "../ai/types";
+import type { Answer } from "../ai/answer";
 
 /** A label-value map as it crosses IPC: `null` means "not yet provided". */
 export type LabelMap = Record<string, CoercedValue | null>;
@@ -265,10 +265,14 @@ export interface ModelCallEntry {
   prefix: string;
   /** The record under inspection, as the model saw it. */
   suffix: string;
-  /** Exactly what came back, before parsing. */
-  raw?: string;
-  /** What survived parsing. Empty for a clean record and for a failure alike. */
-  findings: Finding[];
+  /**
+   * One answer per question asked.
+   *
+   * There is no `raw` counterpart any more: nothing is generated, so there is no
+   * text that could have come back differently from what was parsed. The old
+   * field existed to explain the gap between the two.
+   */
+  answers: Answer[];
   /** Why it failed, when it did. */
   error?: string;
 }

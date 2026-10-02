@@ -9,7 +9,7 @@
  */
 
 import type { Answer } from "./answer";
-import type { FindingSeverity } from "./types";
+import type { NoteSeverity } from "./types";
 
 /**
  * Where "probably" starts.
@@ -42,5 +42,5 @@ export function isWorthShowing(answer: Answer, showAbove: number = DEFAULT_SHOW_
  * means *you must fix this*, and nothing a small model says earns that colour.
  * Borrowing it would make a guess look like a defect.
  */
-export const severityOf = (answer: Answer): FindingSeverity =>
+export const severityOf = (answer: Answer): NoteSeverity =>
   answer.type === "boolean" ? "warning" : "info";
