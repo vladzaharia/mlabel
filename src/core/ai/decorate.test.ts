@@ -67,7 +67,7 @@ describe("decorationsFromAnalysis", () => {
     expect(decorations.fields.get("age")).toHaveLength(1);
   });
 
-  it("places a card answer on its card as info, not warning", () => {
+  it("grades a card answer by how sure it is", () => {
     const decorations = decorationsFromAnalysis(
       analysis([
         { id: "intent", type: "choice", chosen: "a", p: new Map([["a", 0.9]]), confidence: 0.9 },
@@ -75,7 +75,8 @@ describe("decorationsFromAnalysis", () => {
       questions,
       cards,
     );
-    expect(decorations.cards.get("main")?.[0]?.style.tone).toBe("info");
+    // 0.9 confident is loud; the grading is what tells seven model notes apart.
+    expect(decorations.cards.get("main")?.[0]?.style.tone).toBe("warning");
     expect(decorations.cards.get("main")?.[0]?.style.note).toContain("a (90%)");
   });
 

@@ -72,7 +72,7 @@ export function decorationsFromAnalysis(
     if (question.field === undefined && question.card === undefined) continue;
     if (!isWorthShowing(answer, question)) continue;
 
-    const tone = severityOf(answer);
+    const tone = severityOf(answer, question);
     const note = noteFor(question, answer);
 
     if (question.card !== undefined) {

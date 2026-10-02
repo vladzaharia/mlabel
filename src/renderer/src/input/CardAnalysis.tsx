@@ -143,13 +143,13 @@ function Column({
               key={line.key}
               className={cn(
                 "flex items-start gap-1.5 text-xs",
-                // A guess yields its colour, as it does everywhere else: an
-                // authored rule is a statement, a finding is a suggestion.
-                line.fromModel
-                  ? "text-muted-foreground"
-                  : line.tone
-                    ? SEVERITY[line.tone].textClass
-                    : "text-muted-foreground",
+                // Both columns colour by tone now. A guess used to be flattened
+                // to grey here so it could not be mistaken for a rule, but the
+                // two live in separate columns under separate headings, and that
+                // separation says it better than a shade did — while leaving the
+                // colour free to say how strong the answer is, which is the only
+                // thing distinguishing seven model notes from one another.
+                line.tone ? SEVERITY[line.tone].textClass : "text-muted-foreground",
               )}
             >
               <span aria-hidden="true" className="mt-px shrink-0">

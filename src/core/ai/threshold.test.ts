@@ -10,6 +10,32 @@ const bool = (p: number): Answer => ({
   confidence: Math.max(p, 1 - p),
 });
 
+const choiceQ = (over: Partial<TargetedQuestion> = {}): TargetedQuestion =>
+  ({
+    id: "q",
+    type: "choice",
+    ask: "?",
+    options: [{ name: "refund" }, { name: "ordinary" }],
+    ...over,
+  }) as TargetedQuestion;
+
+const chose = (name: string, confidence: number): Answer => ({
+  id: "q",
+  type: "choice",
+  chosen: name,
+  p: new Map([[name, confidence]]),
+  confidence,
+});
+
+const scoreQ = (over: Partial<TargetedQuestion> = {}): TargetedQuestion =>
+  ({
+    id: "q",
+    type: "score",
+    ask: "?",
+    levels: ["none", "weak", "moderate", "strong"],
+    ...over,
+  }) as TargetedQuestion;
+
 describe("isWorthShowing", () => {
   it("hides a boolean that leans false", () => {
     expect(isWorthShowing(bool(0.1))).toBe(false);
@@ -36,32 +62,6 @@ describe("isWorthShowing", () => {
     expect(isWorthShowing(bool(0.5), at(0.4))).toBe(true);
     expect(isWorthShowing(bool(0.5), at(0.8))).toBe(false);
   });
-
-  const choiceQ = (over: Partial<TargetedQuestion> = {}): TargetedQuestion =>
-    ({
-      id: "q",
-      type: "choice",
-      ask: "?",
-      options: [{ name: "refund" }, { name: "ordinary" }],
-      ...over,
-    }) as TargetedQuestion;
-
-  const chose = (name: string, confidence: number): Answer => ({
-    id: "q",
-    type: "choice",
-    chosen: name,
-    p: new Map([[name, confidence]]),
-    confidence,
-  });
-
-  const scoreQ = (over: Partial<TargetedQuestion> = {}): TargetedQuestion =>
-    ({
-      id: "q",
-      type: "score",
-      ask: "?",
-      levels: ["none", "weak", "moderate", "strong"],
-      ...over,
-    }) as TargetedQuestion;
 
   it("measures a choice on how sure it is of what it chose", () => {
     expect(isWorthShowing(chose("refund", 0.5), choiceQ({ showAbove: 0.4 }))).toBe(true);
@@ -102,14 +102,34 @@ describe("isWorthShowing", () => {
 });
 
 describe("severityOf", () => {
-  it("calls a crossed boolean a warning", () => {
-    expect(severityOf(bool(0.95))).toBe("warning");
+  it("grades a boolean by how strongly it leans", () => {
+    // Seven answers in one column, all the same grey, tell a reviewer the model
+    // found seven equal things. It found one it is nearly sure of and several it
+    // is guessing at, and that difference is the whole point of a calibrated
+    // model.
+    expect(severityOf(bool(0.97))).toBe("warning");
+    expect(severityOf(bool(0.82))).toBe("info");
+    expect(severityOf(bool(0.72))).toBe("muted");
   });
 
-  it("calls everything else info", () => {
-    expect(severityOf({ id: "q", type: "score", score: 2, p: [0, 0, 1], confidence: 1 })).toBe(
-      "info",
-    );
+  it("grades a score by where it sits on its own scale, not by confidence", () => {
+    // "Unmistakable, 60% sure" is a louder finding than "weak signs, 99% sure";
+    // reading the second as louder would invert the scale the author wrote.
+    const q = scoreQ();
+    const at = (score: number, confidence: number): Answer => ({
+      id: "q",
+      type: "score",
+      score,
+      p: [],
+      confidence,
+    });
+    expect(severityOf(at(3, 0.6), q)).toBe("warning");
+    expect(severityOf(at(0.5, 0.99), q)).toBe("muted");
+  });
+
+  it("grades a choice by how sure it is", () => {
+    expect(severityOf(chose("refund", 0.95))).toBe("warning");
+    expect(severityOf(chose("refund", 0.6))).toBe("muted");
   });
 
   it("never reaches danger, whatever the model says", () => {
@@ -117,7 +137,8 @@ describe("severityOf", () => {
     // earns that colour; borrowing it would make a guess look like a defect.
     const tones = [
       severityOf(bool(1)),
-      severityOf({ id: "q", type: "score", score: 3, p: [0, 0, 0, 1], confidence: 1 }),
+      severityOf(chose("refund", 1)),
+      severityOf({ id: "q", type: "score", score: 3, p: [0, 0, 0, 1], confidence: 1 }, scoreQ()),
     ];
     expect(tones).not.toContain("danger");
   });

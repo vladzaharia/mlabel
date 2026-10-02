@@ -132,7 +132,7 @@ function Note({
   answer: Answer;
   question: TargetedQuestion;
 }): React.JSX.Element {
-  const tone = severityOf(answer);
+  const tone = severityOf(answer, question);
   return (
     <li className="flex items-start gap-1.5 text-xs">
       <span
