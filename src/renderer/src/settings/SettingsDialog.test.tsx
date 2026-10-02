@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { IpcApi, NetworkLogEntry, RecordView } from "@core";
+import { MODELS, type IpcApi, type NetworkLogEntry, type RecordView } from "@core";
 import { makeIpcApi } from "@test/fixtures/ipc";
 import { buildConfig } from "@test/fixtures/config";
 import { ShortcutProvider } from "../shortcuts/ShortcutProvider";
@@ -434,7 +434,11 @@ describe("SettingsDialog: anomaly detection", () => {
     await user.click(tab("Anomalies"));
     await user.click(screen.getByRole("switch", { name: "Look for anomalies" }));
 
-    expect(await screen.findByText("Qwen3.5 2B")).toBeInTheDocument();
-    expect(screen.getByText("Qwen3 1.7B")).toBeInTheDocument();
+    // Derived from the table rather than spelled out, so swapping a model is a
+    // one-line change in `models.ts` instead of a failing test somewhere else.
+    expect(await screen.findByText(MODELS[0]!.name)).toBeInTheDocument();
+    for (const spec of MODELS.slice(1)) {
+      expect(screen.getByText(spec.name)).toBeInTheDocument();
+    }
   });
 });
