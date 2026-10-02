@@ -552,3 +552,121 @@ describe("shortcut chords", () => {
     }
   });
 });
+
+describe("AppConfig.ai.questions", () => {
+  /** A config carrying exactly these questions, with one input field and one card. */
+  const withQuestions = (questions: unknown[]): string =>
+    tweak({ input: ["id"], inputCards: [{ id: "main", rows: [{ fields: ["id"] }] }] }, (c) => {
+      c["ai"] = { questions };
+    });
+
+  it("accepts a choice question targeting a real field", () => {
+    const result = loadConfig(
+      withQuestions([
+        {
+          id: "intent",
+          type: "choice",
+          field: "id",
+          ask: "What is this?",
+          options: [{ name: "a" }, { name: "b", means: "the other one" }],
+        },
+      ]),
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts a boolean, a score and a card-targeted question together", () => {
+    const result = loadConfig(
+      withQuestions([
+        { id: "odd", type: "boolean", ask: "Odd?", whenTrue: "yes it is", whenFalse: "no" },
+        { id: "heat", type: "score", ask: "How hot?", levels: ["cool", "warm", "hot"] },
+        { id: "pair", type: "boolean", card: "main", ask: "Do these agree?" },
+      ]),
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects a question whose id collides with one the app always asks", () => {
+    // Otherwise the built-in is silently shadowed: answers are matched back to
+    // questions by id, so the panel would show one question's answer under
+    // another's name and nothing would look wrong.
+    expect(all(withQuestions([{ id: "anomalous", type: "boolean", ask: "?" }]))).toContain(
+      "always asks",
+    );
+  });
+
+  it("rejects duplicate question ids", () => {
+    const text = withQuestions([
+      { id: "dup", type: "boolean", ask: "?" },
+      { id: "dup", type: "boolean", ask: "?" },
+    ]);
+    expect(all(text)).toContain('Duplicate question id "dup"');
+  });
+
+  it("rejects a question targeting a field that does not exist", () => {
+    expect(all(withQuestions([{ id: "q", type: "boolean", field: "nope", ask: "?" }]))).toContain(
+      'No input field named "nope"',
+    );
+  });
+
+  it("rejects a question targeting a card that does not exist", () => {
+    expect(all(withQuestions([{ id: "q", type: "boolean", card: "nope", ask: "?" }]))).toContain(
+      'No input card named "nope"',
+    );
+  });
+
+  it("rejects a question targeting both a field and a card", () => {
+    const text = withQuestions([{ id: "q", type: "boolean", field: "id", card: "main", ask: "?" }]);
+    expect(all(text)).toContain("field or a card");
+  });
+
+  it("rejects a choice with more than sixteen options", () => {
+    // Past sixteen the published calibration temperature no longer applies, and
+    // a miscalibrated answer is confidently wrong rather than honestly unsure.
+    const options = Array.from({ length: 17 }, (_, i) => ({ name: `o${i}` }));
+    expect(loadConfig(withQuestions([{ id: "q", type: "choice", ask: "?", options }])).ok).toBe(
+      false,
+    );
+  });
+
+  it("rejects a choice with fewer than two options", () => {
+    const text = withQuestions([
+      { id: "q", type: "choice", ask: "?", options: [{ name: "only" }] },
+    ]);
+    expect(loadConfig(text).ok).toBe(false);
+  });
+
+  it("rejects a score with more than ten levels", () => {
+    const levels = Array.from({ length: 11 }, (_, i) => `l${i}`);
+    expect(loadConfig(withQuestions([{ id: "q", type: "score", ask: "?", levels }])).ok).toBe(
+      false,
+    );
+  });
+
+  it("rejects a showAbove outside the open unit interval", () => {
+    for (const showAbove of [0, 1, -0.5, 2]) {
+      const text = withQuestions([{ id: "q", type: "boolean", ask: "?", showAbove }]);
+      expect(loadConfig(text).ok, String(showAbove)).toBe(false);
+    }
+  });
+
+  it("accepts a when condition in the same language display rules use", () => {
+    const text = withQuestions([
+      { id: "q", type: "boolean", ask: "?", when: { op: "notEmpty", field: "id" } },
+    ]);
+    expect(loadConfig(text).ok).toBe(true);
+  });
+
+  it("defaults the neighbour window to nothing", () => {
+    const result = loadConfig(MINIMAL);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.config.ai.neighbours).toEqual({ before: 0, after: 0 });
+  });
+
+  it("accepts a neighbour window and rejects an absurd one", () => {
+    const ok = tweak({}, (c) => (c["ai"] = { neighbours: { before: 2, after: 2 } }));
+    expect(loadConfig(ok).ok).toBe(true);
+    const silly = tweak({}, (c) => (c["ai"] = { neighbours: { before: 500, after: 0 } }));
+    expect(loadConfig(silly).ok).toBe(false);
+  });
+});

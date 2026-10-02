@@ -228,6 +228,9 @@ const PAGE_ORDER: [name: string, blurb: string][] = [
   ["TableView", "How an object renders as a table."],
   ["TableColumn", "One column of that table."],
   ["AiConfig", "Whether on-device anomaly detection is offered for this project."],
+  ["AiQuestion", "One question put to the on-device model about each record."],
+  ["ChoiceOption", "One answer a `choice` question may be given."],
+  ["AiNeighbours", "How many nearby records the model is shown for comparison."],
 ];
 
 const PAGES = new Set(PAGE_ORDER.map(([name]) => name));
