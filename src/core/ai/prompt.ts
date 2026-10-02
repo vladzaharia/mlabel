@@ -50,8 +50,27 @@ export interface RenderedRecord {
   current?: boolean;
 }
 
-/** Cap on a rendered value, so one enormous cell cannot crowd out the rest. */
+/** Cap on one rendered *scalar*, so a single enormous cell cannot crowd out the rest. */
 const MAX_VALUE = 240;
+
+/**
+ * Cap on one rendered field, scalar or structured.
+ *
+ * A list or a map is the whole subject of some questions — a ten-element
+ * neighbour list, an event timeline whose *second* timestamp is the point — so
+ * they get far more room than a scalar does. 3000 characters holds a realistic
+ * timeline whole and still leaves most of `MAX_SUFFIX_CHARS` for the rest of the
+ * record, even for a config with several large fields.
+ *
+ * This was 240 for everything when the model was asked for prose about one CSV
+ * row. Against a map it meant the model saw a fragment of the first entry and
+ * nothing else, so a question about elapsed time or a later event could not be
+ * answered at all — and answered anyway, confidently, from a fragment.
+ */
+const MAX_FIELD = 3000;
+
+/** Most entries of a list or map to show before saying how many were dropped. */
+const MAX_ENTRIES = 25;
 
 /**
  * Cap on the whole suffix, in characters.
@@ -66,11 +85,68 @@ const MAX_VALUE = 240;
  */
 export const MAX_SUFFIX_CHARS = 12_000;
 
-function render(value: CoercedValue | undefined): string {
+/** One scalar, capped. */
+function renderScalar(value: CoercedValue | undefined): string {
   if (value === null || value === undefined || value === "") return "(empty)";
   if (value instanceof Date) return value.toISOString();
   const text = typeof value === "object" ? JSON.stringify(value) : String(value);
   return text.length > MAX_VALUE ? `${text.slice(0, MAX_VALUE)}…` : text;
+}
+
+/**
+ * One entry of a list or a map, on a single line.
+ *
+ * An object entry becomes `key=value` pairs rather than JSON, because the braces
+ * and quotes are pure overhead to a small model and the field names are the part
+ * that carries meaning. Empty fields are dropped: a sparse extract leaves many
+ * blank, and twelve `=` signs with nothing after them bury the three that matter.
+ */
+function renderEntry(value: unknown): string {
+  if (value === null || value === undefined) return "(empty)";
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value !== "object") return String(value);
+  if (Array.isArray(value)) return value.map((item) => renderEntry(item)).join(", ");
+
+  return Object.entries(value)
+    .filter(([, field]) => field !== null && field !== undefined && field !== "")
+    .map(([key, field]) => `${key}=${renderEntry(field)}`)
+    .join(" ");
+}
+
+/**
+ * One field of the record.
+ *
+ * Lists and maps are rendered an entry per line, and truncated **by whole
+ * entries** with a count of what was dropped. Cutting one in half was the real
+ * damage in the old renderer: a half-written entry cannot be told apart from a
+ * complete one, so the model would read `is_hosting_provider` as absent when it
+ * had merely been sliced off, and say so with a calibrated-looking number.
+ */
+function render(value: CoercedValue | undefined): string {
+  if (value === null || value === undefined || value === "") return "(empty)";
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value !== "object") return renderScalar(value);
+
+  const entries: [string | null, unknown][] = Array.isArray(value)
+    ? value.map((item): [null, unknown] => [null, item])
+    : Object.entries(value);
+  if (entries.length === 0) return "(empty)";
+
+  const lines: string[] = [];
+  let used = 0;
+  let shown = 0;
+  for (const [key, entry] of entries.slice(0, MAX_ENTRIES)) {
+    const line = `  ${key === null ? "-" : `${key}:`} ${renderEntry(entry)}`;
+    if (used + line.length > MAX_FIELD) break;
+    lines.push(line);
+    used += line.length + 1;
+    shown++;
+  }
+
+  const dropped = entries.length - shown;
+  if (dropped > 0)
+    lines.push(`  … and ${String(dropped)} more ${dropped === 1 ? "entry" : "entries"}`);
+  return `\n${lines.join("\n")}`;
 }
 
 /**
@@ -105,6 +181,10 @@ function instructions(fields: readonly InputField[], context?: string): string {
     "- Answer only about the record under review. Nearby records are there to show you what",
     "  ordinary looks like in this file; they are never the subject of the question.",
     "- Judge only what is in front of you. You cannot look anything up.",
+    // Without this the model reads a trimmed timeline as a complete one and
+    // concludes "this account logged in four times" from four of forty.
+    "- A list or timeline ending in “… and N more” was shortened to fit. Treat it as a sample,",
+    "  not as the whole of it, and do not draw conclusions from how many entries you can see.",
     "- Answer with one of the letters offered, and nothing else.",
     "",
     "The columns in this file:",

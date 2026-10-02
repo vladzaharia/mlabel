@@ -167,3 +167,90 @@ describe("buildPrefix", () => {
     expect(buildPrefix(fields, "   ")).not.toContain("About this data");
   });
 });
+
+describe("rendering a structured value", () => {
+  const listFields = [{ name: "emails", type: "array" }] as unknown as InputField[];
+  const mapFields = [{ name: "events", type: "map" }] as unknown as InputField[];
+
+  const row = (fields: InputField[], values: Record<string, unknown>): string =>
+    buildSuffix(fields, [{ values: values as never, current: true }]);
+
+  it("gives a list one item per line rather than one JSON blob", () => {
+    // A small model reads a line per item; minified JSON of ten addresses is
+    // one 300-character token soup that used to be cut off mid-address.
+    const emails = ["a@x.com", "b@y.com", "c@z.com"];
+    const suffix = row(listFields, { emails });
+    expect(suffix).toContain("- a@x.com");
+    expect(suffix).toContain("- c@z.com");
+    expect(suffix).not.toContain('["a@x.com"');
+  });
+
+  it("keeps all ten neighbours of a realistic list", () => {
+    const emails = Array.from({ length: 10 }, (_, i) => `someperson${String(i)}@examplemail.com`);
+    const suffix = row(listFields, { emails });
+    for (const email of emails) expect(suffix).toContain(email);
+  });
+
+  it("gives a map one entry per line, keyed", () => {
+    const events = {
+      1: { event_type: "account_creation", country: "US" },
+      2: { event_type: "login", country: "DE" },
+    };
+    const suffix = row(mapFields, { events });
+    expect(suffix).toContain("account_creation");
+    expect(suffix).toContain("login");
+    // Both entries survive, and the second country is readable — the thing the
+    // old renderer made impossible to ask about.
+    expect(suffix).toContain("DE");
+  });
+
+  it("shows every event of a realistic timeline, with its timestamp and flags", () => {
+    const event = (i: number) => ({
+      timestamp: `2024-03-0${String(i)}T10:00:00Z`,
+      event_type: "login",
+      successful: true,
+      ip_address: "203.0.113.42",
+      country: "US",
+      asn_org: "Comcast Cable Communications LLC",
+      is_hosting_provider: false,
+      user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    });
+    const events = Object.fromEntries([1, 2, 3, 4, 5].map((i) => [i, event(i)]));
+    const suffix = row(mapFields, { events });
+
+    // Timing questions need at least two timestamps; proxy questions need the
+    // flags; cadence questions need all of them.
+    expect(suffix).toContain("2024-03-01T10:00:00Z");
+    expect(suffix).toContain("2024-03-05T10:00:00Z");
+    expect(suffix).toContain("is_hosting_provider");
+    expect(suffix).toContain("Mozilla/5.0");
+  });
+
+  it("drops whole later entries rather than cutting one in half", () => {
+    // A half-written entry is worse than a missing one: the model cannot tell
+    // "this flag is false" from "this flag was truncated away".
+    const fat = (i: number) => ({ id: i, blob: "x".repeat(400) });
+    const events = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [i, fat(i)]));
+    const suffix = row(mapFields, { events });
+    expect(suffix).toMatch(/more (entr|item)/i);
+    // Whatever survived is complete: no entry ends mid-key.
+    for (const line of suffix
+      .split("\n")
+      .filter((l) => l.includes('"blob"') || l.includes("blob:"))) {
+      expect(line).toMatch(/x{400}|more/);
+    }
+  });
+
+  it("still caps a single enormous scalar", () => {
+    const suffix = row([{ name: "note", type: "text" }] as unknown as InputField[], {
+      note: "z".repeat(5000),
+    });
+    expect(suffix).toContain("…");
+    expect(suffix.length).toBeLessThan(1000);
+  });
+
+  it("renders an empty list and an empty map as empty, not as brackets", () => {
+    expect(row(listFields, { emails: [] })).toContain("(empty)");
+    expect(row(mapFields, { events: {} })).toContain("(empty)");
+  });
+});
