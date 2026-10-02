@@ -11,51 +11,52 @@
  *
  * It speaks one request/response protocol over `process.parentPort` and holds no
  * state the parent cannot rebuild.
+ *
+ * **Nothing is generated here.** A decision model is asked a question whose
+ * answers are declared up front, and the answer is read from the probability
+ * distribution over single-letter labels at the next position. So there is no
+ * chat session, no chat wrapper, no grammar and no token cap — all of which
+ * existed to keep an open-ended text model on the rails.
  */
 
-import type { LlamaChatSession, LlamaContext, LlamaGrammar, LlamaModel } from "node-llama-cpp";
+import {
+  LETTERS,
+  MAX_LABELS,
+  lettersFor,
+  readAnswer,
+  renderQuestion,
+  type Answer,
+  type TargetedQuestion,
+} from "@core";
+import type {
+  ControlledEvaluateInputItem,
+  LlamaContext,
+  LlamaContextSequence,
+  LlamaModel,
+  Token,
+} from "node-llama-cpp";
 import type { WorkerRequest, WorkerResponse } from "./protocol";
+import { assertSingleTokenLabels, labelLogits } from "./readout";
 
 /**
- * Small on purpose.
+ * Matches the model's validated context.
  *
- * The KV cache is allocated up front from this, and a model's own default can be
- * enormous — Qwen3.5's native window is 262k tokens, which would want gigabytes
- * before a single record was read. One record plus its instructions fits here
- * many times over.
+ * JevK5 is validated to 8192 tokens, and the KV cache is allocated up front from
+ * this — a model's native window can be far larger and would want gigabytes
+ * before a single record was read. The prompt is budgeted in `prompt.ts` to stay
+ * well inside this, because overrunning it triggers a context shift that drops
+ * the *beginning* of the prompt — the instructions — and silently changes what
+ * was asked.
  */
-const CONTEXT_SIZE = 4096;
-
-/**
- * Generation cap for one record.
- *
- * The backstop against a model that starts repeating itself in `reasoning`,
- * which is the observed way a decode runs long. A decode that hits this cap
- * produces a *truncated* object rather than a malformed one, and that is
- * reported as a failure rather than parsed: a cut-off answer whose `findings`
- * list never opened is indistinguishable from a clean record, and "clean" is
- * the one wrong answer that costs a reviewer something.
- *
- * Worth knowing if you are tuning this: `node-llama-cpp` *does* honour
- * `maxLength` on a string, all the way through to the GBNF, so the free-text
- * fields could be bounded in the schema and the cap made unreachable. It is
- * not done here yet because the library warns that length bounds the prompt
- * does not also describe tend to produce hallucinated filler, and that
- * trade-off has not been measured against real models.
- */
-const MAX_TOKENS = 700;
+const CONTEXT_SIZE = 8192;
 
 interface Loaded {
   model: LlamaModel;
   context: LlamaContext;
-  session: LlamaChatSession;
-  /**
-   * Typed as the base `LlamaGrammar` rather than the generic
-   * `LlamaJsonSchemaGrammar<T>`: the schema is built at runtime from the loaded
-   * config, so there is no literal type for the generic to carry, and only the
-   * base interface is needed to hand it to `prompt`.
-   */
-  grammar: LlamaGrammar;
+  sequence: LlamaContextSequence;
+  /** Label letter to its single token id, checked at load. */
+  labelTokens: Map<string, Token>;
+  temperature: number;
 }
 
 let loaded: Loaded | null = null;
@@ -68,47 +69,44 @@ const send = (message: WorkerResponse): void => {
 const messageOf = (err: unknown): string =>
   err instanceof Error ? err.message : "Unknown inference error.";
 
-async function load(modelPath: string, schema: Record<string, unknown>): Promise<void> {
+async function load(modelPath: string, temperature: number): Promise<void> {
   const { getLlama } = await import("node-llama-cpp");
   const llama = await getLlama({ build: "never" });
   const model = await llama.loadModel({ modelPath });
   const context = await model.createContext({ contextSize: CONTEXT_SIZE });
-  const { LlamaChatSession, resolveChatWrapper } = await import("node-llama-cpp");
+  const sequence = context.getSequence();
 
-  /**
-   * A reasoning model must not open its thought channel here.
-   *
-   * Qwen's wrapper force-opens `<think>` at the start of a response, which is
-   * the right default for chat and catastrophic with a grammar: the constrained
-   * JSON is emitted *inside* the thought segment, `</think>` never arrives
-   * because the grammar completes first, and `responseText` comes back as the
-   * empty string. Every record fails, and it fails as "the model did not return
-   * JSON" — which points at the grammar, the one thing that was working.
-   *
-   * `modelInitiated` leaves the channel closed unless the model opens it itself,
-   * which under a JSON grammar it cannot. The `reasoning` field in the schema is
-   * where thinking is supposed to go, and it survives into the parsed output.
-   *
-   * Resolved from the model rather than constructed, so the chat template and
-   * the Qwen variation stay auto-detected; only this one setting is overridden,
-   * and it is simply ignored for a model that is not Qwen.
-   */
-  const chatWrapper = resolveChatWrapper(model, {
-    customWrapperSettings: { qwen: { thoughts: "modelInitiated" } },
-  });
-  const session = new LlamaChatSession({ contextSequence: context.getSequence(), chatWrapper });
+  // Checked once, here, rather than per question. A label that is not a single
+  // token scores whatever its first token happens to be and never throws, so
+  // every record would come back confidently wrong; this turns that into a
+  // startup failure a person can read.
+  const letters = LETTERS.slice(0, MAX_LABELS);
+  const ids = assertSingleTokenLabels(letters, (text) => model.tokenize(text, false));
+  // `Token` is a branded number, and `readout.ts` speaks plain numbers on purpose
+  // so it can be tested without loading a native runtime. This is the one place
+  // the two meet, so it is the one place the brand is reapplied.
+  const labelTokens = new Map<string, Token>(
+    letters.map((letter, i) => [letter, ids[i]! as unknown as Token]),
+  );
 
-  // Built once, reused for every record. Constrained decoding makes invalid
-  // tokens unsamplable, so malformed JSON stops being a failure mode at all.
-  const grammar = (await llama.createGrammarForJsonSchema(
-    schema as Parameters<typeof llama.createGrammarForJsonSchema>[0],
-  )) as unknown as LlamaGrammar;
-
-  loaded = { model, context, session, grammar };
+  loaded = { model, context, sequence, labelTokens, temperature };
   send({ type: "loaded" });
 }
 
-async function analyze(id: number, prefix: string, suffix: string): Promise<void> {
+/**
+ * Answer every question about one record.
+ *
+ * The state is encoded once; each question is then appended, read, and erased
+ * back to the state boundary. That is what makes a per-field question nearly
+ * free — N questions cost one encode of the record plus N short passes — and it
+ * is also why they must all share one state.
+ */
+async function ask(
+  id: number,
+  prefix: string,
+  suffix: string,
+  questions: readonly TargetedQuestion[],
+): Promise<void> {
   if (!loaded) {
     send({ type: "failed", id, error: "No model is loaded." });
     return;
@@ -117,18 +115,42 @@ async function analyze(id: number, prefix: string, suffix: string): Promise<void
   inFlight?.abort();
   const controller = new AbortController();
   inFlight = controller;
+  const { model, sequence, labelTokens, temperature } = loaded;
 
   try {
-    // The session is reset per record rather than accumulating a conversation:
-    // each record is an independent question, and a growing history would both
-    // drift and eventually overrun the context.
-    loaded.session.resetChatHistory();
-    const answer = await loaded.session.prompt(`${prefix}\n\n${suffix}`, {
-      grammar: loaded.grammar,
-      signal: controller.signal,
-      maxTokens: MAX_TOKENS,
-    });
-    if (!controller.signal.aborted) send({ type: "result", id, json: answer });
+    // Cleared per record rather than accumulated: each record is an independent
+    // question, and a growing history would both drift and overrun the context.
+    await sequence.clearHistory();
+
+    const state = model.tokenize(`${prefix}\n\n${suffix}\n\n`, true);
+    await sequence.evaluateWithoutGeneratingNewTokens(state);
+    const boundary = sequence.nextTokenIndex;
+
+    const answers: Answer[] = [];
+    for (const question of questions) {
+      if (controller.signal.aborted) return;
+
+      const tokens = model.tokenize(`${renderQuestion(question)}\n`, false);
+      if (tokens.length === 0) continue;
+
+      // Probabilities are asked for only at the final position: that is where the
+      // answer letter would go, and asking at every position would cost the whole
+      // vocabulary distribution per token for nothing.
+      const input: ControlledEvaluateInputItem[] = tokens.map((token, i) =>
+        i === tokens.length - 1 ? [token, { generateNext: { probabilities: true } }] : token,
+      );
+      const output = await sequence.controlledEvaluate(input);
+      const probabilities = output.at(-1)?.next?.probabilities ?? new Map<Token, number>();
+
+      const ids = lettersFor(question).map((letter) => labelTokens.get(letter) ?? -1);
+      answers.push(readAnswer(question, labelLogits(probabilities, ids), temperature));
+
+      // Back to the end of the state, so the next question sees the record and
+      // not the previous question.
+      await sequence.eraseContextTokenRanges([{ start: boundary, end: sequence.nextTokenIndex }]);
+    }
+
+    if (!controller.signal.aborted) send({ type: "answers", id, answers });
   } catch (err) {
     if (!controller.signal.aborted) send({ type: "failed", id, error: messageOf(err) });
   } finally {
@@ -140,12 +162,12 @@ process.parentPort.on("message", (event) => {
   const request = event.data as WorkerRequest;
   switch (request.type) {
     case "load":
-      void load(request.modelPath, request.schema).catch((err: unknown) => {
+      void load(request.modelPath, request.temperature).catch((err: unknown) => {
         send({ type: "load-failed", error: messageOf(err) });
       });
       return;
-    case "analyze":
-      void analyze(request.id, request.prefix, request.suffix);
+    case "ask":
+      void ask(request.id, request.prefix, request.suffix, request.questions);
       return;
     case "cancel":
       inFlight?.abort();

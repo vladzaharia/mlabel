@@ -1,3 +1,5 @@
+import type { Condition } from "../config";
+
 /**
  * What may be asked of a decision model, and where the answer belongs.
  *
@@ -51,6 +53,17 @@ export const QUESTION_TYPES = ["boolean", "choice", "score"] as const;
 export interface Target {
   field?: string;
   card?: string;
+  /**
+   * Only ask when this holds.
+   *
+   * The same condition language display rules use, rather than a second one. A
+   * question that cannot apply is never encoded, so this is also the cost lever.
+   *
+   * Imported as a type only — `config/schema.ts` imports `BUILT_IN_IDS` from the
+   * other direction, and `import type` is erased, so the cycle exists for the
+   * typechecker and never at runtime.
+   */
+  when?: Condition;
   /** Hide the answer unless the model is at least this sure. */
   showAbove?: number;
 }

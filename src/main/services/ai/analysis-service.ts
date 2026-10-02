@@ -1,17 +1,20 @@
 import { BrowserWindow } from "electron";
 import {
-  buildOutputJsonSchema,
+  BUILT_IN_QUESTIONS,
   buildPrefix,
   buildSuffix,
   cacheIsValid,
+  evaluateCondition,
   findModel,
-  parseModelOutput,
+  isWorthShowing,
   schedule,
+  windowAround,
   type Analysis,
   type AppConfig,
   type EngineState,
   type RecordView,
-  type Scopes,
+  type RenderedRecord,
+  type TargetedQuestion,
 } from "@core";
 import { IPC_EVENT } from "@core/ipc";
 import { InferenceEngine } from "./engine";
@@ -31,7 +34,14 @@ import { isModelPresent, modelPath } from "./model-store";
 interface Loaded {
   config: AppConfig;
   records: readonly RecordView[];
-  scopes: Scopes;
+  /**
+   * Every question this file could be asked, built once.
+   *
+   * Built-ins first, then the config's. Order matters only for display, but the
+   * loader has already refused a config whose question id collides with a
+   * built-in, so neither can displace the other.
+   */
+  questions: readonly TargetedQuestion[];
   prefix: string;
   modelId: string;
 }
@@ -73,7 +83,7 @@ export const cachedAnalyses = (): Analysis[] => [...cache.values()];
 /**
  * Point the service at a file.
  *
- * Clears the cache: findings are about one record in one file, and a stale one
+ * Clears the cache: an answer is about one record in one file, and a stale one
  * shown against a different row would be worse than none.
  */
 export function setInput(
@@ -89,14 +99,10 @@ export function setInput(
     current = null;
     return;
   }
-  const scopes: Scopes = {
-    fields: config.input.fields.map((f) => f.name),
-    cards: (config.input.cards ?? []).map((c) => c.name),
-  };
   current = {
     config,
     records,
-    scopes,
+    questions: [...BUILT_IN_QUESTIONS, ...(config.ai.questions ?? [])],
     prefix: buildPrefix(config.input.fields, config.ai.context),
     modelId,
   };
@@ -121,6 +127,31 @@ function publish(analysis: Analysis): void {
   cache.set(analysis.recordIndex, analysis);
   broadcast(IPC_EVENT.aiAnalysis, analysis);
 }
+
+/**
+ * The questions worth asking about this record.
+ *
+ * A `when` that does not hold means the question is never encoded at all, which
+ * is the cheapest kind of speed: the author has told us it cannot apply here.
+ */
+const questionsFor = (loaded: Loaded, record: RecordView): TargetedQuestion[] =>
+  loaded.questions.filter(
+    (question) =>
+      question.when === undefined || evaluateCondition(question.when, record.inputValues),
+  );
+
+/** The record under review and its neighbours, in file order. */
+const windowFor = (loaded: Loaded, target: number): RenderedRecord[] =>
+  windowAround(target, loaded.records.length, loaded.config.ai.neighbours).flatMap(
+    (i): RenderedRecord[] => {
+      const record = loaded.records[i];
+      // Only input values travel. A neighbour's label is deliberately withheld,
+      // so the model reads the data rather than agreeing with recent answers.
+      return record
+        ? [{ values: record.inputValues, ...(i === target ? { current: true } : {}) }]
+        : [];
+    },
+  );
 
 /**
  * Do whatever the current state says should happen next.
@@ -156,7 +187,9 @@ async function pump(): Promise<void> {
   }
   if (!engine.isLoaded) {
     setState({ kind: "loading", modelId: loaded.modelId });
-    engine.load(modelPath(spec), buildOutputJsonSchema(loaded.scopes));
+    // The temperature travels with the path: it is fitted for this exact file,
+    // and reading another file at it would be miscalibrated rather than slow.
+    engine.load(modelPath(spec), spec.decision.temperature);
     return;
   }
 
@@ -165,9 +198,11 @@ async function pump(): Promise<void> {
   if (!record) return;
 
   running = target;
-  publish({ recordIndex: target, status: "running", findings: [], modelId: loaded.modelId });
+  publish({ recordIndex: target, status: "running", answers: [], modelId: loaded.modelId });
 
-  const suffix = buildSuffix(loaded.config.input.fields, record.inputValues);
+  const questions = questionsFor(loaded, record);
+  const suffix = buildSuffix(loaded.config.input.fields, windowFor(loaded, target));
+
   // Logged before the decode rather than after, so a call that hangs or takes
   // the worker down with it still leaves a trace of what was asked. A call that
   // only appears once it succeeds is a log that cannot explain a failure.
@@ -177,36 +212,30 @@ async function pump(): Promise<void> {
     status: "running",
     prefix: loaded.prefix,
     suffix,
-    findings: [],
+    answers: [],
   });
 
   const startedAt = Date.now();
   try {
-    const json = await engine.analyze(loaded.prefix, suffix);
-    const parsed = parseModelOutput(json, loaded.scopes);
-    const status = parsed.ok ? (parsed.findings.length > 0 ? "findings" : "clean") : "failed";
+    const answers = await engine.ask(loaded.prefix, suffix, questions);
+    const byId = new Map(questions.map((question) => [question.id, question]));
+    // "Findings" means at least one answer crossed its own threshold. Nothing is
+    // inferred from the shape of a reply any more: every question gets an answer,
+    // so "clean" is a statement about the probabilities rather than a guess about
+    // what a truncated response might have meant.
+    const notable = answers.some((answer) =>
+      isWorthShowing(answer, byId.get(answer.id)?.showAbove),
+    );
+    const status = notable ? "findings" : "clean";
     const elapsedMs = Date.now() - startedAt;
-    publish({
-      recordIndex: target,
-      status,
-      findings: parsed.findings,
-      modelId: loaded.modelId,
-      elapsedMs,
-      ...(parsed.error === undefined ? {} : { error: parsed.error }),
-    });
-    modelLog.update(logged.id, {
-      status,
-      elapsedMs,
-      raw: json,
-      findings: parsed.findings,
-      ...(parsed.error === undefined ? {} : { error: parsed.error }),
-    });
+    publish({ recordIndex: target, status, answers, modelId: loaded.modelId, elapsedMs });
+    modelLog.update(logged.id, { status, elapsedMs, answers });
   } catch (err) {
     const error = err instanceof Error ? err.message : "Analysis failed.";
     publish({
       recordIndex: target,
       status: "failed",
-      findings: [],
+      answers: [],
       modelId: loaded.modelId,
       error,
     });

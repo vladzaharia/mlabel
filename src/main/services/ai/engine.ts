@@ -1,13 +1,14 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { utilityProcess, type UtilityProcess } from "electron";
+import type { Answer, TargetedQuestion } from "@core";
 import type { WorkerRequest, WorkerResponse } from "./protocol";
 
 /**
  * The inference worker's lifecycle, seen from the main process.
  *
  * Holds a forked `utilityProcess`, correlates replies with requests, and lets it
- * go once nobody is using it. Knows nothing about records, queues or findings —
+ * go once nobody is using it. Knows nothing about records, queues or questions —
  * `analysis-service.ts` owns all of that. This is the part that has to be
  * careful with a child process, and nothing else.
  */
@@ -35,7 +36,7 @@ export interface EngineEvents {
 }
 
 interface Pending {
-  resolve: (json: string) => void;
+  resolve: (answers: Answer[]) => void;
   reject: (error: Error) => void;
   timer: NodeJS.Timeout;
 }
@@ -63,7 +64,7 @@ export class InferenceEngine {
    * Idempotent for a model already loaded, so callers can ask freely rather than
    * tracking state the engine already has.
    */
-  load(modelPath: string, schema: Record<string, unknown>): void {
+  load(modelPath: string, temperature: number): void {
     if (this.#loadedPath === modelPath && this.#child) {
       this.#touch();
       return;
@@ -87,17 +88,29 @@ export class InferenceEngine {
       if (wasRunning) this.events.onExit();
     });
 
-    this.#post({ type: "load", modelPath, schema });
+    this.#post({ type: "load", modelPath, temperature });
     this.#touch();
   }
 
-  /** Analyse one record. Rejects on timeout, worker death, or a model error. */
-  async analyze(prefix: string, suffix: string): Promise<string> {
+  /**
+   * Ask every question about one record.
+   *
+   * One call rather than one per question: the worker encodes the state once and
+   * appends each question to it, so splitting them would re-encode the record
+   * every time.
+   *
+   * Rejects on timeout, worker death, or a model error.
+   */
+  async ask(
+    prefix: string,
+    suffix: string,
+    questions: readonly TargetedQuestion[],
+  ): Promise<Answer[]> {
     if (!this.#child) throw new Error("The inference process is not running.");
     const id = this.#nextId++;
     this.#touch();
 
-    return new Promise<string>((resolve, reject) => {
+    return new Promise<Answer[]>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.#pending.delete(id);
         // A decode this slow is wedged rather than slow, and the worker is the
@@ -106,7 +119,7 @@ export class InferenceEngine {
         reject(new Error("The model took too long and was stopped."));
       }, ANALYZE_TIMEOUT_MS);
       this.#pending.set(id, { resolve, reject, timer });
-      this.#post({ type: "analyze", id, prefix, suffix });
+      this.#post({ type: "ask", id, prefix, suffix, questions });
     });
   }
 
@@ -139,9 +152,9 @@ export class InferenceEngine {
         this.#loadedPath = null;
         this.events.onLoadFailed(message.error);
         return;
-      case "result": {
+      case "answers": {
         const pending = this.#take(message.id);
-        pending?.resolve(message.json);
+        pending?.resolve(message.answers);
         this.#touch();
         return;
       }
