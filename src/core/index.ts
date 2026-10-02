@@ -27,6 +27,7 @@ export * from "./ai/question";
 export * from "./ai/answer";
 export * from "./ai/letters";
 export * from "./ai/threshold";
+export * from "./ai/note";
 export * from "./ai/builtins";
 export type { Analysis, AnalysisStatus, EngineState, NoteSeverity } from "./ai/types";
 // Adapter interface types only (no concrete adapters / no papaparse).

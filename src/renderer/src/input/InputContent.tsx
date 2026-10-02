@@ -53,7 +53,7 @@ export function InputContent(): React.JSX.Element {
   // author had already styled.
   const decorations = mergeDecorations(
     evaluateDecorations(config.input.rules, record.inputValues),
-    decorationsFromAnalysis(analysis, questionsOf(config)),
+    decorationsFromAnalysis(analysis, questionsOf(config), cards),
   );
   // Already computed in main and sent over IPC — it just never had a consumer,
   // so a cell that failed to parse looked exactly like an empty one.

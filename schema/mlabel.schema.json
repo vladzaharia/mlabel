@@ -18,10 +18,10 @@
       "$ref": "#/$defs/AiConfig"
     },
     "input": {
-      "$ref": "#/$defs/__schema61"
+      "$ref": "#/$defs/__schema65"
     },
     "output": {
-      "$ref": "#/$defs/__schema129"
+      "$ref": "#/$defs/__schema133"
     }
   },
   "required": ["version", "input", "output"],
@@ -220,17 +220,20 @@
         "ask": {
           "$ref": "#/$defs/__schema20"
         },
-        "field": {
+        "note": {
           "$ref": "#/$defs/__schema21"
         },
-        "card": {
-          "$ref": "#/$defs/__schema22"
-        },
-        "when": {
+        "field": {
           "$ref": "#/$defs/__schema23"
         },
+        "card": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "when": {
+          "$ref": "#/$defs/__schema25"
+        },
         "showAbove": {
-          "$ref": "#/$defs/__schema51"
+          "$ref": "#/$defs/__schema53"
         }
       },
       "required": ["type", "id", "ask"],
@@ -258,7 +261,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema55"
+            "$ref": "#/$defs/__schema57"
           }
         },
         {
@@ -271,7 +274,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema59"
+            "$ref": "#/$defs/__schema62"
           }
         }
       ]
@@ -290,25 +293,28 @@
         "ask": {
           "$ref": "#/$defs/__schema20"
         },
-        "field": {
+        "note": {
           "$ref": "#/$defs/__schema21"
         },
-        "card": {
-          "$ref": "#/$defs/__schema22"
-        },
-        "when": {
+        "field": {
           "$ref": "#/$defs/__schema23"
         },
+        "card": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "when": {
+          "$ref": "#/$defs/__schema25"
+        },
         "showAbove": {
-          "$ref": "#/$defs/__schema51"
+          "$ref": "#/$defs/__schema53"
         },
         "whenTrue": {
           "description": "What a yes would mean, when the question alone leaves it open.",
-          "$ref": "#/$defs/__schema53"
+          "$ref": "#/$defs/__schema55"
         },
         "whenFalse": {
           "description": "What a no would mean.",
-          "$ref": "#/$defs/__schema54"
+          "$ref": "#/$defs/__schema56"
         }
       },
       "required": ["type", "id", "ask"],
@@ -322,17 +328,26 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 300,
-      "description": "The question, in your own words. Asked of one record at a time, alongside any nearby records you have asked for."
+      "description": "The question, in your own words, as the model is asked it. Be explicit and unambiguous — it has no context beyond the record and your `ai.context`."
     },
     "__schema21": {
+      "description": "The short line a labeler reads when this answer is surfaced — a statement of what was found, like a display rule's note: “Domain looks minted for signups.” Keep it under a handful of words. Without it the full question is shown instead, which reads as an interrogation with a number stapled to it rather than a finding. For a `choice` or a `score` it is used as a prefix, so write it as a label: “Mail domain”, “Activated”.",
+      "$ref": "#/$defs/__schema22"
+    },
+    "__schema22": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "__schema23": {
       "description": "An input field this question is about. The answer appears beside that value. Omit both `field` and `card` to ask about the whole record.",
       "$ref": "#/$defs/__schema6"
     },
-    "__schema22": {
+    "__schema24": {
       "description": "An input card this question is about. The answer appears once on the card rather than against any single value.",
       "$ref": "#/$defs/__schema6"
     },
-    "__schema23": {
+    "__schema25": {
       "description": "Only ask when this holds — the same condition language display rules use. A question that cannot apply is never sent to the model, so this is also the lever for keeping analysis fast.",
       "$ref": "#/$defs/Condition"
     },
@@ -454,7 +469,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema24"
+            "$ref": "#/$defs/__schema26"
           }
         },
         {
@@ -467,7 +482,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema30"
+            "$ref": "#/$defs/__schema32"
           }
         },
         {
@@ -480,7 +495,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema31"
+            "$ref": "#/$defs/__schema33"
           }
         },
         {
@@ -493,7 +508,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema32"
+            "$ref": "#/$defs/__schema34"
           }
         },
         {
@@ -506,7 +521,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema33"
+            "$ref": "#/$defs/__schema35"
           }
         },
         {
@@ -519,7 +534,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema34"
+            "$ref": "#/$defs/__schema36"
           }
         },
         {
@@ -532,7 +547,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema35"
+            "$ref": "#/$defs/__schema37"
           }
         },
         {
@@ -545,7 +560,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema36"
+            "$ref": "#/$defs/__schema38"
           }
         },
         {
@@ -558,7 +573,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema37"
+            "$ref": "#/$defs/__schema39"
           }
         },
         {
@@ -571,7 +586,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema38"
+            "$ref": "#/$defs/__schema40"
           }
         },
         {
@@ -584,7 +599,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema39"
+            "$ref": "#/$defs/__schema41"
           }
         },
         {
@@ -597,7 +612,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema40"
+            "$ref": "#/$defs/__schema42"
           }
         },
         {
@@ -610,7 +625,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema41"
+            "$ref": "#/$defs/__schema43"
           }
         },
         {
@@ -623,7 +638,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema42"
+            "$ref": "#/$defs/__schema44"
           }
         },
         {
@@ -636,7 +651,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema44"
+            "$ref": "#/$defs/__schema46"
           }
         },
         {
@@ -649,7 +664,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema45"
+            "$ref": "#/$defs/__schema47"
           }
         },
         {
@@ -662,7 +677,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema46"
+            "$ref": "#/$defs/__schema48"
           }
         },
         {
@@ -675,7 +690,7 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema48"
+            "$ref": "#/$defs/__schema50"
           }
         },
         {
@@ -688,12 +703,12 @@
             "required": ["op"]
           },
           "then": {
-            "$ref": "#/$defs/__schema50"
+            "$ref": "#/$defs/__schema52"
           }
         }
       ]
     },
-    "__schema24": {
+    "__schema26": {
       "type": "object",
       "properties": {
         "op": {
@@ -702,11 +717,11 @@
           "description": "True when the values are equal."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "value": {
           "description": "The literal to compare against. Give this or `otherField`, not both.",
-          "$ref": "#/$defs/__schema29"
+          "$ref": "#/$defs/__schema31"
         },
         "otherField": {
           "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
@@ -716,33 +731,33 @@
       "required": ["op", "field"],
       "additionalProperties": false
     },
-    "__schema25": {
+    "__schema27": {
       "description": "The input field whose value is tested.",
       "$ref": "#/$defs/__schema6"
     },
-    "__schema26": {
+    "__schema28": {
       "type": "string"
     },
-    "__schema27": {
+    "__schema29": {
       "type": "number"
     },
-    "__schema28": {
+    "__schema30": {
       "type": "boolean"
     },
-    "__schema29": {
+    "__schema31": {
       "anyOf": [
         {
-          "$ref": "#/$defs/__schema26"
-        },
-        {
-          "$ref": "#/$defs/__schema27"
-        },
-        {
           "$ref": "#/$defs/__schema28"
+        },
+        {
+          "$ref": "#/$defs/__schema29"
+        },
+        {
+          "$ref": "#/$defs/__schema30"
         }
       ]
     },
-    "__schema30": {
+    "__schema32": {
       "type": "object",
       "properties": {
         "op": {
@@ -751,57 +766,11 @@
           "description": "True when the values differ."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "value": {
           "description": "The literal to compare against. Give this or `otherField`, not both.",
-          "$ref": "#/$defs/__schema29"
-        },
-        "otherField": {
-          "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
-          "$ref": "#/$defs/__schema6"
-        }
-      },
-      "required": ["op", "field"],
-      "additionalProperties": false
-    },
-    "__schema31": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "gt",
-          "description": "True when the field is greater than the comparand."
-        },
-        "field": {
-          "$ref": "#/$defs/__schema25"
-        },
-        "value": {
-          "type": "number",
-          "description": "The literal to compare against. Give this or `otherField`, not both."
-        },
-        "otherField": {
-          "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
-          "$ref": "#/$defs/__schema6"
-        }
-      },
-      "required": ["op", "field"],
-      "additionalProperties": false
-    },
-    "__schema32": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "const": "gte",
-          "description": "True when the field is greater than or equal to the comparand."
-        },
-        "field": {
-          "$ref": "#/$defs/__schema25"
-        },
-        "value": {
-          "type": "number",
-          "description": "The literal to compare against. Give this or `otherField`, not both."
+          "$ref": "#/$defs/__schema31"
         },
         "otherField": {
           "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
@@ -816,11 +785,11 @@
       "properties": {
         "op": {
           "type": "string",
-          "const": "lt",
-          "description": "True when the field is less than the comparand."
+          "const": "gt",
+          "description": "True when the field is greater than the comparand."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "value": {
           "type": "number",
@@ -839,11 +808,11 @@
       "properties": {
         "op": {
           "type": "string",
-          "const": "lte",
-          "description": "True when the field is less than or equal to the comparand."
+          "const": "gte",
+          "description": "True when the field is greater than or equal to the comparand."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "value": {
           "type": "number",
@@ -862,17 +831,63 @@
       "properties": {
         "op": {
           "type": "string",
+          "const": "lt",
+          "description": "True when the field is less than the comparand."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema27"
+        },
+        "value": {
+          "type": "number",
+          "description": "The literal to compare against. Give this or `otherField`, not both."
+        },
+        "otherField": {
+          "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema36": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "lte",
+          "description": "True when the field is less than or equal to the comparand."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema27"
+        },
+        "value": {
+          "type": "number",
+          "description": "The literal to compare against. Give this or `otherField`, not both."
+        },
+        "otherField": {
+          "description": "Another input field to compare against, for rules that relate two columns. Give this or `value`, not both.",
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": ["op", "field"],
+      "additionalProperties": false
+    },
+    "__schema37": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
           "const": "in",
           "description": "True when the field matches one of the listed values."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "value": {
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema29"
+            "$ref": "#/$defs/__schema31"
           },
           "description": "The values to match against."
         }
@@ -880,7 +895,7 @@
       "required": ["op", "field", "value"],
       "additionalProperties": false
     },
-    "__schema36": {
+    "__schema38": {
       "type": "object",
       "properties": {
         "op": {
@@ -889,13 +904,13 @@
           "description": "True when the field matches none of the listed values."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "value": {
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema29"
+            "$ref": "#/$defs/__schema31"
           },
           "description": "The values to match against."
         }
@@ -903,7 +918,7 @@
       "required": ["op", "field", "value"],
       "additionalProperties": false
     },
-    "__schema37": {
+    "__schema39": {
       "type": "object",
       "properties": {
         "op": {
@@ -912,7 +927,7 @@
           "description": "True when the field matches the regular expression."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "pattern": {
           "type": "string",
@@ -923,7 +938,7 @@
       "required": ["op", "field", "pattern"],
       "additionalProperties": false
     },
-    "__schema38": {
+    "__schema40": {
       "type": "object",
       "properties": {
         "op": {
@@ -932,13 +947,13 @@
           "description": "True when the field is null, an empty string, or an empty list."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         }
       },
       "required": ["op", "field"],
       "additionalProperties": false
     },
-    "__schema39": {
+    "__schema41": {
       "type": "object",
       "properties": {
         "op": {
@@ -947,13 +962,13 @@
           "description": "True when the field holds anything at all."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         }
       },
       "required": ["op", "field"],
       "additionalProperties": false
     },
-    "__schema40": {
+    "__schema42": {
       "type": "object",
       "properties": {
         "op": {
@@ -962,7 +977,7 @@
           "description": "True when the field is more than `factor` times the comparand — a difference in magnitude rather than merely being larger. Defined only over non-negative magnitudes: a negative value, or a comparand of zero or less, does not fire."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "otherField": {
           "description": "The input field this one is measured against. Required — this operator has no literal form.",
@@ -977,7 +992,7 @@
       "required": ["op", "field", "otherField", "factor"],
       "additionalProperties": false
     },
-    "__schema41": {
+    "__schema43": {
       "type": "object",
       "properties": {
         "op": {
@@ -986,7 +1001,7 @@
           "description": "True when the field is less than the comparand divided by `factor`. Defined only over non-negative magnitudes."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "otherField": {
           "description": "The input field this one is measured against. Required — this operator has no literal form.",
@@ -1001,7 +1016,7 @@
       "required": ["op", "field", "otherField", "factor"],
       "additionalProperties": false
     },
-    "__schema42": {
+    "__schema44": {
       "type": "object",
       "properties": {
         "op": {
@@ -1010,7 +1025,7 @@
           "description": "True when both values carry an email domain and the domains match, compared without regard to case. A value with no `@` has no domain, so it never matches."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "otherField": {
           "description": "The input field this one is measured against. Required — this operator has no literal form.",
@@ -1018,20 +1033,20 @@
         },
         "ignore": {
           "description": "Domains that never count as shared, compared without regard to case — the large free providers, typically. Two accounts both at `gmail.com` have nothing in common worth colouring.",
-          "$ref": "#/$defs/__schema43"
+          "$ref": "#/$defs/__schema45"
         }
       },
       "required": ["op", "field", "otherField"],
       "additionalProperties": false
     },
-    "__schema43": {
+    "__schema45": {
       "type": "array",
       "items": {
         "type": "string",
         "minLength": 1
       }
     },
-    "__schema44": {
+    "__schema46": {
       "type": "object",
       "properties": {
         "op": {
@@ -1040,7 +1055,7 @@
           "description": "True when both values share a local part — the text before the `@`, or the whole value when there is no `@` — compared without regard to case. That fallback is what lets a bare username be tested against a sender address."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "otherField": {
           "description": "The input field this one is measured against. Required — this operator has no literal form.",
@@ -1050,7 +1065,7 @@
       "required": ["op", "field", "otherField"],
       "additionalProperties": false
     },
-    "__schema45": {
+    "__schema47": {
       "type": "object",
       "properties": {
         "op": {
@@ -1059,7 +1074,7 @@
           "description": "True when both values begin with the same `length` characters, compared without regard to case. For spotting identifiers minted together — a run of handles all starting `Bvd` — where what matters is that two values resemble each other, not what either looks like alone. A value shorter than `length` never matches."
         },
         "field": {
-          "$ref": "#/$defs/__schema25"
+          "$ref": "#/$defs/__schema27"
         },
         "otherField": {
           "description": "The input field this one is measured against. Required — this operator has no literal form.",
@@ -1075,7 +1090,7 @@
       "required": ["op", "field", "otherField", "length"],
       "additionalProperties": false
     },
-    "__schema46": {
+    "__schema48": {
       "type": "object",
       "properties": {
         "op": {
@@ -1087,7 +1102,7 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema47"
+            "$ref": "#/$defs/__schema49"
           },
           "description": "Every one of these must hold."
         }
@@ -1095,10 +1110,10 @@
       "required": ["op", "conditions"],
       "additionalProperties": false
     },
-    "__schema47": {
+    "__schema49": {
       "$ref": "#/$defs/Condition"
     },
-    "__schema48": {
+    "__schema50": {
       "type": "object",
       "properties": {
         "op": {
@@ -1110,7 +1125,7 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema49"
+            "$ref": "#/$defs/__schema51"
           },
           "description": "At least one of these must hold."
         }
@@ -1118,10 +1133,10 @@
       "required": ["op", "conditions"],
       "additionalProperties": false
     },
-    "__schema49": {
+    "__schema51": {
       "$ref": "#/$defs/Condition"
     },
-    "__schema50": {
+    "__schema52": {
       "type": "object",
       "properties": {
         "op": {
@@ -1137,24 +1152,24 @@
       "required": ["op", "condition"],
       "additionalProperties": false
     },
-    "__schema51": {
+    "__schema53": {
       "description": "Hide the answer unless the model is at least this sure, between 0 and 1. Defaults to 0.7. Lower it where a cheap false positive is worth catching a rare real one; raise it where a wrong suggestion costs attention you would rather spend elsewhere.",
-      "$ref": "#/$defs/__schema52"
+      "$ref": "#/$defs/__schema54"
     },
-    "__schema52": {
+    "__schema54": {
       "type": "number",
       "exclusiveMinimum": 0,
       "exclusiveMaximum": 1
     },
-    "__schema53": {
-      "type": "string",
-      "maxLength": 160
-    },
-    "__schema54": {
-      "type": "string",
-      "maxLength": 160
-    },
     "__schema55": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "__schema56": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "__schema57": {
       "type": "object",
       "properties": {
         "type": {
@@ -1168,17 +1183,20 @@
         "ask": {
           "$ref": "#/$defs/__schema20"
         },
-        "field": {
+        "note": {
           "$ref": "#/$defs/__schema21"
         },
-        "card": {
-          "$ref": "#/$defs/__schema22"
-        },
-        "when": {
+        "field": {
           "$ref": "#/$defs/__schema23"
         },
+        "card": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "when": {
+          "$ref": "#/$defs/__schema25"
+        },
         "showAbove": {
-          "$ref": "#/$defs/__schema51"
+          "$ref": "#/$defs/__schema53"
         },
         "options": {
           "minItems": 2,
@@ -1188,6 +1206,10 @@
             "$ref": "#/$defs/ChoiceOption"
           },
           "description": "The answers this question may be given. Between 2 and 16."
+        },
+        "notable": {
+          "description": "Which options are worth telling the labeler about, by name. Omit to surface every one. Most choices have an unremarkable answer — “an ordinary consumer mailbox” — and marking a record with it spends attention to say nothing is wrong. In a labeling tool a reassuring mark anchors as hard as an alarming one, so the quiet answers are usually best left unsaid. Every answer is still recorded in Recent runs.",
+          "$ref": "#/$defs/__schema61"
         }
       },
       "required": ["type", "id", "ask", "options"],
@@ -1197,10 +1219,10 @@
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema56"
+          "$ref": "#/$defs/__schema58"
         },
         "means": {
-          "$ref": "#/$defs/__schema57"
+          "$ref": "#/$defs/__schema59"
         }
       },
       "required": ["name"],
@@ -1208,19 +1230,26 @@
       "title": "Choice option",
       "description": "One of the answers a `choice` question may be given."
     },
-    "__schema56": {
+    "__schema58": {
       "description": "Identifies this option, and is what the answer reports. Unique per question.",
       "$ref": "#/$defs/__schema6"
     },
-    "__schema57": {
+    "__schema59": {
       "description": "What this option means, when the name alone is not enough to tell it from its neighbours. Shown to the model, never to the labeler.",
-      "$ref": "#/$defs/__schema58"
+      "$ref": "#/$defs/__schema60"
     },
-    "__schema58": {
+    "__schema60": {
       "type": "string",
       "maxLength": 120
     },
-    "__schema59": {
+    "__schema61": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema6"
+      }
+    },
+    "__schema62": {
       "type": "object",
       "properties": {
         "type": {
@@ -1234,78 +1263,90 @@
         "ask": {
           "$ref": "#/$defs/__schema20"
         },
-        "field": {
+        "note": {
           "$ref": "#/$defs/__schema21"
         },
-        "card": {
-          "$ref": "#/$defs/__schema22"
-        },
-        "when": {
+        "field": {
           "$ref": "#/$defs/__schema23"
         },
+        "card": {
+          "$ref": "#/$defs/__schema24"
+        },
+        "when": {
+          "$ref": "#/$defs/__schema25"
+        },
         "showAbove": {
-          "$ref": "#/$defs/__schema51"
+          "$ref": "#/$defs/__schema53"
         },
         "levels": {
           "minItems": 2,
           "maxItems": 10,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema60"
+            "$ref": "#/$defs/__schema63"
           },
           "description": "The levels, weakest first. The answer is a weighted average of their positions, so 1.2 means mostly the second level with a little of the third — which is why the order matters and why scores can be compared across records."
+        },
+        "notableFrom": {
+          "description": "Only surface the answer once it reaches this level, counting from 0. A scale almost always has a quiet end, and “nothing unusual” is both the commonest answer and the one nobody needs drawn to their attention. Omit to surface every answer.",
+          "$ref": "#/$defs/__schema64"
         }
       },
       "required": ["type", "id", "ask", "levels"],
       "additionalProperties": false
     },
-    "__schema60": {
+    "__schema63": {
       "type": "string",
       "minLength": 1,
       "maxLength": 80
     },
-    "__schema61": {
+    "__schema64": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "__schema65": {
       "type": "object",
       "properties": {
         "adapterId": {
-          "$ref": "#/$defs/__schema62"
-        },
-        "adapterConfig": {
-          "$ref": "#/$defs/__schema64"
-        },
-        "fields": {
           "$ref": "#/$defs/__schema66"
         },
+        "adapterConfig": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "fields": {
+          "$ref": "#/$defs/__schema70"
+        },
         "rules": {
-          "$ref": "#/$defs/__schema115"
+          "$ref": "#/$defs/__schema119"
         },
         "cards": {
-          "$ref": "#/$defs/__schema122"
+          "$ref": "#/$defs/__schema126"
         }
       },
       "required": ["fields"],
       "additionalProperties": false,
       "description": "What is read from the source file and shown read-only."
     },
-    "__schema62": {
+    "__schema66": {
       "default": "csv",
       "description": "Which format adapter handles this side. `csv` is the only one built in; it also reads `.tsv`.",
-      "$ref": "#/$defs/__schema63"
+      "$ref": "#/$defs/__schema67"
     },
-    "__schema63": {
+    "__schema67": {
       "type": "string",
       "minLength": 1
     },
-    "__schema64": {
+    "__schema68": {
       "type": "object",
       "properties": {},
       "additionalProperties": {
-        "$ref": "#/$defs/__schema65"
+        "$ref": "#/$defs/__schema69"
       },
       "description": "Opaque, adapter-owned options — for CSV, `delimiter` and `quoteChar` on input, `delimiter` and `newline` on output. The core never reads this, so it is the one object in the config where unknown keys are allowed."
     },
-    "__schema65": {},
-    "__schema66": {
+    "__schema69": {},
+    "__schema70": {
       "minItems": 1,
       "type": "array",
       "items": {
@@ -1369,7 +1410,7 @@
           ]
         },
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -1378,7 +1419,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema69"
+              "$ref": "#/$defs/__schema73"
             }
           ]
         }
@@ -1395,7 +1436,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema67"
+            "$ref": "#/$defs/__schema71"
           }
         },
         {
@@ -1408,7 +1449,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema75"
+            "$ref": "#/$defs/__schema79"
           }
         },
         {
@@ -1421,7 +1462,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema76"
+            "$ref": "#/$defs/__schema80"
           }
         },
         {
@@ -1434,7 +1475,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema77"
+            "$ref": "#/$defs/__schema81"
           }
         },
         {
@@ -1447,7 +1488,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema78"
+            "$ref": "#/$defs/__schema82"
           }
         },
         {
@@ -1460,7 +1501,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema79"
+            "$ref": "#/$defs/__schema83"
           }
         },
         {
@@ -1473,7 +1514,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema86"
+            "$ref": "#/$defs/__schema90"
           }
         },
         {
@@ -1486,7 +1527,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema113"
+            "$ref": "#/$defs/__schema117"
           }
         },
         {
@@ -1499,16 +1540,16 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema114"
+            "$ref": "#/$defs/__schema118"
           }
         }
       ]
     },
-    "__schema67": {
+    "__schema71": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -1517,7 +1558,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema69"
+              "$ref": "#/$defs/__schema73"
             }
           ]
         },
@@ -1546,63 +1587,63 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema68": {
+    "__schema72": {
       "description": "The column name in the data file. Letters, digits, `_` and `-`, with optional inner spaces; `.` `[` `]` `*` and edge whitespace are excluded.",
       "$ref": "#/$defs/__schema6"
     },
-    "__schema69": {
+    "__schema73": {
       "$ref": "#/$defs/FieldDisplay"
     },
     "FieldDisplay": {
       "type": "object",
       "properties": {
         "title": {
-          "$ref": "#/$defs/__schema70"
+          "$ref": "#/$defs/__schema74"
         },
         "description": {
-          "$ref": "#/$defs/__schema71"
+          "$ref": "#/$defs/__schema75"
         },
         "help": {
-          "$ref": "#/$defs/__schema72"
+          "$ref": "#/$defs/__schema76"
         },
         "titlePosition": {
-          "$ref": "#/$defs/__schema73"
+          "$ref": "#/$defs/__schema77"
         },
         "textSize": {
-          "$ref": "#/$defs/__schema74"
+          "$ref": "#/$defs/__schema78"
         }
       },
       "additionalProperties": false,
       "title": "Field display",
       "description": "Captions plus layout. Only fields take the layout keys — choices, cards and table columns take a plain text display."
     },
-    "__schema70": {
+    "__schema74": {
       "type": "string",
       "description": "The caption shown in place of the machine name."
     },
-    "__schema71": {
+    "__schema75": {
       "type": "string",
       "description": "Shown under the caption."
     },
-    "__schema72": {
+    "__schema76": {
       "type": "string",
       "description": "Shown in the ⓘ popover beside the caption."
     },
-    "__schema73": {
+    "__schema77": {
       "type": "string",
       "enum": ["left", "above"],
       "description": "Where the caption sits relative to the value. Defaults to `left`."
     },
-    "__schema74": {
+    "__schema78": {
       "type": "string",
       "enum": ["sm", "md", "lg"],
       "description": "Size of the rendered value. Defaults to `md`."
     },
-    "__schema75": {
+    "__schema79": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -1611,7 +1652,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema69"
+              "$ref": "#/$defs/__schema73"
             }
           ]
         },
@@ -1637,11 +1678,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema76": {
+    "__schema80": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -1650,7 +1691,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema69"
+              "$ref": "#/$defs/__schema73"
             }
           ]
         },
@@ -1676,11 +1717,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema77": {
+    "__schema81": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -1689,7 +1730,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema69"
+              "$ref": "#/$defs/__schema73"
             }
           ]
         },
@@ -1702,11 +1743,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema78": {
+    "__schema82": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -1715,7 +1756,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema69"
+              "$ref": "#/$defs/__schema73"
             }
           ]
         },
@@ -1728,11 +1769,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema79": {
+    "__schema83": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -1741,7 +1782,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema69"
+              "$ref": "#/$defs/__schema73"
             }
           ]
         },
@@ -1766,7 +1807,7 @@
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema80"
+          "$ref": "#/$defs/__schema84"
         },
         "display": {
           "anyOf": [
@@ -1775,15 +1816,15 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema81"
+              "$ref": "#/$defs/__schema85"
             }
           ]
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema82"
+          "$ref": "#/$defs/__schema86"
         },
         "selectedStyle": {
-          "$ref": "#/$defs/__schema83"
+          "$ref": "#/$defs/__schema87"
         }
       },
       "required": ["name"],
@@ -1791,45 +1832,45 @@
       "title": "Choice",
       "description": "One option of an `enum`."
     },
-    "__schema80": {
+    "__schema84": {
       "type": "string",
       "minLength": 1,
       "description": "The literal string written to the data file when this choice is selected."
     },
-    "__schema81": {
+    "__schema85": {
       "$ref": "#/$defs/TextDisplay"
     },
     "TextDisplay": {
       "type": "object",
       "properties": {
         "title": {
-          "$ref": "#/$defs/__schema70"
+          "$ref": "#/$defs/__schema74"
         },
         "description": {
-          "$ref": "#/$defs/__schema71"
+          "$ref": "#/$defs/__schema75"
         },
         "help": {
-          "$ref": "#/$defs/__schema72"
+          "$ref": "#/$defs/__schema76"
         }
       },
       "additionalProperties": false,
       "title": "Text display",
       "description": "Captions for one entity. A bare string is shorthand for `{ title }`, which is how most display blocks are written."
     },
-    "__schema82": {
+    "__schema86": {
       "type": "string",
       "description": "Chord that picks this choice. Fires app-wide, not only while the field has focus, so it shares one namespace with every other shortcut in the config."
     },
-    "__schema83": {
+    "__schema87": {
       "description": "Applied to the widget while this choice is the selected one.",
       "$ref": "#/$defs/Style"
     },
-    "__schema84": {
+    "__schema88": {
       "type": "string",
       "enum": ["muted", "info", "success", "warning", "danger", "accent"],
       "description": "Semantic tone. Each maps to a contrast-audited token pair rather than a fixed colour, so both themes stay legible."
     },
-    "__schema85": {
+    "__schema89": {
       "type": "string",
       "description": "Short explanation shown beside the styled value."
     },
@@ -1837,20 +1878,20 @@
       "type": "object",
       "properties": {
         "tone": {
-          "$ref": "#/$defs/__schema84"
+          "$ref": "#/$defs/__schema88"
         },
         "note": {
-          "$ref": "#/$defs/__schema85"
+          "$ref": "#/$defs/__schema89"
         }
       },
       "additionalProperties": false,
       "title": "Style"
     },
-    "__schema86": {
+    "__schema90": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -1859,7 +1900,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema69"
+              "$ref": "#/$defs/__schema73"
             }
           ]
         },
@@ -1939,7 +1980,7 @@
           ]
         },
         "name": {
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema92"
         },
         "display": {
           "anyOf": [
@@ -1948,7 +1989,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema89"
+              "$ref": "#/$defs/__schema93"
             }
           ]
         }
@@ -1965,7 +2006,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema87"
+            "$ref": "#/$defs/__schema91"
           }
         },
         {
@@ -1978,7 +2019,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema90"
+            "$ref": "#/$defs/__schema94"
           }
         },
         {
@@ -1991,7 +2032,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema91"
+            "$ref": "#/$defs/__schema95"
           }
         },
         {
@@ -2004,7 +2045,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema92"
+            "$ref": "#/$defs/__schema96"
           }
         },
         {
@@ -2017,7 +2058,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema93"
+            "$ref": "#/$defs/__schema97"
           }
         },
         {
@@ -2030,7 +2071,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema94"
+            "$ref": "#/$defs/__schema98"
           }
         },
         {
@@ -2043,7 +2084,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema95"
+            "$ref": "#/$defs/__schema99"
           }
         },
         {
@@ -2056,7 +2097,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema102"
+            "$ref": "#/$defs/__schema106"
           }
         },
         {
@@ -2069,16 +2110,16 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema112"
+            "$ref": "#/$defs/__schema116"
           }
         }
       ]
     },
-    "__schema87": {
+    "__schema91": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema92"
         },
         "display": {
           "anyOf": [
@@ -2087,7 +2128,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema89"
+              "$ref": "#/$defs/__schema93"
             }
           ]
         },
@@ -2116,19 +2157,19 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema88": {
+    "__schema92": {
       "type": "string",
       "minLength": 1,
       "description": "The key this member has in the source payload. Deliberately unconstrained, unlike a column name — real payloads use colons, slashes and unicode."
     },
-    "__schema89": {
+    "__schema93": {
       "$ref": "#/$defs/TextDisplay"
     },
-    "__schema90": {
+    "__schema94": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema92"
         },
         "display": {
           "anyOf": [
@@ -2137,7 +2178,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema89"
+              "$ref": "#/$defs/__schema93"
             }
           ]
         },
@@ -2163,11 +2204,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema91": {
+    "__schema95": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema92"
         },
         "display": {
           "anyOf": [
@@ -2176,7 +2217,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema89"
+              "$ref": "#/$defs/__schema93"
             }
           ]
         },
@@ -2202,11 +2243,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema92": {
+    "__schema96": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema92"
         },
         "display": {
           "anyOf": [
@@ -2215,7 +2256,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema89"
+              "$ref": "#/$defs/__schema93"
             }
           ]
         },
@@ -2228,11 +2269,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema93": {
+    "__schema97": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema92"
         },
         "display": {
           "anyOf": [
@@ -2241,7 +2282,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema89"
+              "$ref": "#/$defs/__schema93"
             }
           ]
         },
@@ -2254,11 +2295,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema94": {
+    "__schema98": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema92"
         },
         "display": {
           "anyOf": [
@@ -2267,7 +2308,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema89"
+              "$ref": "#/$defs/__schema93"
             }
           ]
         },
@@ -2288,11 +2329,11 @@
       "required": ["name", "type", "choices"],
       "additionalProperties": false
     },
-    "__schema95": {
+    "__schema99": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema92"
         },
         "display": {
           "anyOf": [
@@ -2301,7 +2342,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema89"
+              "$ref": "#/$defs/__schema93"
             }
           ]
         },
@@ -2329,7 +2370,7 @@
       "type": "object",
       "properties": {
         "columns": {
-          "$ref": "#/$defs/__schema96"
+          "$ref": "#/$defs/__schema100"
         }
       },
       "required": ["columns"],
@@ -2337,7 +2378,7 @@
       "title": "Table view",
       "description": "How an object's fields group into displayed columns. Lives on the `object` type beside the `fields` its columns name, so it nests to any depth and covers `map<_, object>` as well as arrays."
     },
-    "__schema96": {
+    "__schema100": {
       "minItems": 1,
       "type": "array",
       "items": {
@@ -2349,13 +2390,13 @@
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema97"
+          "$ref": "#/$defs/__schema101"
         },
         "use": {
-          "$ref": "#/$defs/__schema98"
+          "$ref": "#/$defs/__schema102"
         },
         "layout": {
-          "$ref": "#/$defs/__schema100"
+          "$ref": "#/$defs/__schema104"
         },
         "display": {
           "anyOf": [
@@ -2364,7 +2405,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema101"
+              "$ref": "#/$defs/__schema105"
             }
           ]
         }
@@ -2374,36 +2415,36 @@
       "title": "Table column",
       "description": "One displayed column, combining one or more of the object's own fields."
     },
-    "__schema97": {
+    "__schema101": {
       "type": "string",
       "minLength": 1,
       "description": "The column heading."
     },
-    "__schema98": {
+    "__schema102": {
       "minItems": 1,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema99"
+        "$ref": "#/$defs/__schema103"
       },
       "description": "Object field names combined into this one column."
     },
-    "__schema99": {
+    "__schema103": {
       "type": "string",
       "minLength": 1
     },
-    "__schema100": {
+    "__schema104": {
       "type": "string",
       "enum": ["chips", "stack", "inline"],
       "description": "How multiple values share the cell. Defaults to `chips`."
     },
-    "__schema101": {
+    "__schema105": {
       "$ref": "#/$defs/TextDisplay"
     },
-    "__schema102": {
+    "__schema106": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema92"
         },
         "display": {
           "anyOf": [
@@ -2412,7 +2453,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema89"
+              "$ref": "#/$defs/__schema93"
             }
           ]
         },
@@ -2429,7 +2470,7 @@
       "required": ["name", "type", "items"],
       "additionalProperties": false
     },
-    "__schema103": {
+    "__schema107": {
       "type": "object",
       "properties": {
         "type": {
@@ -2457,7 +2498,7 @@
       "required": ["type"],
       "additionalProperties": false
     },
-    "__schema104": {
+    "__schema108": {
       "type": "object",
       "properties": {
         "type": {
@@ -2482,7 +2523,7 @@
       "required": ["type"],
       "additionalProperties": false
     },
-    "__schema105": {
+    "__schema109": {
       "type": "object",
       "properties": {
         "type": {
@@ -2507,7 +2548,7 @@
       "required": ["type"],
       "additionalProperties": false
     },
-    "__schema106": {
+    "__schema110": {
       "type": "object",
       "properties": {
         "type": {
@@ -2519,7 +2560,7 @@
       "required": ["type"],
       "additionalProperties": false
     },
-    "__schema107": {
+    "__schema111": {
       "type": "object",
       "properties": {
         "type": {
@@ -2531,7 +2572,7 @@
       "required": ["type"],
       "additionalProperties": false
     },
-    "__schema108": {
+    "__schema112": {
       "type": "object",
       "properties": {
         "type": {
@@ -2551,7 +2592,7 @@
       "required": ["type", "choices"],
       "additionalProperties": false
     },
-    "__schema109": {
+    "__schema113": {
       "type": "object",
       "properties": {
         "type": {
@@ -2574,7 +2615,7 @@
       "required": ["type", "fields"],
       "additionalProperties": false
     },
-    "__schema110": {
+    "__schema114": {
       "type": "object",
       "properties": {
         "type": {
@@ -2590,7 +2631,7 @@
       "required": ["type", "items"],
       "additionalProperties": false
     },
-    "__schema111": {
+    "__schema115": {
       "type": "object",
       "properties": {
         "type": {
@@ -2677,7 +2718,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema103"
+            "$ref": "#/$defs/__schema107"
           }
         },
         {
@@ -2690,7 +2731,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema104"
+            "$ref": "#/$defs/__schema108"
           }
         },
         {
@@ -2703,7 +2744,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema105"
+            "$ref": "#/$defs/__schema109"
           }
         },
         {
@@ -2716,7 +2757,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema106"
+            "$ref": "#/$defs/__schema110"
           }
         },
         {
@@ -2729,7 +2770,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema107"
+            "$ref": "#/$defs/__schema111"
           }
         },
         {
@@ -2742,7 +2783,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema108"
+            "$ref": "#/$defs/__schema112"
           }
         },
         {
@@ -2755,7 +2796,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema109"
+            "$ref": "#/$defs/__schema113"
           }
         },
         {
@@ -2768,7 +2809,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema110"
+            "$ref": "#/$defs/__schema114"
           }
         },
         {
@@ -2781,16 +2822,16 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema111"
+            "$ref": "#/$defs/__schema115"
           }
         }
       ]
     },
-    "__schema112": {
+    "__schema116": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema92"
         },
         "display": {
           "anyOf": [
@@ -2799,7 +2840,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema89"
+              "$ref": "#/$defs/__schema93"
             }
           ]
         },
@@ -2820,11 +2861,11 @@
       "required": ["name", "type", "values"],
       "additionalProperties": false
     },
-    "__schema113": {
+    "__schema117": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -2833,7 +2874,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema69"
+              "$ref": "#/$defs/__schema73"
             }
           ]
         },
@@ -2850,11 +2891,11 @@
       "required": ["name", "type", "items"],
       "additionalProperties": false
     },
-    "__schema114": {
+    "__schema118": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -2863,7 +2904,7 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema69"
+              "$ref": "#/$defs/__schema73"
             }
           ]
         },
@@ -2884,7 +2925,7 @@
       "required": ["name", "type", "values"],
       "additionalProperties": false
     },
-    "__schema115": {
+    "__schema119": {
       "type": "array",
       "items": {
         "$ref": "#/$defs/DisplayRule"
@@ -2895,22 +2936,22 @@
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema116"
-        },
-        "when": {
-          "$ref": "#/$defs/__schema117"
-        },
-        "appliesTo": {
-          "$ref": "#/$defs/__schema118"
-        },
-        "appliesToCards": {
-          "$ref": "#/$defs/__schema119"
-        },
-        "forEach": {
           "$ref": "#/$defs/__schema120"
         },
-        "style": {
+        "when": {
           "$ref": "#/$defs/__schema121"
+        },
+        "appliesTo": {
+          "$ref": "#/$defs/__schema122"
+        },
+        "appliesToCards": {
+          "$ref": "#/$defs/__schema123"
+        },
+        "forEach": {
+          "$ref": "#/$defs/__schema124"
+        },
+        "style": {
+          "$ref": "#/$defs/__schema125"
         }
       },
       "required": ["name", "when", "style"],
@@ -2918,15 +2959,15 @@
       "title": "Display rule",
       "description": "A purely visual rule over displayed input values. Rules never affect what is exported — that guarantee is structural, since the module evaluating them is never imported on the export path."
     },
-    "__schema116": {
+    "__schema120": {
       "description": "Identifies the rule; shown in diagnostics and used as a stable render key.",
       "$ref": "#/$defs/__schema6"
     },
-    "__schema117": {
+    "__schema121": {
       "description": "The condition that fires this rule.",
       "$ref": "#/$defs/Condition"
     },
-    "__schema118": {
+    "__schema122": {
       "minItems": 1,
       "type": "array",
       "items": {
@@ -2934,7 +2975,7 @@
       },
       "description": "Fields to style when the rule fires. Defaults to the field the condition tests, which is what you want for a single-field rule and never what you want when comparing two. The default is skipped entirely when `appliesToCards` is given."
     },
-    "__schema119": {
+    "__schema123": {
       "minItems": 1,
       "type": "array",
       "items": {
@@ -2942,15 +2983,15 @@
       },
       "description": "Input cards to annotate when the rule fires. A card-level note states once what would otherwise repeat on every field in the group. This is a separate key from `appliesTo` because card names and field names live in separate namespaces — a card may legitimately share a name with a field, and one list could not tell them apart."
     },
-    "__schema120": {
+    "__schema124": {
       "description": "Evaluate this rule once per element of the named input field, which must be an `array`, and style the elements it holds for. Inside the loop, an element of an `array` of `object` is addressed by its own field names, which shadow a record column of the same name; an element of a list of scalars is addressed by the list's own name. Either way every other record column stays readable, so `otherField` compares an element against the record around it. Cannot be combined with `appliesTo` or `appliesToCards` — the target is always the matching element.",
       "$ref": "#/$defs/__schema6"
     },
-    "__schema121": {
+    "__schema125": {
       "description": "How the matched fields are styled.",
       "$ref": "#/$defs/Style"
     },
-    "__schema122": {
+    "__schema126": {
       "type": "array",
       "items": {
         "$ref": "#/$defs/Card"
@@ -2961,7 +3002,7 @@
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema123"
+          "$ref": "#/$defs/__schema127"
         },
         "display": {
           "anyOf": [
@@ -2970,15 +3011,15 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema124"
+              "$ref": "#/$defs/__schema128"
             }
           ]
         },
         "scope": {
-          "$ref": "#/$defs/__schema125"
+          "$ref": "#/$defs/__schema129"
         },
         "rows": {
-          "$ref": "#/$defs/__schema126"
+          "$ref": "#/$defs/__schema130"
         }
       },
       "required": ["name", "rows"],
@@ -2986,19 +3027,19 @@
       "title": "Card",
       "description": "A card grouping fields under a heading. The same shape drives read-only input cards and interactive output cards. Omit `cards` entirely for one implicit card holding every field, one per row."
     },
-    "__schema123": {
+    "__schema127": {
       "description": "Identifies the card; must be unique per side.",
       "$ref": "#/$defs/__schema6"
     },
-    "__schema124": {
+    "__schema128": {
       "$ref": "#/$defs/TextDisplay"
     },
-    "__schema125": {
+    "__schema129": {
       "type": "string",
       "enum": ["record", "session"],
       "description": "`session` cards render on the setup step rather than once per record. Defaults to `record`."
     },
-    "__schema126": {
+    "__schema130": {
       "minItems": 1,
       "type": "array",
       "items": {
@@ -3010,23 +3051,23 @@
       "type": "object",
       "properties": {
         "perRow": {
-          "$ref": "#/$defs/__schema127"
+          "$ref": "#/$defs/__schema131"
         },
         "use": {
-          "$ref": "#/$defs/__schema128"
+          "$ref": "#/$defs/__schema132"
         }
       },
       "required": ["use"],
       "additionalProperties": false,
       "title": "Card row"
     },
-    "__schema127": {
+    "__schema131": {
       "type": "integer",
       "exclusiveMinimum": 0,
       "maximum": 9007199254740991,
       "description": "Columns to fit before wrapping. Defaults to the number of fields in the row."
     },
-    "__schema128": {
+    "__schema132": {
       "minItems": 1,
       "type": "array",
       "items": {
@@ -3034,27 +3075,27 @@
       },
       "description": "Field names to render in this row, in order."
     },
-    "__schema129": {
+    "__schema133": {
       "type": "object",
       "properties": {
         "adapterId": {
-          "$ref": "#/$defs/__schema62"
+          "$ref": "#/$defs/__schema66"
         },
         "adapterConfig": {
-          "$ref": "#/$defs/__schema64"
+          "$ref": "#/$defs/__schema68"
         },
         "fields": {
-          "$ref": "#/$defs/__schema130"
+          "$ref": "#/$defs/__schema134"
         },
         "cards": {
-          "$ref": "#/$defs/__schema148"
+          "$ref": "#/$defs/__schema152"
         }
       },
       "required": ["fields"],
       "additionalProperties": false,
       "description": "What the labeler captures, or the app fills in."
     },
-    "__schema130": {
+    "__schema134": {
       "minItems": 1,
       "type": "array",
       "items": {
@@ -3118,7 +3159,7 @@
           ]
         },
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -3127,18 +3168,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema132"
+              "$ref": "#/$defs/__schema136"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema133"
+          "$ref": "#/$defs/__schema137"
         },
         "required": {
-          "$ref": "#/$defs/__schema138"
+          "$ref": "#/$defs/__schema142"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema139"
+          "$ref": "#/$defs/__schema143"
         }
       },
       "required": ["type", "name"],
@@ -3153,7 +3194,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema131"
+            "$ref": "#/$defs/__schema135"
           }
         },
         {
@@ -3166,7 +3207,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema140"
+            "$ref": "#/$defs/__schema144"
           }
         },
         {
@@ -3179,7 +3220,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema141"
+            "$ref": "#/$defs/__schema145"
           }
         },
         {
@@ -3192,7 +3233,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema142"
+            "$ref": "#/$defs/__schema146"
           }
         },
         {
@@ -3205,7 +3246,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema143"
+            "$ref": "#/$defs/__schema147"
           }
         },
         {
@@ -3218,7 +3259,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema144"
+            "$ref": "#/$defs/__schema148"
           }
         },
         {
@@ -3231,7 +3272,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema145"
+            "$ref": "#/$defs/__schema149"
           }
         },
         {
@@ -3244,7 +3285,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema146"
+            "$ref": "#/$defs/__schema150"
           }
         },
         {
@@ -3257,16 +3298,16 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema147"
+            "$ref": "#/$defs/__schema151"
           }
         }
       ]
     },
-    "__schema131": {
+    "__schema135": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -3275,18 +3316,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema132"
+              "$ref": "#/$defs/__schema136"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema133"
+          "$ref": "#/$defs/__schema137"
         },
         "required": {
-          "$ref": "#/$defs/__schema138"
+          "$ref": "#/$defs/__schema142"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema139"
+          "$ref": "#/$defs/__schema143"
         },
         "widget": {
           "type": "string",
@@ -3318,14 +3359,14 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema132": {
+    "__schema136": {
       "$ref": "#/$defs/FieldDisplay"
     },
-    "__schema133": {
+    "__schema137": {
       "description": "Where this field's value comes from. Defaults to `{ \"kind\": \"user\" }`.",
       "$ref": "#/$defs/Fill"
     },
-    "__schema134": {
+    "__schema138": {
       "type": "object",
       "properties": {
         "kind": {
@@ -3337,7 +3378,7 @@
       "required": ["kind"],
       "additionalProperties": false
     },
-    "__schema135": {
+    "__schema139": {
       "type": "object",
       "properties": {
         "kind": {
@@ -3353,7 +3394,7 @@
       "required": ["kind"],
       "additionalProperties": false
     },
-    "__schema136": {
+    "__schema140": {
       "type": "object",
       "properties": {
         "kind": {
@@ -3365,7 +3406,7 @@
       "required": ["kind"],
       "additionalProperties": false
     },
-    "__schema137": {
+    "__schema141": {
       "type": "object",
       "properties": {
         "kind": {
@@ -3420,7 +3461,7 @@
             "required": ["kind"]
           },
           "then": {
-            "$ref": "#/$defs/__schema134"
+            "$ref": "#/$defs/__schema138"
           }
         },
         {
@@ -3433,7 +3474,7 @@
             "required": ["kind"]
           },
           "then": {
-            "$ref": "#/$defs/__schema135"
+            "$ref": "#/$defs/__schema139"
           }
         },
         {
@@ -3446,7 +3487,7 @@
             "required": ["kind"]
           },
           "then": {
-            "$ref": "#/$defs/__schema136"
+            "$ref": "#/$defs/__schema140"
           }
         },
         {
@@ -3459,25 +3500,25 @@
             "required": ["kind"]
           },
           "then": {
-            "$ref": "#/$defs/__schema137"
+            "$ref": "#/$defs/__schema141"
           }
         }
       ]
     },
-    "__schema138": {
+    "__schema142": {
       "type": "boolean",
       "description": "Whether a record counts as complete without this field. Defaults by fill: something a person is asked for is required, something the app derives is not."
     },
-    "__schema139": {
+    "__schema143": {
       "type": "string",
       "pattern": "^(?:(?:mod|ctrl|control|alt|opt|option|shift|meta|cmd|command)\\+)*(?:[A-Za-z0-9]|space|enter|escape|tab|left|right|up|down|home|end|backspace|delete|esc|spacebar|return|arrowleft|arrowright|arrowup|arrowdown|del)$",
       "description": "Chord that moves focus to this field's widget, e.g. `\"mod+1\"`. Unique across the whole config, and not one of the chords the app or OS reserves."
     },
-    "__schema140": {
+    "__schema144": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -3486,18 +3527,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema132"
+              "$ref": "#/$defs/__schema136"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema133"
+          "$ref": "#/$defs/__schema137"
         },
         "required": {
-          "$ref": "#/$defs/__schema138"
+          "$ref": "#/$defs/__schema142"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema139"
+          "$ref": "#/$defs/__schema143"
         },
         "widget": {
           "type": "string",
@@ -3526,11 +3567,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema141": {
+    "__schema145": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -3539,18 +3580,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema132"
+              "$ref": "#/$defs/__schema136"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema133"
+          "$ref": "#/$defs/__schema137"
         },
         "required": {
-          "$ref": "#/$defs/__schema138"
+          "$ref": "#/$defs/__schema142"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema139"
+          "$ref": "#/$defs/__schema143"
         },
         "widget": {
           "type": "string",
@@ -3579,11 +3620,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema142": {
+    "__schema146": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -3592,18 +3633,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema132"
+              "$ref": "#/$defs/__schema136"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema133"
+          "$ref": "#/$defs/__schema137"
         },
         "required": {
-          "$ref": "#/$defs/__schema138"
+          "$ref": "#/$defs/__schema142"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema139"
+          "$ref": "#/$defs/__schema143"
         },
         "widget": {
           "type": "string",
@@ -3619,11 +3660,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema143": {
+    "__schema147": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -3632,18 +3673,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema132"
+              "$ref": "#/$defs/__schema136"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema133"
+          "$ref": "#/$defs/__schema137"
         },
         "required": {
-          "$ref": "#/$defs/__schema138"
+          "$ref": "#/$defs/__schema142"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema139"
+          "$ref": "#/$defs/__schema143"
         },
         "widget": {
           "type": "string",
@@ -3659,11 +3700,11 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema144": {
+    "__schema148": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -3672,18 +3713,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema132"
+              "$ref": "#/$defs/__schema136"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema133"
+          "$ref": "#/$defs/__schema137"
         },
         "required": {
-          "$ref": "#/$defs/__schema138"
+          "$ref": "#/$defs/__schema142"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema139"
+          "$ref": "#/$defs/__schema143"
         },
         "widget": {
           "type": "string",
@@ -3707,11 +3748,11 @@
       "required": ["name", "type", "choices"],
       "additionalProperties": false
     },
-    "__schema145": {
+    "__schema149": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -3720,18 +3761,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema132"
+              "$ref": "#/$defs/__schema136"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema133"
+          "$ref": "#/$defs/__schema137"
         },
         "required": {
-          "$ref": "#/$defs/__schema138"
+          "$ref": "#/$defs/__schema142"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema139"
+          "$ref": "#/$defs/__schema143"
         },
         "type": {
           "type": "string",
@@ -3753,11 +3794,11 @@
       "required": ["name", "type", "fields"],
       "additionalProperties": false
     },
-    "__schema146": {
+    "__schema150": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -3766,18 +3807,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema132"
+              "$ref": "#/$defs/__schema136"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema133"
+          "$ref": "#/$defs/__schema137"
         },
         "required": {
-          "$ref": "#/$defs/__schema138"
+          "$ref": "#/$defs/__schema142"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema139"
+          "$ref": "#/$defs/__schema143"
         },
         "widget": {
           "type": "string",
@@ -3797,11 +3838,11 @@
       "required": ["name", "type", "items"],
       "additionalProperties": false
     },
-    "__schema147": {
+    "__schema151": {
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema68"
+          "$ref": "#/$defs/__schema72"
         },
         "display": {
           "anyOf": [
@@ -3810,18 +3851,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema132"
+              "$ref": "#/$defs/__schema136"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema133"
+          "$ref": "#/$defs/__schema137"
         },
         "required": {
-          "$ref": "#/$defs/__schema138"
+          "$ref": "#/$defs/__schema142"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema139"
+          "$ref": "#/$defs/__schema143"
         },
         "type": {
           "type": "string",
@@ -3840,7 +3881,7 @@
       "required": ["name", "type", "values"],
       "additionalProperties": false
     },
-    "__schema148": {
+    "__schema152": {
       "type": "array",
       "items": {
         "$ref": "#/$defs/Card"

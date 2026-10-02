@@ -223,9 +223,7 @@ async function pump(): Promise<void> {
     // inferred from the shape of a reply any more: every question gets an answer,
     // so "clean" is a statement about the probabilities rather than a guess about
     // what a truncated response might have meant.
-    const notable = answers.some((answer) =>
-      isWorthShowing(answer, byId.get(answer.id)?.showAbove),
-    );
+    const notable = answers.some((answer) => isWorthShowing(answer, byId.get(answer.id)));
     const status = notable ? "findings" : "clean";
     const elapsedMs = Date.now() - startedAt;
     publish({ recordIndex: target, status, answers, modelId: loaded.modelId, elapsedMs });

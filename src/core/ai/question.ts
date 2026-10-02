@@ -29,13 +29,34 @@ export type Question =
       whenTrue?: string;
       whenFalse?: string;
     }
-  | { id: string; type: "choice"; ask: string; options: readonly ChoiceOption[] }
+  | {
+      id: string;
+      type: "choice";
+      ask: string;
+      options: readonly ChoiceOption[];
+      /**
+       * The options worth telling the labeler about. Omit to surface all of them.
+       *
+       * Most choices have an unremarkable answer — "a major consumer mailbox" —
+       * and marking a record with it is worse than saying nothing: it spends the
+       * reviewer's attention to tell them nothing is wrong, and in a labeling
+       * tool a reassuring mark anchors just as hard as an alarming one.
+       */
+      notable?: readonly string[];
+    }
   | {
       id: string;
       type: "score";
       ask: string;
       /** Weakest first. The answer is a weighted average of these positions. */
       levels: readonly string[];
+      /**
+       * Only surface the answer once it reaches this level, by index.
+       *
+       * A scale almost always has a quiet end. "Nothing unusual" is the common
+       * answer and the one nobody needs drawn to their attention.
+       */
+      notableFrom?: number;
     };
 
 export type QuestionType = Question["type"];
@@ -53,6 +74,16 @@ export const QUESTION_TYPES = ["boolean", "choice", "score"] as const;
 export interface Target {
   field?: string;
   card?: string;
+  /**
+   * The short line shown when this answer crosses its threshold.
+   *
+   * Deliberately separate from `ask`. The question has to be long and
+   * unambiguous because the model has no context; the note has to be short and
+   * declarative because a labeler reads it while deciding something else. Using
+   * one text for both gives the reviewer an interrogation with a number stapled
+   * to it, next to authored rules that state a finding in six words.
+   */
+  note?: string;
   /**
    * Only ask when this holds.
    *

@@ -1,7 +1,7 @@
 import { Loader2, Sparkles } from "lucide-react";
 import {
-  answerLabel,
   isWorthShowing,
+  noteFor,
   questionsOf,
   severityOf,
   type Analysis,
@@ -22,9 +22,11 @@ import { cn } from "../lib/utils";
  * like this in a labeling tool is that a plausible wrong hint quietly becomes
  * the answer.
  *
- * Answers about a field or a card are *also* shown beside the data they are
- * about. This panel is the only place the record-level ones appear, including
- * the two the app always asks.
+ * **Only record-level answers appear here.** An answer about a field or a card is
+ * already drawn beside the data it is about, and repeating it in a panel on the
+ * far side of the window means a reviewer reads the same sentence three times
+ * and learns nothing the second or third. This panel exists for the answers that
+ * have nowhere else to sit — including the two the app always asks.
  *
  * A probability is shown as a probability. It is better calibrated than the
  * prose this replaced and more persuasive for the same reason, which is why
@@ -106,7 +108,9 @@ function Answers({
   // with nothing to attach it to is not a note, it is a number.
   const shown = analysis.answers.flatMap((answer) => {
     const question = byId.get(answer.id);
-    if (!question || !isWorthShowing(answer, question.showAbove)) return [];
+    if (!question || !isWorthShowing(answer, question)) return [];
+    // Targeted answers are already beside their field or on their card.
+    if (question.field !== undefined || question.card !== undefined) return [];
     return [{ answer, question }];
   });
 
@@ -129,7 +133,6 @@ function Note({
   question: TargetedQuestion;
 }): React.JSX.Element {
   const tone = severityOf(answer);
-  const scope = question.field ?? question.card;
   return (
     <li className="flex items-start gap-1.5 text-xs">
       <span
@@ -137,13 +140,7 @@ function Note({
         className={cn("mt-1 size-1.5 shrink-0 rounded-full", SEVERITY[tone].dotClass)}
       />
       <span className="min-w-0">
-        {scope && <span className="font-medium">{scope}: </span>}
-        <span className={SEVERITY[tone].textClass}>{question.ask}</span>{" "}
-        {/* The number is deliberately quieter than the question. What a labeler
-            needs first is what was asked; the probability qualifies it. */}
-        <span className="font-medium tabular-nums text-muted-foreground">
-          {answerLabel(answer)}
-        </span>
+        <span className={SEVERITY[tone].textClass}>{noteFor(question, answer)}</span>
       </span>
     </li>
   );

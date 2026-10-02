@@ -1,5 +1,6 @@
+import type { Card } from "../config";
 import type { Decoration, Decorations } from "../decorations";
-import { answerLabel } from "./answer";
+import { noteFor } from "./note";
 import type { TargetedQuestion } from "./question";
 import { isWorthShowing, severityOf } from "./threshold";
 import type { Analysis } from "./types";
@@ -51,26 +52,49 @@ function add(map: Map<string, Decoration[]>, key: string, decoration: Decoration
 export function decorationsFromAnalysis(
   analysis: Analysis | undefined,
   questions: readonly TargetedQuestion[],
+  layout: readonly Card[],
 ): Decorations {
   if (!analysis || analysis.answers.length === 0) return EMPTY;
 
   const byId = new Map(questions.map((question) => [question.id, question]));
+  const cardOf = new Map<string, string>();
+  for (const card of layout) {
+    for (const row of card.rows) for (const name of row.use) cardOf.set(name, card.name);
+  }
+
   const fields = new Map<string, Decoration[]>();
   const cards = new Map<string, Decoration[]>();
+  const rule = `model:${analysis.modelId}`;
 
   for (const answer of analysis.answers) {
     const question = byId.get(answer.id);
     if (!question) continue;
     if (question.field === undefined && question.card === undefined) continue;
-    if (!isWorthShowing(answer, question.showAbove)) continue;
+    if (!isWorthShowing(answer, question)) continue;
 
-    const decoration: Decoration = {
-      rule: `model:${analysis.modelId}`,
-      source: "model",
-      style: { tone: severityOf(answer), note: `${question.ask} ${answerLabel(answer)}` },
-    };
-    if (question.field !== undefined) add(fields, question.field, decoration);
-    if (question.card !== undefined) add(cards, question.card, decoration);
+    const tone = severityOf(answer);
+    const note = noteFor(question, answer);
+
+    if (question.card !== undefined) {
+      add(cards, question.card, { rule, source: "model", style: { tone, note } });
+      continue;
+    }
+
+    const field = question.field;
+    if (field === undefined) continue;
+
+    // The value is marked, not annotated. A config may ask a dozen questions
+    // about one column, and a dozen sentences stacked under a value is not
+    // something a labeler can read while deciding something else — so the field
+    // carries the tone, which says *look here*, and the words go to the card.
+    add(fields, field, { rule, source: "model", style: { tone } });
+
+    // Named, because a card gathers several fields and an unattributed line
+    // reads as a statement about the card as a whole.
+    const home = cardOf.get(field);
+    if (home !== undefined) {
+      add(cards, home, { rule, source: "model", style: { tone, note: `${field}: ${note}` } });
+    }
   }
 
   return { fields, cards, items: EMPTY.items };

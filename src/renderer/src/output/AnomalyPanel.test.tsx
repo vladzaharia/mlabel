@@ -78,7 +78,21 @@ describe("AnomalyPanel", () => {
     expect(screen.getByText("Nothing stood out.")).toBeInTheDocument();
   });
 
-  it("lists each crossed answer with its question and its probability", () => {
+  it("lists record-level answers as a statement with its probability", () => {
+    seed({
+      analysis: analysis({
+        status: "findings",
+        answers: [{ id: "timing", type: "boolean", p: 0.84, confidence: 0.84 }],
+      }),
+    });
+    render(<AnomalyPanel />);
+    expect(screen.getByText(/Is the signup time unusual\? 84%/)).toBeInTheDocument();
+  });
+
+  it("leaves a targeted answer to the field and its card, rather than repeating it", () => {
+    // The same sentence beside the value, in the card footer and in this panel
+    // is read three times and understood once. `throwaway` targets a field, so
+    // it belongs to the card, not here.
     seed({
       analysis: analysis({
         status: "findings",
@@ -89,10 +103,9 @@ describe("AnomalyPanel", () => {
       }),
     });
     render(<AnomalyPanel />);
-    expect(screen.getByText("Is the domain a throwaway?")).toBeInTheDocument();
-    expect(screen.getByText("91%")).toBeInTheDocument();
-    expect(screen.getByText("Is the signup time unusual?")).toBeInTheDocument();
-    expect(screen.getByText("84%")).toBeInTheDocument();
+    expect(screen.queryByText(/throwaway/i)).toBeNull();
+    expect(screen.queryByText(/91%/)).toBeNull();
+    expect(screen.getByText(/Is the signup time unusual\? 84%/)).toBeInTheDocument();
   });
 
   it("says nothing about an answer that fell below its threshold", () => {
@@ -123,7 +136,7 @@ describe("AnomalyPanel", () => {
 
   // The panel is where an unscoped remark appears at all — it has nowhere to sit
   // in the form, and repeating it on every field would be worse than a panel.
-  it("names the field a targeted answer is about", () => {
+  it("says nothing stood out when every crossed answer was a targeted one", () => {
     seed({
       analysis: analysis({
         status: "findings",
@@ -131,7 +144,7 @@ describe("AnomalyPanel", () => {
       }),
     });
     render(<AnomalyPanel />);
-    expect(screen.getByText("email:")).toBeInTheDocument();
+    expect(screen.getByText("Nothing stood out.")).toBeInTheDocument();
   });
 
   it("shows progress rather than going blank while it works", () => {
@@ -183,11 +196,11 @@ describe("AnomalyPanel — answers outlive the engine", () => {
       state: { kind: "no-model" },
       analysis: analysis({
         status: "findings",
-        answers: [{ id: "throwaway", type: "boolean", p: 0.9, confidence: 0.9 }],
+        answers: [{ id: "timing", type: "boolean", p: 0.9, confidence: 0.9 }],
       }),
     });
     render(<AnomalyPanel />);
-    expect(screen.getByText("Is the domain a throwaway?")).toBeInTheDocument();
+    expect(screen.getByText(/Is the signup time unusual\?/)).toBeInTheDocument();
     expect(screen.queryByText(/No model downloaded yet/)).toBeNull();
   });
 

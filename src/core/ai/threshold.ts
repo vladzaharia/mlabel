@@ -9,6 +9,7 @@
  */
 
 import type { Answer } from "./answer";
+import type { TargetedQuestion } from "./question";
 import type { NoteSeverity } from "./types";
 
 /**
@@ -31,8 +32,23 @@ export const DEFAULT_SHOW_ABOVE = 0.7;
  * and `score` always say something, so they are measured on how sure they are of
  * what they said.
  */
-export function isWorthShowing(answer: Answer, showAbove: number = DEFAULT_SHOW_ABOVE): boolean {
-  return answer.type === "boolean" ? answer.p > showAbove : answer.confidence > showAbove;
+export function isWorthShowing(answer: Answer, question?: TargetedQuestion): boolean {
+  const showAbove = question?.showAbove ?? DEFAULT_SHOW_ABOVE;
+
+  if (answer.type === "boolean") return answer.p > showAbove;
+
+  // Sure enough to be worth saying, *and* an answer worth saying at all. The two
+  // are different tests: the model can be perfectly confident that this is an
+  // ordinary gmail address, and that is precisely when to stay quiet.
+  if (answer.confidence <= showAbove) return false;
+
+  if (answer.type === "choice") {
+    const notable = question?.type === "choice" ? question.notable : undefined;
+    return notable === undefined || notable.includes(answer.chosen);
+  }
+
+  const from = question?.type === "score" ? question.notableFrom : undefined;
+  return from === undefined || answer.score >= from;
 }
 
 /**

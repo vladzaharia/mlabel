@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Answer } from "./answer";
+import type { TargetedQuestion } from "./question";
 import { DEFAULT_SHOW_ABOVE, isWorthShowing, severityOf } from "./threshold";
 
 const bool = (p: number): Answer => ({
@@ -26,26 +27,72 @@ describe("isWorthShowing", () => {
   });
 
   it("honours a per-question override in both directions", () => {
-    expect(isWorthShowing(bool(0.5), 0.4)).toBe(true);
-    expect(isWorthShowing(bool(0.5), 0.8)).toBe(false);
+    const at = (showAbove: number): TargetedQuestion => ({
+      id: "q",
+      type: "boolean",
+      ask: "?",
+      showAbove,
+    });
+    expect(isWorthShowing(bool(0.5), at(0.4))).toBe(true);
+    expect(isWorthShowing(bool(0.5), at(0.8))).toBe(false);
   });
 
-  it("measures a choice on how sure it is of what it chose", () => {
-    const answer: Answer = {
+  const choiceQ = (over: Partial<TargetedQuestion> = {}): TargetedQuestion =>
+    ({
       id: "q",
       type: "choice",
-      chosen: "refund",
-      p: new Map([["refund", 0.5]]),
-      confidence: 0.5,
-    };
-    expect(isWorthShowing(answer, 0.4)).toBe(true);
-    expect(isWorthShowing(answer, 0.6)).toBe(false);
+      ask: "?",
+      options: [{ name: "refund" }, { name: "ordinary" }],
+      ...over,
+    }) as TargetedQuestion;
+
+  const chose = (name: string, confidence: number): Answer => ({
+    id: "q",
+    type: "choice",
+    chosen: name,
+    p: new Map([[name, confidence]]),
+    confidence,
+  });
+
+  const scoreQ = (over: Partial<TargetedQuestion> = {}): TargetedQuestion =>
+    ({
+      id: "q",
+      type: "score",
+      ask: "?",
+      levels: ["none", "weak", "moderate", "strong"],
+      ...over,
+    }) as TargetedQuestion;
+
+  it("measures a choice on how sure it is of what it chose", () => {
+    expect(isWorthShowing(chose("refund", 0.5), choiceQ({ showAbove: 0.4 }))).toBe(true);
+    expect(isWorthShowing(chose("refund", 0.5), choiceQ({ showAbove: 0.6 }))).toBe(false);
+  });
+
+  it("stays quiet about an option the config did not call notable", () => {
+    // The model can be perfectly sure this is an ordinary mailbox, and that is
+    // exactly when saying so costs attention and anchors for nothing.
+    const q = choiceQ({ notable: ["refund"], showAbove: 0.4 });
+    expect(isWorthShowing(chose("refund", 0.99), q)).toBe(true);
+    expect(isWorthShowing(chose("ordinary", 0.99), q)).toBe(false);
+  });
+
+  it("surfaces every option when none were singled out", () => {
+    expect(isWorthShowing(chose("ordinary", 0.99), choiceQ({ showAbove: 0.4 }))).toBe(true);
   });
 
   it("measures a score on confidence too", () => {
     const answer: Answer = { id: "q", type: "score", score: 1.5, p: [0.5, 0.5], confidence: 0.5 };
-    expect(isWorthShowing(answer, 0.4)).toBe(true);
-    expect(isWorthShowing(answer, 0.6)).toBe(false);
+    expect(isWorthShowing(answer, scoreQ({ showAbove: 0.4 }))).toBe(true);
+    expect(isWorthShowing(answer, scoreQ({ showAbove: 0.6 }))).toBe(false);
+  });
+
+  it("stays quiet about the quiet end of a scale", () => {
+    const q = scoreQ({ notableFrom: 2, showAbove: 0.4 });
+    const at = (score: number): Answer => ({ id: "q", type: "score", score, p: [], confidence: 1 });
+    expect(isWorthShowing(at(0.4), q)).toBe(false);
+    expect(isWorthShowing(at(1.9), q)).toBe(false);
+    expect(isWorthShowing(at(2), q)).toBe(true);
+    expect(isWorthShowing(at(3), q)).toBe(true);
   });
 
   it("defaults to a threshold above a coin flip but short of certainty", () => {

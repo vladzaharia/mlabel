@@ -501,7 +501,11 @@ const QuestionCommon = {
   }),
   ask: z.string().min(1).max(MAX_ASK).meta({
     description:
-      "The question, in your own words. Asked of one record at a time, alongside any nearby records you have asked for.",
+      "The question, in your own words, as the model is asked it. Be explicit and unambiguous — it has no context beyond the record and your `ai.context`.",
+  }),
+  note: z.string().min(1).max(80).optional().meta({
+    description:
+      "The short line a labeler reads when this answer is surfaced — a statement of what was found, like a display rule's note: “Domain looks minted for signups.” Keep it under a handful of words. Without it the full question is shown instead, which reads as an interrogation with a number stapled to it rather than a finding. For a `choice` or a `score` it is used as a prefix, so write it as a label: “Mail domain”, “Activated”.",
   }),
   field: Identifier.optional().meta({
     description:
@@ -545,6 +549,10 @@ export const AiQuestion = z
         .min(2)
         .max(MAX_OPTIONS)
         .meta({ description: "The answers this question may be given. Between 2 and 16." }),
+      notable: z.array(Identifier).min(1).optional().meta({
+        description:
+          "Which options are worth telling the labeler about, by name. Omit to surface every one. Most choices have an unremarkable answer — “an ordinary consumer mailbox” — and marking a record with it spends attention to say nothing is wrong. In a labeling tool a reassuring mark anchors as hard as an alarming one, so the quiet answers are usually best left unsaid. Every answer is still recorded in Recent runs.",
+      }),
     }),
     z.strictObject({
       type: z.literal("score").meta({ description: "A position on an ordered scale." }),
@@ -552,6 +560,10 @@ export const AiQuestion = z
       levels: z.array(z.string().min(1).max(80)).min(2).max(MAX_LEVELS).meta({
         description:
           "The levels, weakest first. The answer is a weighted average of their positions, so 1.2 means mostly the second level with a little of the third — which is why the order matters and why scores can be compared across records.",
+      }),
+      notableFrom: z.number().int().min(0).optional().meta({
+        description:
+          "Only surface the answer once it reaches this level, counting from 0. A scale almost always has a quiet end, and “nothing unusual” is both the commonest answer and the one nobody needs drawn to their attention. Omit to surface every answer.",
       }),
     }),
   ])
@@ -903,6 +915,36 @@ function validateQuestions(ctx: CheckCtx, cfg: AppConfig, inputNames: ReadonlySe
     }
     if (question.card !== undefined && !cardNames.has(question.card)) {
       issue(ctx, ctx.value, [...at, "card"], `No input card named "${question.card}".`);
+    }
+
+    // A `notable` naming an option that does not exist silences the question
+    // completely and looks like the model never answered it.
+    if (question.type === "choice" && question.notable !== undefined) {
+      const names = new Set(question.options.map((option) => option.name));
+      question.notable.forEach((name, j) => {
+        if (!names.has(name)) {
+          issue(
+            ctx,
+            ctx.value,
+            [...at, "notable", j],
+            `No option named "${name}" on this question.`,
+          );
+        }
+      });
+    }
+
+    // Likewise a `notableFrom` past the last level.
+    if (
+      question.type === "score" &&
+      question.notableFrom !== undefined &&
+      question.notableFrom > question.levels.length - 1
+    ) {
+      issue(
+        ctx,
+        ctx.value,
+        [...at, "notableFrom"],
+        `This question has ${String(question.levels.length)} levels, so the last index is ${String(question.levels.length - 1)}.`,
+      );
     }
   });
 }

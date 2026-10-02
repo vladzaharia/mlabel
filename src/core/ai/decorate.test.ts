@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { decorationsFromAnalysis, mergeDecorations } from "./decorate";
 import type { TargetedQuestion } from "./question";
 import type { Analysis } from "./types";
+import type { Card } from "../config";
 
 const questions: TargetedQuestion[] = [
   { id: "odd", type: "boolean", field: "age", ask: "Is the age odd for this person?" },
@@ -9,6 +10,8 @@ const questions: TargetedQuestion[] = [
   { id: "overall", type: "boolean", ask: "Anything wrong?" },
   { id: "picky", type: "boolean", field: "age", ask: "Picky?", showAbove: 0.2 },
 ];
+
+const cards: Card[] = [{ name: "main", rows: [{ use: ["age", "email"] }] }] as unknown as Card[];
 
 const analysis = (answers: Analysis["answers"]): Analysis => ({
   recordIndex: 0,
@@ -18,23 +21,39 @@ const analysis = (answers: Analysis["answers"]): Analysis => ({
 });
 
 describe("decorationsFromAnalysis", () => {
-  it("puts a crossed field answer beside its field, marked as the model's", () => {
+  it("marks the field with a tone but no text — the words go on the card", () => {
     const decorations = decorationsFromAnalysis(
       analysis([{ id: "odd", type: "boolean", p: 0.93, confidence: 0.93 }]),
       questions,
+      cards,
     );
     const field = decorations.fields.get("age");
     expect(field).toHaveLength(1);
     expect(field?.[0]?.source).toBe("model");
     expect(field?.[0]?.rule).toBe("model:jevk5-4b");
     expect(field?.[0]?.style.tone).toBe("warning");
-    expect(field?.[0]?.style.note).toContain("93%");
+    // No text on the field itself. With sixteen questions in play, a sentence
+    // beside every value is unreadable; the mark says "something was said here"
+    // and the card footer says what.
+    expect(field?.[0]?.style.note).toBeUndefined();
+  });
+
+  it("explains a field answer on the card that holds the field", () => {
+    const decorations = decorationsFromAnalysis(
+      analysis([{ id: "odd", type: "boolean", p: 0.93, confidence: 0.93 }]),
+      questions,
+      cards,
+    );
+    const note = decorations.cards.get("main")?.[0]?.style.note;
+    expect(note).toContain("age");
+    expect(note).toContain("93%");
   });
 
   it("omits an answer below its threshold", () => {
     const decorations = decorationsFromAnalysis(
       analysis([{ id: "odd", type: "boolean", p: 0.2, confidence: 0.8 }]),
       questions,
+      cards,
     );
     expect(decorations.fields.size).toBe(0);
   });
@@ -43,6 +62,7 @@ describe("decorationsFromAnalysis", () => {
     const decorations = decorationsFromAnalysis(
       analysis([{ id: "picky", type: "boolean", p: 0.3, confidence: 0.7 }]),
       questions,
+      cards,
     );
     expect(decorations.fields.get("age")).toHaveLength(1);
   });
@@ -53,6 +73,7 @@ describe("decorationsFromAnalysis", () => {
         { id: "intent", type: "choice", chosen: "a", p: new Map([["a", 0.9]]), confidence: 0.9 },
       ]),
       questions,
+      cards,
     );
     expect(decorations.cards.get("main")?.[0]?.style.tone).toBe("info");
     expect(decorations.cards.get("main")?.[0]?.style.note).toContain("a (90%)");
@@ -64,6 +85,7 @@ describe("decorationsFromAnalysis", () => {
     const decorations = decorationsFromAnalysis(
       analysis([{ id: "overall", type: "boolean", p: 0.99, confidence: 0.99 }]),
       questions,
+      cards,
     );
     expect(decorations.fields.size).toBe(0);
     expect(decorations.cards.size).toBe(0);
@@ -75,13 +97,14 @@ describe("decorationsFromAnalysis", () => {
     const decorations = decorationsFromAnalysis(
       analysis([{ id: "vanished", type: "boolean", p: 0.99, confidence: 0.99 }]),
       questions,
+      cards,
     );
     expect(decorations.fields.size).toBe(0);
   });
 
   it("is empty for no analysis at all", () => {
-    expect(decorationsFromAnalysis(undefined, questions).fields.size).toBe(0);
-    expect(decorationsFromAnalysis(analysis([]), questions).fields.size).toBe(0);
+    expect(decorationsFromAnalysis(undefined, questions, cards).fields.size).toBe(0);
+    expect(decorationsFromAnalysis(analysis([]), questions, cards).fields.size).toBe(0);
   });
 });
 
@@ -97,6 +120,7 @@ describe("mergeDecorations", () => {
     const model = decorationsFromAnalysis(
       analysis([{ id: "odd", type: "boolean", p: 0.99, confidence: 0.99 }]),
       questions,
+      cards,
     );
     const merged = mergeDecorations(authored, model);
     const notes = merged.fields.get("age")?.map((d) => d.style.note);

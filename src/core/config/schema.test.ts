@@ -670,3 +670,64 @@ describe("AppConfig.ai.questions", () => {
     expect(loadConfig(silly).ok).toBe(false);
   });
 });
+
+describe("AppConfig.ai.questions — what gets surfaced", () => {
+  const withQ = (questions: unknown[]): string =>
+    tweak({ input: ["id"], inputCards: [{ id: "main", rows: [{ fields: ["id"] }] }] }, (c) => {
+      c["ai"] = { questions };
+    });
+
+  it("accepts a short note alongside the long question", () => {
+    const text = withQ([
+      {
+        id: "q",
+        type: "boolean",
+        ask: "Does the domain look registered in bulk?",
+        note: "Minted domain.",
+      },
+    ]);
+    expect(loadConfig(text).ok).toBe(true);
+  });
+
+  it("accepts notable options and a notableFrom level", () => {
+    const text = withQ([
+      {
+        id: "kind",
+        type: "choice",
+        ask: "What kind?",
+        options: [{ name: "ordinary" }, { name: "minted" }],
+        notable: ["minted"],
+      },
+      {
+        id: "sev",
+        type: "score",
+        ask: "How bad?",
+        levels: ["none", "some", "lots"],
+        notableFrom: 2,
+      },
+    ]);
+    expect(loadConfig(text).ok).toBe(true);
+  });
+
+  it("rejects a notable option that does not exist", () => {
+    // Silently surfaces nothing otherwise, which reads as the model never
+    // answering rather than as a typo.
+    const text = withQ([
+      {
+        id: "kind",
+        type: "choice",
+        ask: "What kind?",
+        options: [{ name: "ordinary" }],
+        notable: ["mintd"],
+      },
+    ]);
+    expect(all(text)).toContain('No option named "mintd"');
+  });
+
+  it("rejects a notableFrom past the last level", () => {
+    const text = withQ([
+      { id: "sev", type: "score", ask: "How bad?", levels: ["none", "some"], notableFrom: 5 },
+    ]);
+    expect(all(text)).toContain("last index is 1");
+  });
+});
