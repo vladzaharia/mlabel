@@ -1,0 +1,782 @@
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+
+  // Account review: is each account human-operated, or was it created in bulk by
+  // an automated system? Declares only the eight columns a sparse extract carries
+  // — MLabel refuses a file that is missing a declared column, so a config naming
+  // columns the file lacks cannot load it.
+  //
+  // `examples/accounts.csv` is a synthetic file in exactly this shape. Every value
+  // in it is invented, and it covers the shapes the rules and questions below look
+  // for, including the ones a real extract rarely produces: a missing email, a
+  // missing timeline, an account still awaiting activation.
+  "ui": { "appTitle": { "field": "guid" } },
+
+  "ai": {
+    "anomalyDetection": true,
+    "context": "Each row is one user account on a gaming platform, reviewed long after the fact to decide whether a person opened it or an automated system created it in bulk. `prev_10_emails` and `prev_10_usernames` are the ten accounts registered immediately before this one: neighbours in time, not related accounts. A shared mail domain, a shared naming shape or a sequential counter running through those neighbours is the strongest signal available here. Large free providers (gmail.com, hotmail.com, yahoo.com) are unremarkable on their own and prove nothing either way. Almost every row has exactly two events, an account_creation and an activation, and the network enrichment (country, ASN, user agent) is null on all but a few percent of rows — so the gap between those two timestamps, the mail domain, and the two neighbour lists carry the whole judgement.",
+
+    // Deliberately absent: `neighbours`. The registration neighbours are already
+    // in `prev_10_emails` / `prev_10_usernames`, and rows in this extract are not
+    // consecutive registrations, so adjacent *rows* are unrelated to each other.
+    // A window here would spend prompt space on noise.
+    //
+    // A question only earns a place here if a display rule cannot express it — the
+    // rules are deterministic and free, and the model is for what cannot be written
+    // down in advance. Score any new one against labelled rows before trusting it.
+    //
+    // Phrased so that **yes is always the suspicious answer**. A question that fired
+    // on "looks like a real person" would put a reassuring mark on every ordinary
+    // account, and a reassuring mark anchors exactly as hard as an alarming one.
+    // No question here claims "human".
+    //
+    // Cost: 16 questions plus the 2 the app always asks is 18 passes per record, but
+    // the record is encoded once and each question appended to it, so the encode
+    // dominates and this is closer to 1 analysis than to 18.
+    "questions": [
+      // --- The mail domain -------------------------------------------------
+      //
+      // Whether the mailbox is one somebody owns is the broadest signal available.
+      // The `self-named-on-an-obscure-domain` rule is sharper but needs the handle
+      // to match the address too; these questions go after the rows it misses, and
+      // after *why* a domain is odd — which a hand-maintained regex cannot keep up
+      // with, because the tail of throwaway providers is endless.
+      {
+        // The long tail of burner services — mailscrap.site, tossbox.cc and the
+        // thousand others — is exactly what a list cannot track and a model has
+        // already seen.
+        "id": "disposable-domain",
+        "type": "boolean",
+        "field": "email",
+        "ask": "Is the mail domain a disposable, temporary or burner address service — somewhere you get a mailbox without owning it?",
+        "note": "Disposable mail domain.",
+        "whenTrue": "a throwaway or temporary mail service",
+        "whenFalse": "a real mailbox people keep, or a real organisation",
+        "when": { "op": "notEmpty", "field": "email" },
+      },
+      {
+        // Domains like arena-accounts.net or livequestmap.fr exist to register
+        // accounts here and say so in their own name. Nothing deterministic can
+        // read a domain for meaning.
+        "id": "platform-themed-domain",
+        "type": "boolean",
+        "field": "email",
+        "ask": "Does the mail domain refer to games, this gaming platform, or to making accounts — as though it exists to register accounts here?",
+        "note": "Domain names a game or account signups.",
+        "whenTrue": "the domain names a game, a platform or account creation",
+        "whenFalse": "the domain has nothing to do with gaming or signups",
+        "when": { "op": "notEmpty", "field": "email" },
+      },
+      {
+        // A nonsense word on a spam-adjacent TLD, or a personal name with digits
+        // after it used as a *domain*. A regex over TLDs catches many of these and
+        // should; this asks the broader question of whether anyone really receives
+        // mail at this address.
+        "id": "minted-domain",
+        "type": "boolean",
+        "field": "email",
+        "ask": "Does the domain look registered in bulk to send or receive signup mail, rather than belonging to a real business, school, ISP or mail provider?",
+        "note": "Domain looks minted for signups.",
+        "whenTrue": "a throwaway domain, a nonsense word, or a spam-adjacent TLD",
+        "whenFalse": "a real organisation or a known mail provider",
+        "when": { "op": "notEmpty", "field": "email" },
+      },
+      {
+        // Diagnostic rather than a verdict: it tells the reviewer *which* kind, and
+        // it is the one question here that can come back "ordinary".
+        "id": "domain-kind",
+        "type": "choice",
+        "field": "email",
+        "ask": "What kind of mail domain is this?",
+        "note": "Mail domain",
+        "options": [
+          {
+            "name": "major-consumer",
+            "means": "gmail, hotmail, yahoo, icloud, gmx, qq and the like",
+          },
+          { "name": "privacy-service", "means": "a privacy or anonymity focused mail provider" },
+          {
+            "name": "real-organisation",
+            "means": "a company, school, or regional ISP that really exists",
+          },
+          { "name": "disposable", "means": "a burner or temporary mailbox service" },
+          {
+            "name": "minted-for-signups",
+            "means": "a domain that appears to exist only to register accounts",
+          },
+          { "name": "cannot-tell" },
+        ],
+        // Only the answers worth a reviewer's attention. "major-consumer" and
+        // "real-organisation" are the common, unremarkable answers, and a mark
+        // saying "this is an ordinary gmail address" anchors for nothing.
+        "notable": ["disposable", "minted-for-signups", "privacy-service"],
+        // Six options, so a clear plurality is a lower number than a boolean's.
+        "showAbove": 0.45,
+        "when": { "op": "notEmpty", "field": "email" },
+      },
+
+      // --- How the identifiers are spelled --------------------------------
+      {
+        // Digits standing in for letters, so the address still reads as a word.
+        // A regex finds the shape; the model can tell a substitution from a handle
+        // that merely has digits appended, which is where the regex's false
+        // positives live — a trailing number says very little on its own.
+        "id": "email-substitution",
+        "type": "boolean",
+        "field": "email",
+        "ask": "In the part before the @, have digits or symbols been put where letters belong, so it reads as a word in disguise?",
+        "note": "Address spells a word with digits.",
+        "whenTrue": "characters swapped to imitate a word, like 1em0nstore",
+        "whenFalse": "ordinary spelling, or digits simply appended",
+        "when": { "op": "notEmpty", "field": "email" },
+      },
+      {
+        // The same shape in the handle.
+        "id": "handle-substitution",
+        "type": "boolean",
+        "field": "username",
+        "ask": "In the username, have digits or symbols been put where letters belong, so it reads as a word in disguise?",
+        "note": "Handle spells a word with digits.",
+        "whenTrue": "characters swapped to imitate a word, like Wi2L0utsM3t",
+        "whenFalse": "ordinary spelling, or digits simply appended",
+        "when": { "op": "notEmpty", "field": "username" },
+      },
+      {
+        // Three capitalised humps is a regex anyone can write, and it misses every
+        // handle where the words are run together in lower case. What is being
+        // asked is whether the words mean anything together, which is not a shape.
+        "id": "handle-word-mashup",
+        "type": "boolean",
+        "field": "username",
+        "ask": "Is the username unrelated words stuck together, in a combination no person would pick to describe themselves?",
+        "note": "Handle is unrelated words joined.",
+        "whenTrue": "words joined with no meaning as a whole",
+        "whenFalse": "a name, a word, or a phrase someone might actually choose",
+        "when": { "op": "notEmpty", "field": "username" },
+      },
+      {
+        // The holistic version of the three handle-shape rules, each of which only
+        // catches the shape it was written for. The human population is "chosen by
+        // somebody" — a separator, a real name — and this asks for the complement
+        // without having to enumerate it.
+        "id": "handle-assigned",
+        "type": "boolean",
+        "field": "username",
+        "ask": "Does this username look handed out by software rather than chosen by the person using it?",
+        "note": "Handle looks machine-assigned.",
+        "whenTrue": "generated: random, templated, or a counter",
+        "whenFalse": "somebody picked this for themselves",
+        "when": { "op": "notEmpty", "field": "username" },
+      },
+      {
+        // Diagnostic, and the one place `real-name` can be said — as a description
+        // of shape, not as a verdict about the account.
+        "id": "handle-shape",
+        "type": "choice",
+        "field": "username",
+        "ask": "What shape is this username?",
+        "note": "Handle",
+        "options": [
+          { "name": "real-name", "means": "a personal name, with or without a number" },
+          { "name": "chosen-nickname", "means": "a handle or gamertag someone picked" },
+          { "name": "words-joined", "means": "unrelated words run together" },
+          { "name": "random-string", "means": "no pronounceable structure at all" },
+          { "name": "word-plus-counter", "means": "a stem followed by a long number" },
+          {
+            "name": "timestamp-or-id",
+            "means": "a machine identifier: a short prefix and a long timestamp",
+          },
+        ],
+        // real-name and chosen-nickname are what a person's handle looks like.
+        "notable": ["words-joined", "random-string", "word-plus-counter", "timestamp-or-id"],
+        "showAbove": 0.45,
+        "when": { "op": "notEmpty", "field": "username" },
+      },
+
+      // --- This account against its neighbours ----------------------------
+      //
+      // The `forEach` rules already compare each neighbour to this account one at a
+      // time, and they are reliable where they fire. What no rule can do is look
+      // at the ten of them *as a set* — which is the thing the context calls the
+      // strongest signal available.
+      {
+        "id": "same-generator",
+        "type": "boolean",
+        "card": "identifiers",
+        "ask": "Do the email address and the username look produced by one generator — the same template, the same alphabet, the same way of adding numbers?",
+        "note": "Address and handle share a generator.",
+        "whenTrue": "both come out of the same recipe",
+        "whenFalse": "they look independently chosen",
+        "when": { "op": "notEmpty", "field": "email" },
+      },
+      {
+        // No rule can express this: `sharesPrefix` only ever compares a neighbour
+        // to *this* account, never the neighbours to each other.
+        "id": "neighbour-set-minted",
+        "type": "boolean",
+        "card": "identifiers",
+        "ask": "Taking the ten previous accounts together, do they look produced by one automated process rather than by ten unrelated people?",
+        "note": "Neighbours look minted together.",
+        "whenTrue": "a shared naming shape, a shared domain, or a counter running through them",
+        "whenFalse": "ten unrelated-looking accounts",
+        "when": { "op": "notEmpty", "field": "prev_10_usernames" },
+      },
+      {
+        // "Is there a run" and "is this account in it" are different questions, and
+        // only the second one bears on the label.
+        "id": "account-in-run",
+        "type": "boolean",
+        "card": "identifiers",
+        "ask": "Does this account itself belong to that group — same naming shape, same domain family, or the next number in the same sequence?",
+        "note": "This account fits the run.",
+        "whenTrue": "it is one of the batch",
+        "whenFalse": "it stands apart from its neighbours",
+        "when": { "op": "notEmpty", "field": "prev_10_usernames" },
+      },
+      {
+        // Domains differing by a single character — driftvolumea.club beside
+        // driftvolumeb.club — are plainly one operation, and `sameDomain` matches
+        // none of them against each other. Sibling domains are invisible to every
+        // rule in this config.
+        "id": "neighbour-domain-family",
+        "type": "boolean",
+        "card": "identifiers",
+        "ask": "Do this account's mail domain and the neighbours' domains look like one operation — different domains built to the same pattern, or differing by a character or two?",
+        "note": "Domain is a sibling of a neighbour's.",
+        "whenTrue": "sibling domains from one source",
+        "whenFalse": "unrelated domains, or ordinary mail providers",
+        "when": { "op": "notEmpty", "field": "prev_10_emails" },
+      },
+
+      // --- The event timeline ----------------------------------------------
+      //
+      // The strongest thing here that no rule can reach: the rule language cannot
+      // subtract one event's timestamp from another's, so a delay between two
+      // events in a map is simply inexpressible and was dropped from the rules.
+      // Asked as a scale rather than a yes/no because the useful threshold is much
+      // tighter than a human would guess — seconds, not a minute — and a scale
+      // finds that line without anyone having to pick it in advance.
+      {
+        "id": "activation-speed",
+        "type": "score",
+        "card": "events",
+        "ask": "How long after the account was created was it activated? Compare the account_creation timestamp with the activation timestamp.",
+        "note": "Activated",
+        "levels": [
+          "minutes or longer",
+          "under a minute",
+          "under ten seconds",
+          "within about a second",
+        ],
+        // Level 0 is "minutes or longer", which is simply what a person doing it
+        // by hand looks like, and says nothing worth saying.
+        "notableFrom": 1,
+        "showAbove": 0.45,
+        "when": { "op": "notEmpty", "field": "events" },
+      },
+      {
+        // Rare, but decisive where it fires, and nearly free once the timeline is
+        // already in the prompt. Note there is deliberately no question here about
+        // location or device: in a sparse extract the country, ASN and user agent
+        // are usually null, and a question that can almost never be answered still
+        // costs a pass on every record.
+        "id": "anonymising-network",
+        "type": "boolean",
+        "card": "events",
+        "ask": "Does any event come through a VPN, a proxy, Tor, or a hosting provider rather than an ordinary consumer connection?",
+        "note": "Event via VPN, proxy or hosting.",
+        "whenTrue": "at least one event is flagged anonymous, proxied or hosted",
+        "whenFalse": "no such flag is set on any event",
+        "when": { "op": "notEmpty", "field": "events" },
+      },
+
+      // --- The record as a whole -------------------------------------------
+      {
+        // A score rather than a boolean on purpose. "Bot: 91%" sitting beside a
+        // radio button that says Bot is a different kind of suggestion from "the
+        // evidence here is strong", and this file's labelers are the ones deciding.
+        // It is also the one answer worth sorting a queue by.
+        "id": "automation-evidence",
+        "type": "score",
+        "ask": "Taking the whole record together, how strongly does the evidence point to this account having been created automatically rather than by a person?",
+        "note": "Automation evidence",
+        "levels": [
+          "nothing unusual",
+          "weak signs",
+          "several signs pointing the same way",
+          "unmistakable",
+        ],
+        // Below "several signs pointing the same way" this is noise, and a quiet
+        // reading on every ordinary record would bury the loud ones.
+        "notableFrom": 2,
+        "showAbove": 0.45,
+      },
+    ],
+  },
+
+  "input": {
+    "adapterId": "csv",
+    "fields": [
+      {
+        "name": "guid",
+        "type": "text",
+        "display": { "title": "Account GUID", "textSize": "lg" },
+      },
+      { "name": "user_created_at", "type": "date", "display": "Created At" },
+      {
+        "name": "user_status",
+        "type": "enum",
+        "display": "Status",
+        "choices": [
+          { "name": "active", "display": "Active" },
+          { "name": "awaiting-activation", "display": "Awaiting Activation" },
+          { "name": "awaiting-reactivation", "display": "Awaiting Reactivation" },
+        ],
+      },
+      { "name": "email", "type": "text", "display": { "title": "Email", "textSize": "lg" } },
+      { "name": "username", "type": "text", "display": { "title": "Username", "textSize": "lg" } },
+      {
+        // Comma-joined in the source file. Declared as a list: MLabel splits a
+        // stringy list of scalars on load, which is what lets the per-item
+        // rules below mark individual neighbours rather than the whole cell.
+        "name": "prev_10_emails",
+        "type": "array",
+        "items": { "type": "text" },
+        "display": {
+          "title": "Previous 10 Emails",
+          "description": "Emails of the 10 accounts created immediately before this one.",
+          "titlePosition": "above",
+          "textSize": "sm",
+        },
+      },
+      {
+        "name": "prev_10_usernames",
+        "type": "array",
+        "items": { "type": "text" },
+        "display": {
+          "title": "Previous 10 Usernames",
+          "description": "Usernames of the 10 accounts created immediately before this one.",
+          "titlePosition": "above",
+          "textSize": "sm",
+        },
+      },
+      {
+        "name": "events",
+        "type": "map",
+        "keys": { "type": "integer" },
+        "display": {
+          "title": "Event Timeline",
+          "description": "Chronological account_creation / activation / login events with IP enrichment. Sparse rows leave many of these blank.",
+          "titlePosition": "above",
+          "textSize": "md",
+        },
+        "values": {
+          "type": "object",
+          "fields": [
+            { "name": "timestamp", "type": "date", "display": "Time" },
+            {
+              "name": "event_type",
+              "type": "enum",
+              "display": "Event",
+              "choices": [
+                { "name": "account_creation", "display": "Account Creation" },
+                { "name": "activation", "display": "Activation" },
+                { "name": "login", "display": "Login" },
+              ],
+            },
+            { "name": "successful", "type": "boolean", "display": "Succeeded" },
+            { "name": "error", "type": "text", "display": "Error" },
+            { "name": "client_id", "type": "text", "display": "Client" },
+            { "name": "ip_address", "type": "text", "display": "IP" },
+            { "name": "country", "type": "text", "display": "Country" },
+            { "name": "subdivision", "type": "text", "display": "Subdivision" },
+            { "name": "asn_org", "type": "text", "display": "ASN Org" },
+            { "name": "is_anonymous", "type": "boolean", "display": "Anonymous" },
+            { "name": "is_anonymous_vpn", "type": "boolean", "display": "VPN" },
+            { "name": "is_residential_proxy", "type": "boolean", "display": "Residential Proxy" },
+            { "name": "is_public_proxy", "type": "boolean", "display": "Public Proxy" },
+            { "name": "is_tor_exit_node", "type": "boolean", "display": "Tor Exit Node" },
+            { "name": "is_hosting_provider", "type": "boolean", "display": "Hosting Provider" },
+            { "name": "user_agent", "type": "text", "display": "User Agent" },
+          ],
+          "table": {
+            "columns": [
+              { "name": "Time", "use": ["timestamp"] },
+              { "name": "Event", "use": ["event_type", "successful", "error"], "layout": "inline" },
+              { "name": "Client", "use": ["client_id"] },
+              {
+                "name": "Network",
+                "use": ["ip_address", "country", "subdivision", "asn_org"],
+                "layout": "stack",
+              },
+              {
+                "name": "Proxy Signals",
+                "use": [
+                  "is_anonymous",
+                  "is_anonymous_vpn",
+                  "is_residential_proxy",
+                  "is_public_proxy",
+                  "is_tor_exit_node",
+                  "is_hosting_provider",
+                ],
+                "layout": "chips",
+              },
+              { "name": "User Agent", "use": ["user_agent"] },
+            ],
+          },
+        },
+      },
+    ],
+
+    // Notes state what was found, not what to do about it. The reviewer knows
+    // what a shared domain means; repeating the inference on every row buries
+    // the one fact the rule exists to surface.
+    // Almost everything here is card-scoped. A rule about this account is a
+    // statement about the account, and hanging it on whichever column happened
+    // to satisfy the condition reads as a fact about that column — "the
+    // username is wrong" rather than "this account looks minted". The Analysis
+    // footer is where those belong, gathered as one verdict.
+    //
+    // Value-level marking is reserved for the `forEach` rules at the bottom,
+    // where the whole point is *which* of ten entries matched.
+    //
+    // Each rule below was scored against labelled rows before it was kept, and
+    // the ones that did not earn their place are listed at the end of this block
+    // so they are not re-added on a hunch.
+    "rules": [
+      // --- This account, on its own -------------------------------------
+      {
+        // Deliberately `info` rather than a warning: it fires on a handful of
+        // rows, and a handful proves nothing either way — which is exactly why it
+        // should not be coloured as though it did.
+        "name": "not-active-status",
+        "when": {
+          "op": "in",
+          "field": "user_status",
+          "value": ["awaiting-activation", "awaiting-reactivation"],
+        },
+        "appliesToCards": ["account"],
+        "style": { "tone": "info", "note": "Never completed activation." },
+      },
+      {
+        // The strongest single rule here, and neither half comes close on its
+        // own — hence the `allOf` rather than two separate rules.
+        //
+        // The provider list is a discriminator inside the conjunction, not a
+        // claim on its own: plenty of automated accounts use gmail. What it
+        // says is that a *self-named* account is unremarkable at a consumer
+        // mailbox and worth a look on a domain nobody signs up to by accident.
+        "name": "self-named-on-an-obscure-domain",
+        "when": {
+          "op": "allOf",
+          "conditions": [
+            { "op": "sameLocalPart", "field": "username", "otherField": "email" },
+            {
+              "op": "not",
+              "condition": {
+                "op": "matches",
+                "field": "email",
+                "pattern": "@(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|icloud|me|mac|aol|gmx|web|protonmail|proton|zoho|yandex|mail|qq|163|126|orange|free|wanadoo|libero|seznam|naver)\\.[a-z.]+$",
+              },
+            },
+          ],
+        },
+        "appliesToCards": ["identifiers"],
+        "style": { "tone": "danger", "note": "Handle is the address, on an uncommon mail domain." },
+      },
+      {
+        // A long digit tail is the machine-issued shape that survives contact
+        // with real data; the fixed-length-handle rule it replaces was both
+        // weaker and narrower.
+        "name": "long-digit-tail",
+        "when": { "op": "matches", "field": "username", "pattern": "[0-9]{6,}$" },
+        "appliesToCards": ["identifiers"],
+        "style": { "tone": "warning", "note": "Handle ends in a long digit run." },
+      },
+      {
+        // Unpronounceable handles are minted, not chosen.
+        "name": "unpronounceable-handle",
+        "when": {
+          "op": "anyOf",
+          "conditions": [
+            {
+              "op": "not",
+              "condition": { "op": "matches", "field": "username", "pattern": "[aeiouAEIOU]" },
+            },
+            {
+              "op": "matches",
+              "field": "username",
+              "pattern": "[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]{4,}",
+            },
+          ],
+        },
+        "appliesToCards": ["identifiers"],
+        "style": { "tone": "warning", "note": "Handle has almost no vowels." },
+      },
+      {
+        // A short prefix followed by a millisecond timestamp. Rare, and wrong
+        // about almost nothing when it does fire.
+        "name": "timestamp-username",
+        "when": { "op": "matches", "field": "username", "pattern": "^[A-Za-z]{1,3}1[0-9]{12}$" },
+        "appliesToCards": ["identifiers"],
+        "style": { "tone": "danger", "note": "Handle is a creation timestamp." },
+      },
+      {
+        "name": "apple-private-relay",
+        "when": { "op": "matches", "field": "email", "pattern": "@privaterelay\\.appleid\\.com$" },
+        "appliesToCards": ["identifiers"],
+        "style": { "tone": "info", "note": "Apple Private Relay address." },
+      },
+      // Tried, scored, and rejected — recorded so they are not re-added on a
+      // hunch:
+      //   consumer mailbox             reads as evidence of a person, but plenty
+      //                                of automated accounts use one, and a
+      //                                reassuring mark on nearly half the file
+      //                                nudges a labeler on exactly the rows where
+      //                                it is wrong. A weak negative is not worth
+      //                                an anchor.
+      //   separator in the handle      same objection, smaller blast radius.
+      //                                Dropped for the same reason: no rule here
+      //                                claims "human".
+      //   fixed-length handle          weak, and subsumed by the two shape rules
+      //                                above.
+      //   handle mostly digits         mostly restates the domain once consumer
+      //                                mailboxes are accounted for.
+      //   no user agent on any event   fires on almost the whole file at the base
+      //                                rate. Says nothing.
+      //   has an activation event      fires on every row. Says nothing.
+      //   activated quickly            real, but the rule language cannot express
+      //                                a delay between two events in a map. It is
+      //                                an `ai.questions` entry instead.
+
+      // --- This account against its neighbours ---------------------------
+      //
+      // Every rule here compares a neighbour *to this account*. What a
+      // neighbour looks like on its own is the neighbour's business: a run of
+      // timestamped handles in the list says something about the file, not
+      // about the row being labeled, and marking it pulls attention onto a
+      // value the reviewer is not deciding about. Relatedness is the question
+      // this column exists to answer.
+      {
+        "name": "neighbour-same-domain",
+        "forEach": "prev_10_emails",
+        "when": {
+          "op": "sameDomain",
+          "field": "prev_10_emails",
+          "otherField": "email",
+          // Two accounts both at gmail.com share nothing. Without this the rule
+          // fires on most rows in the file and the colour stops meaning anything.
+          "ignore": [
+            "gmail.com",
+            "googlemail.com",
+            "hotmail.com",
+            "hotmail.co.uk",
+            "outlook.com",
+            "live.com",
+            "msn.com",
+            "yahoo.com",
+            "yahoo.co.uk",
+            "yahoo.com.br",
+            "ymail.com",
+            "icloud.com",
+            "me.com",
+            "mac.com",
+            "aol.com",
+            "gmx.com",
+            "gmx.de",
+            "protonmail.com",
+            "proton.me",
+            "zoho.com",
+            "yandex.ru",
+            "qq.com",
+            "163.com",
+            "126.com",
+          ],
+        },
+        "style": { "tone": "warning", "note": "Same mail domain as this account." },
+      },
+      {
+        // The signal worth having: a handle sitting directly above three or four
+        // others that begin the same way. Three characters rather than four,
+        // because minted handles of this kind commonly diverge at the fourth, and
+        // three added no false positives on consumer-mailbox rows.
+        "name": "neighbour-shares-handle-prefix",
+        "forEach": "prev_10_usernames",
+        "when": {
+          "op": "sharesPrefix",
+          "field": "prev_10_usernames",
+          "otherField": "username",
+          "length": 3,
+        },
+        "style": { "tone": "warning", "note": "Handle begins like this account's." },
+      },
+      {
+        "name": "neighbour-shares-address-prefix",
+        "forEach": "prev_10_emails",
+        "when": {
+          "op": "sharesPrefix",
+          "field": "prev_10_emails",
+          "otherField": "email",
+          "length": 3,
+        },
+        "style": { "tone": "warning", "note": "Address begins like this account's." },
+      },
+      {
+        "name": "neighbour-shares-this-handle",
+        "forEach": "prev_10_usernames",
+        "when": { "op": "sameLocalPart", "field": "prev_10_usernames", "otherField": "username" },
+        "style": { "tone": "danger", "note": "Identical to this account's handle." },
+      },
+
+      // --- Missing data ---------------------------------------------------
+      // Card-scoped, so one line stands in for what would otherwise repeat on
+      // every field the gap touches.
+      {
+        "name": "no-identifiers",
+        "when": { "op": "empty", "field": "email" },
+        "appliesToCards": ["identifiers"],
+        "style": { "tone": "muted", "note": "No email captured for this row." },
+      },
+      {
+        "name": "no-neighbours",
+        "when": { "op": "empty", "field": "prev_10_emails" },
+        "appliesToCards": ["identifiers"],
+        "style": { "tone": "muted", "note": "No registration neighbours captured." },
+      },
+      {
+        "name": "no-events",
+        "when": { "op": "empty", "field": "events" },
+        "appliesToCards": ["events"],
+        "style": { "tone": "muted", "note": "No event data captured." },
+      },
+      {
+        "name": "no-created-at",
+        "when": { "op": "empty", "field": "user_created_at" },
+        "style": { "tone": "muted", "note": "No creation time." },
+      },
+    ],
+
+    "cards": [
+      {
+        "name": "account",
+        "display": "Account",
+        "rows": [{ "use": ["guid"] }, { "perRow": 2, "use": ["user_created_at", "user_status"] }],
+      },
+      {
+        "name": "identifiers",
+        "display": {
+          "title": "Email & Username",
+          "description": "Compare this account's identifiers against its registration neighbours.",
+        },
+        "rows": [
+          { "perRow": 2, "use": ["email", "username"] },
+          { "perRow": 2, "use": ["prev_10_emails", "prev_10_usernames"] },
+        ],
+      },
+      {
+        "name": "events",
+        "display": "Event Timeline",
+        "rows": [{ "use": ["events"] }],
+      },
+    ],
+  },
+
+  "output": {
+    "adapterId": "csv",
+    "fields": [
+      // No batch_id in this extract, so no batch_id copy here.
+      { "name": "guid", "type": "text", "fill": { "kind": "copy" } },
+      { "name": "user_created_at", "type": "date", "fill": { "kind": "copy" } },
+
+      // Asked once on the setup screen, written onto every exported row.
+      {
+        "name": "labeled_by",
+        "type": "text",
+        "fill": { "kind": "session" },
+        "display": {
+          "title": "Labeled By",
+          "help": "Your work email; written onto every exported row.",
+        },
+      },
+      {
+        "name": "source",
+        "type": "enum",
+        "fill": { "kind": "session" },
+        "display": "Source",
+        "choices": [{ "name": "AxP", "display": "AxP" }],
+      },
+
+      // Stamped when the record becomes complete, re-stamped on edits.
+      { "name": "labeled_at", "type": "date", "fill": { "kind": "timestamp" } },
+
+      {
+        "name": "label",
+        "type": "enum",
+        "widget": "radio",
+        "display": {
+          "title": "Label",
+          "description": "Is this account human-operated or automated?",
+          "titlePosition": "above",
+          "textSize": "lg",
+        },
+        "choices": [
+          {
+            "name": "human",
+            "display": "Human",
+            "shortcut": "j",
+            "selectedStyle": { "tone": "success" },
+          },
+          {
+            "name": "bot",
+            "display": "Bot",
+            "shortcut": "l",
+            "selectedStyle": { "tone": "danger" },
+          },
+        ],
+      },
+      {
+        "name": "confidence",
+        "type": "enum",
+        "widget": "radio",
+        "display": {
+          "title": "Confidence",
+          "description": "How certain are you in the label above?",
+          "titlePosition": "above",
+        },
+        "choices": [
+          {
+            "name": "low",
+            "display": "Low",
+            "shortcut": "a",
+            "selectedStyle": { "tone": "warning" },
+          },
+          { "name": "high", "display": "High", "shortcut": "d" },
+        ],
+      },
+    ],
+
+    "cards": [
+      {
+        "name": "run",
+        "scope": "session",
+        "display": {
+          "title": "About this run",
+          "description": "Asked once before labeling starts, applied to every row.",
+        },
+        "rows": [{ "perRow": 2, "use": ["labeled_by", "source"] }],
+      },
+      {
+        "name": "labeling",
+        "display": {
+          "title": "Labeling",
+          // The keys themselves are shown on the choices and in Settings, so
+          // they are not restated here — a second copy is a second thing to
+          // keep in step, and this one had already drifted.
+          "help": "With no rate or behaviour columns in this extract, lean on the event timeline and the neighbour lists. Use Low when the signals conflict.",
+        },
+        "rows": [{ "perRow": 2, "use": ["label", "confidence"] }],
+      },
+    ],
+  },
+}
