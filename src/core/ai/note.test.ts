@@ -30,9 +30,11 @@ const score: TargetedQuestion = {
 
 describe("noteFor", () => {
   it("states what was found, rather than repeating the question", () => {
+    // The probability is its own column now, so the note is the statement alone.
     const note = noteFor(bool, { id: "minted", type: "boolean", p: 0.88, confidence: 0.88 });
-    expect(note).toBe("Domain looks minted for signups. 88%");
+    expect(note).toBe("Domain looks minted for signups.");
     expect(note).not.toContain("?");
+    expect(note).not.toContain("%");
   });
 
   it("names the chosen option for a choice", () => {
@@ -43,7 +45,7 @@ describe("noteFor", () => {
       p: new Map([["minted-for-signups", 0.48]]),
       confidence: 0.48,
     });
-    expect(note).toBe("Mail domain: minted-for-signups (48%)");
+    expect(note).toBe("Mail domain: minted-for-signups");
   });
 
   it("names the nearest level for a score, keeping the number as the qualifier", () => {
@@ -73,8 +75,6 @@ describe("noteFor", () => {
     // Better a long note than none, but the config schema nudges authors to
     // supply one and the docs say why.
     const bare: TargetedQuestion = { id: "q", type: "boolean", ask: "Is it odd?" };
-    expect(noteFor(bare, { id: "q", type: "boolean", p: 0.9, confidence: 0.9 })).toBe(
-      "Is it odd? 90%",
-    );
+    expect(noteFor(bare, { id: "q", type: "boolean", p: 0.9, confidence: 0.9 })).toBe("Is it odd?");
   });
 });

@@ -20,8 +20,6 @@
 import type { Answer } from "./answer";
 import type { TargetedQuestion } from "./question";
 
-const pct = (p: number): string => `${String(Math.round(p * 100))}%`;
-
 /** The level a score sits nearest, clamped to the ones that exist. */
 function nearestLevel(levels: readonly string[], score: number): string {
   const index = Math.min(levels.length - 1, Math.max(0, Math.round(score)));
@@ -39,14 +37,15 @@ export function noteFor(question: TargetedQuestion, answer: Answer): string {
 
   switch (answer.type) {
     case "boolean":
-      // The note already says what being true means, so nothing is added but the
-      // probability — "Domain looks minted for signups. 88%".
-      return `${label} ${pct(answer.p)}`;
+      // The note already says what being true means, and the probability is
+      // shown as its own column, so the statement is the whole line.
+      return label;
     case "choice":
-      return `${label}: ${answer.chosen} (${pct(answer.confidence)})`;
+      return `${label}: ${answer.chosen}`;
     case "score":
-      // The level names the finding; the number says where between levels it
-      // fell, which is the part that makes scores comparable across records.
+      // The level names the finding; the raw score says where between levels it
+      // fell, which is the part that makes scores comparable across records and
+      // is not recoverable from the strength bar alone.
       return `${label}: ${nearestLevel(question.type === "score" ? question.levels : [], answer.score)} (${answer.score.toFixed(1)})`;
   }
 }

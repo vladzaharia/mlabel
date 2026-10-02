@@ -2,7 +2,7 @@ import type { Card } from "../config";
 import type { Decoration, Decorations } from "../decorations";
 import { noteFor } from "./note";
 import type { TargetedQuestion } from "./question";
-import { isWorthShowing, severityOf } from "./threshold";
+import { isWorthShowing, severityOf, strengthOf } from "./threshold";
 import type { Analysis } from "./types";
 
 /**
@@ -75,8 +75,10 @@ export function decorationsFromAnalysis(
     const tone = severityOf(answer, question);
     const note = noteFor(question, answer);
 
+    const confidence = strengthOf(answer, question);
+
     if (question.card !== undefined) {
-      add(cards, question.card, { rule, source: "model", style: { tone, note } });
+      add(cards, question.card, { rule, source: "model", confidence, style: { tone, note } });
       continue;
     }
 
@@ -87,13 +89,18 @@ export function decorationsFromAnalysis(
     // about one column, and a dozen sentences stacked under a value is not
     // something a labeler can read while deciding something else — so the field
     // carries the tone, which says *look here*, and the words go to the card.
-    add(fields, field, { rule, source: "model", style: { tone } });
+    add(fields, field, { rule, source: "model", confidence, style: { tone } });
 
     // Named, because a card gathers several fields and an unattributed line
     // reads as a statement about the card as a whole.
     const home = cardOf.get(field);
     if (home !== undefined) {
-      add(cards, home, { rule, source: "model", style: { tone, note: `${field}: ${note}` } });
+      add(cards, home, {
+        rule,
+        source: "model",
+        confidence,
+        style: { tone, note: `${field}: ${note}` },
+      });
     }
   }
 

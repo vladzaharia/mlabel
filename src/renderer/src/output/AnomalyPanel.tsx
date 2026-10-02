@@ -2,6 +2,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import {
   isWorthShowing,
   noteFor,
+  strengthOf,
   questionsOf,
   severityOf,
   type Analysis,
@@ -116,6 +117,10 @@ function Answers({
 
   if (shown.length === 0) return <Quiet>Nothing stood out.</Quiet>;
 
+  // Strongest first, as in the card footer: the top line is the one worth acting
+  // on, rather than whichever question the config happened to list first.
+  shown.sort((a, b) => strengthOf(b.answer, b.question) - strengthOf(a.answer, a.question));
+
   return (
     <ul className="flex flex-col gap-1.5">
       {shown.map(({ answer, question }) => (
@@ -135,10 +140,9 @@ function Note({
   const tone = severityOf(answer, question);
   return (
     <li className="flex items-start gap-1.5 text-xs">
-      <span
-        aria-hidden="true"
-        className={cn("mt-1 size-1.5 shrink-0 rounded-full", SEVERITY[tone].dotClass)}
-      />
+      <span className={cn("mt-px w-7 shrink-0 text-right tabular-nums", SEVERITY[tone].textClass)}>
+        {Math.round(strengthOf(answer, question) * 100)}%
+      </span>
       <span className="min-w-0">
         <span className={SEVERITY[tone].textClass}>{noteFor(question, answer)}</span>
       </span>

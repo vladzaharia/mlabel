@@ -86,7 +86,8 @@ describe("AnomalyPanel", () => {
       }),
     });
     render(<AnomalyPanel />);
-    expect(screen.getByText(/Is the signup time unusual\? 84%/)).toBeInTheDocument();
+    expect(screen.getByText("Is the signup time unusual?")).toBeInTheDocument();
+    expect(screen.getByText("84%")).toBeInTheDocument();
   });
 
   it("leaves a targeted answer to the field and its card, rather than repeating it", () => {
@@ -104,8 +105,8 @@ describe("AnomalyPanel", () => {
     });
     render(<AnomalyPanel />);
     expect(screen.queryByText(/throwaway/i)).toBeNull();
-    expect(screen.queryByText(/91%/)).toBeNull();
-    expect(screen.getByText(/Is the signup time unusual\? 84%/)).toBeInTheDocument();
+    expect(screen.queryByText("91%")).toBeNull();
+    expect(screen.getByText("84%")).toBeInTheDocument();
   });
 
   it("says nothing about an answer that fell below its threshold", () => {
@@ -200,7 +201,7 @@ describe("AnomalyPanel — answers outlive the engine", () => {
       }),
     });
     render(<AnomalyPanel />);
-    expect(screen.getByText(/Is the signup time unusual\?/)).toBeInTheDocument();
+    expect(screen.getByText("Is the signup time unusual?")).toBeInTheDocument();
     expect(screen.queryByText(/No model downloaded yet/)).toBeNull();
   });
 

@@ -26,6 +26,8 @@ interface Line {
   fromModel: boolean;
   /** `4 of 10`, for a rule that matched some entries of a list. */
   count?: string;
+  /** How strongly a model line leans, 0 to 1. Absent on authored rules. */
+  confidence?: number;
 }
 
 /**
@@ -81,6 +83,7 @@ export function CardAnalysis({
       text: decoration.style.note as string,
       tone: decoration.style.tone ?? cardTone,
       fromModel: decoration.source === "model",
+      ...(decoration.confidence === undefined ? {} : { confidence: decoration.confidence }),
     }));
 
   // Only the fields this card actually shows: a per-item rule on a list living
@@ -91,7 +94,11 @@ export function CardAnalysis({
   }
 
   const ruleLines = lines.filter((line) => !line.fromModel);
-  const modelLines = lines.filter((line) => line.fromModel);
+  // Strongest first. A column sorted by nothing makes a reviewer read all of it
+  // to find the one worth acting on; sorted, the top line is that one.
+  const modelLines = lines
+    .filter((line) => line.fromModel)
+    .toSorted((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
 
   return (
     <div className="border-t border-border/60 px-4 py-3">
@@ -113,6 +120,43 @@ export function CardAnalysis({
         <Column empty="Nothing flagged." icon lines={modelLines} title="Model" />
       </div>
     </div>
+  );
+}
+
+/**
+ * How sure the model is, as a quantity rather than a hue.
+ *
+ * Three colour bands over a continuous value were doing all the work and doing
+ * it badly: 74% came out grey and 75% blue, so a percentage point looked like a
+ * difference while the gap from 75% to 95% looked like none. The number is
+ * right-aligned and tabular so a column of them can be compared down the page,
+ * and the bar gives the same value a length, which is read without parsing
+ * digits at all. The colour stays, but it is now the least of three signals
+ * rather than the only one.
+ */
+function Strength({
+  value,
+  tone,
+}: {
+  value: number;
+  tone: SeverityKind | undefined;
+}): React.JSX.Element {
+  const pct = Math.round(value * 100);
+  return (
+    <span className="mt-px flex shrink-0 items-center gap-1.5" title={`${String(pct)}% confident`}>
+      <span className={cn("w-7 text-right tabular-nums", tone ? SEVERITY[tone].textClass : "")}>
+        {pct}%
+      </span>
+      <span aria-hidden="true" className="h-1 w-8 overflow-hidden rounded-full bg-border/70">
+        <span
+          className={cn(
+            "block h-full rounded-full",
+            tone ? SEVERITY[tone].dotClass : "bg-muted-foreground",
+          )}
+          style={{ width: `${String(pct)}%` }}
+        />
+      </span>
+    </span>
   );
 }
 
@@ -152,9 +196,13 @@ function Column({
                 line.tone ? SEVERITY[line.tone].textClass : "text-muted-foreground",
               )}
             >
-              <span aria-hidden="true" className="mt-px shrink-0">
-                ·
-              </span>
+              {line.confidence === undefined ? (
+                <span aria-hidden="true" className="mt-px shrink-0">
+                  ·
+                </span>
+              ) : (
+                <Strength tone={line.tone} value={line.confidence} />
+              )}
               <span>
                 {line.fromModel && <span className="sr-only">Suggested by the local model: </span>}
                 {line.text}

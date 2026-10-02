@@ -30,6 +30,15 @@ export interface Decoration {
    * it differently so the two are never mistaken for each other.
    */
   source?: DecorationSource;
+  /**
+   * How strongly a model decoration leans, 0 to 1. Absent on authored rules.
+   *
+   * Carried separately from the note so the renderer can show it as a quantity
+   * rather than a hue. Three colour bands over a continuous value make 74% and
+   * 75% look like a difference and 75% and 95% look like none, and a number at
+   * the end of a sentence cannot be compared with the one above it.
+   */
+  confidence?: number;
   style: Style;
 }
 

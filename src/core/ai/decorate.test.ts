@@ -36,6 +36,7 @@ describe("decorationsFromAnalysis", () => {
     // beside every value is unreadable; the mark says "something was said here"
     // and the card footer says what.
     expect(field?.[0]?.style.note).toBeUndefined();
+    expect(field?.[0]?.confidence).toBeCloseTo(0.93, 5);
   });
 
   it("explains a field answer on the card that holds the field", () => {
@@ -44,9 +45,12 @@ describe("decorationsFromAnalysis", () => {
       questions,
       cards,
     );
-    const note = decorations.cards.get("main")?.[0]?.style.note;
-    expect(note).toContain("age");
-    expect(note).toContain("93%");
+    const decoration = decorations.cards.get("main")?.[0];
+    expect(decoration?.style.note).toContain("age");
+    // The number rides alongside the note rather than inside it, so the renderer
+    // can align a column of them instead of burying each at the end of a line.
+    expect(decoration?.confidence).toBeCloseTo(0.93, 5);
+    expect(decoration?.style.note).not.toContain("%");
   });
 
   it("omits an answer below its threshold", () => {
@@ -77,7 +81,8 @@ describe("decorationsFromAnalysis", () => {
     );
     // 0.9 confident is loud; the grading is what tells seven model notes apart.
     expect(decorations.cards.get("main")?.[0]?.style.tone).toBe("warning");
-    expect(decorations.cards.get("main")?.[0]?.style.note).toContain("a (90%)");
+    expect(decorations.cards.get("main")?.[0]?.style.note).toContain("a");
+    expect(decorations.cards.get("main")?.[0]?.confidence).toBeCloseTo(0.9, 5);
   });
 
   it("leaves a record-level answer for the panel", () => {
