@@ -134,7 +134,7 @@
           "$ref": "#/$defs/AiNeighbours"
         },
         "questions": {
-          "description": "What to ask about each record, beyond the two the app always asks (whether the record is inconsistent, and whether two careful people could label it differently). Everything specific to your data belongs here: only you know what would count as odd in it.",
+          "description": "What to ask about each record, beyond the two the app always asks (whether the record is inconsistent, and whether two careful people could label it differently). Everything specific to your data belongs here: only you know what would count as odd in it. Up to 32. They are cheaper than they look — the record is encoded once and each question appended to that one encode — so the cost of asking another is small beside the record itself, and `when` keeps a question that cannot apply from being asked at all.",
           "$ref": "#/$defs/__schema17"
         }
       },
@@ -183,7 +183,7 @@
       "maximum": 5
     },
     "__schema17": {
-      "maxItems": 16,
+      "maxItems": 32,
       "type": "array",
       "items": {
         "$ref": "#/$defs/AiQuestion"

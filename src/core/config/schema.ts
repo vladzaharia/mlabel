@@ -466,8 +466,22 @@ export const Condition: z.ZodType<Condition> = z
 const MAX_OPTIONS = 16;
 /** Cap on the levels in one `score`. */
 const MAX_LEVELS = 10;
-/** Cap on authored questions, so one config cannot make every record slow. */
-const MAX_QUESTIONS = 16;
+/**
+ * Cap on authored questions.
+ *
+ * Raised from 16 once a real config reached it. The original number assumed each
+ * question cost what a prompt costs, which is how an LLM behaves and not how
+ * this works: the record is encoded once and every question is appended to that
+ * one encode, read, and erased. So a question costs its own few dozen tokens
+ * plus a single forward pass, and the record — a timeline, two neighbour lists —
+ * dominates the total however many are asked.
+ *
+ * It is still a cap, because the per-question cost is small rather than zero and
+ * every one of them is work done ahead of a labeler who may never arrive at that
+ * record. Treat it as the point past which a config should be asked whether it
+ * really wants all of these, not as a performance cliff.
+ */
+const MAX_QUESTIONS = 32;
 /** Long enough to ask something precise, short enough to keep the prompt small. */
 const MAX_ASK = 300;
 
@@ -789,7 +803,7 @@ export const AppConfig = z
           }),
         questions: z.array(AiQuestion).max(MAX_QUESTIONS).optional().meta({
           description:
-            "What to ask about each record, beyond the two the app always asks (whether the record is inconsistent, and whether two careful people could label it differently). Everything specific to your data belongs here: only you know what would count as odd in it.",
+            "What to ask about each record, beyond the two the app always asks (whether the record is inconsistent, and whether two careful people could label it differently). Everything specific to your data belongs here: only you know what would count as odd in it. Up to 32. They are cheaper than they look — the record is encoded once and each question appended to that one encode — so the cost of asking another is small beside the record itself, and `when` keeps a question that cannot apply from being asked at all.",
         }),
       })
       .default({ anomalyDetection: true, neighbours: { before: 0, after: 0 } })
