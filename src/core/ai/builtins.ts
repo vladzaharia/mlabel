@@ -37,3 +37,18 @@ export const BUILT_IN_QUESTIONS: readonly TargetedQuestion[] = [
 export const BUILT_IN_IDS: readonly string[] = BUILT_IN_QUESTIONS.map((question) => question.id);
 
 export const isBuiltIn = (id: string): boolean => BUILT_IN_IDS.includes(id);
+
+/**
+ * Every question a config asks, in the order they are shown.
+ *
+ * One expression of "built-ins first, then the author's", because two callers
+ * need it — the service that asks the questions and the renderer that matches
+ * answers back to them — and a list that disagreed between them would show one
+ * question's probability under another's heading.
+ */
+export const questionsOf = (
+  config: {
+    ai: { questions?: readonly TargetedQuestion[] };
+  } | null,
+): readonly TargetedQuestion[] =>
+  config === null ? BUILT_IN_QUESTIONS : [...BUILT_IN_QUESTIONS, ...(config.ai.questions ?? [])];

@@ -127,6 +127,11 @@ async function ask(
     const boundary = sequence.nextTokenIndex;
 
     const answers: Answer[] = [];
+    // Sequential on purpose, and `no-await-in-loop` is disabled below rather than
+    // satisfied: every question is evaluated against *the same* sequence and
+    // erased before the next one appends. Running them with `Promise.all` would
+    // interleave appends and erases over one shared KV state, so questions would
+    // read each other's tokens — plausible-looking answers to the wrong prompt.
     for (const question of questions) {
       if (controller.signal.aborted) return;
 
@@ -139,6 +144,7 @@ async function ask(
       const input: ControlledEvaluateInputItem[] = tokens.map((token, i) =>
         i === tokens.length - 1 ? [token, { generateNext: { probabilities: true } }] : token,
       );
+      // oxlint-disable-next-line no-await-in-loop
       const output = await sequence.controlledEvaluate(input);
       const probabilities = output.at(-1)?.next?.probabilities ?? new Map<Token, number>();
 
@@ -147,6 +153,7 @@ async function ask(
 
       // Back to the end of the state, so the next question sees the record and
       // not the previous question.
+      // oxlint-disable-next-line no-await-in-loop
       await sequence.eraseContextTokenRanges([{ start: boundary, end: sequence.nextTokenIndex }]);
     }
 

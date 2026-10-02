@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import type { Analysis, EngineState } from "@core";
+import type { Analysis, AppConfig, EngineState } from "@core";
+import { buildConfig } from "@test/fixtures/config";
 import { makeIpcApi } from "@test/fixtures/ipc";
 import { useStore } from "../store/store";
 import { AnomalyPanel } from "./AnomalyPanel";
@@ -12,14 +13,41 @@ const settings = (aiEnabled: boolean) => ({
   shortcuts: {},
   updateChecks: true,
   aiEnabled,
-  aiModelId: "qwen3.5-2b",
+  aiModelId: "jevk5-4b",
 });
 
-function seed(options: { enabled?: boolean; state?: EngineState; analysis?: Analysis }): void {
+/**
+ * A config carrying the questions these tests ask about.
+ *
+ * The panel matches an answer back to its question by id, so a seeded analysis
+ * needs the config that declared the question — which is also what the
+ * "question has vanished" case below exercises.
+ */
+const configWithQuestions = (): AppConfig => {
+  const config = buildConfig({ input: ["email"] });
+  return {
+    ...config,
+    ai: {
+      ...config.ai,
+      questions: [
+        { id: "throwaway", type: "boolean", field: "email", ask: "Is the domain a throwaway?" },
+        { id: "timing", type: "boolean", ask: "Is the signup time unusual?" },
+      ],
+    },
+  } as AppConfig;
+};
+
+function seed(options: {
+  enabled?: boolean;
+  state?: EngineState;
+  analysis?: Analysis;
+  config?: AppConfig | null;
+}): void {
   useStore.setState({
     settings: settings(options.enabled ?? true),
-    aiState: options.state ?? { kind: "ready", modelId: "qwen3.5-2b" },
+    aiState: options.state ?? { kind: "ready", modelId: "jevk5-4b" },
     analyses: options.analysis ? { 0: options.analysis } : {},
+    config: options.config === undefined ? configWithQuestions() : options.config,
     index: 0,
   });
 }
@@ -27,8 +55,8 @@ function seed(options: { enabled?: boolean; state?: EngineState; analysis?: Anal
 const analysis = (over: Partial<Analysis>): Analysis => ({
   recordIndex: 0,
   status: "clean",
-  findings: [],
-  modelId: "qwen3.5-2b",
+  answers: [],
+  modelId: "jevk5-4b",
   ...over,
 });
 
@@ -50,28 +78,56 @@ describe("AnomalyPanel", () => {
     expect(screen.getByText("Nothing stood out.")).toBeInTheDocument();
   });
 
-  it("lists the findings", () => {
+  it("lists each crossed answer with its question and its probability", () => {
     seed({
       analysis: analysis({
         status: "findings",
-        findings: [
-          { field: "email", severity: "warning", reason: "Domain looks like a throwaway." },
-          { severity: "info", reason: "Signup time is unusual." },
+        answers: [
+          { id: "throwaway", type: "boolean", p: 0.91, confidence: 0.91 },
+          { id: "timing", type: "boolean", p: 0.84, confidence: 0.84 },
         ],
       }),
     });
     render(<AnomalyPanel />);
-    expect(screen.getByText("Domain looks like a throwaway.")).toBeInTheDocument();
-    expect(screen.getByText("Signup time is unusual.")).toBeInTheDocument();
+    expect(screen.getByText("Is the domain a throwaway?")).toBeInTheDocument();
+    expect(screen.getByText("91%")).toBeInTheDocument();
+    expect(screen.getByText("Is the signup time unusual?")).toBeInTheDocument();
+    expect(screen.getByText("84%")).toBeInTheDocument();
+  });
+
+  it("says nothing about an answer that fell below its threshold", () => {
+    // A confident "no" is not a finding. Showing it would put a note on every
+    // clean record, which is the one thing this panel must not do.
+    seed({
+      analysis: analysis({
+        status: "findings",
+        answers: [{ id: "throwaway", type: "boolean", p: 0.03, confidence: 0.97 }],
+      }),
+    });
+    render(<AnomalyPanel />);
+    expect(screen.queryByText("3%")).toBeNull();
+    expect(screen.getByText("Nothing stood out.")).toBeInTheDocument();
+  });
+
+  it("drops an answer whose question is gone, rather than showing a bare number", () => {
+    seed({
+      config: null,
+      analysis: analysis({
+        status: "findings",
+        answers: [{ id: "throwaway", type: "boolean", p: 0.99, confidence: 0.99 }],
+      }),
+    });
+    render(<AnomalyPanel />);
+    expect(screen.queryByText("99%")).toBeNull();
   });
 
   // The panel is where an unscoped remark appears at all — it has nowhere to sit
   // in the form, and repeating it on every field would be worse than a panel.
-  it("names the field a scoped finding is about", () => {
+  it("names the field a targeted answer is about", () => {
     seed({
       analysis: analysis({
         status: "findings",
-        findings: [{ field: "email", severity: "warning", reason: "Throwaway." }],
+        answers: [{ id: "throwaway", type: "boolean", p: 0.9, confidence: 0.9 }],
       }),
     });
     render(<AnomalyPanel />);
@@ -91,7 +147,7 @@ describe("AnomalyPanel", () => {
   });
 
   it("reports a failure rather than pretending the record was clean", () => {
-    seed({ analysis: analysis({ status: "failed", error: "Model output was malformed." }) });
+    seed({ analysis: analysis({ status: "failed", error: "The model took too long." }) });
     render(<AnomalyPanel />);
     expect(screen.getByText(/Could not read this record/)).toBeInTheDocument();
   });
@@ -103,7 +159,7 @@ describe("AnomalyPanel", () => {
     seed({
       analysis: analysis({
         status: "findings",
-        findings: [{ field: "email", severity: "warning", reason: "Throwaway." }],
+        answers: [{ id: "throwaway", type: "boolean", p: 0.9, confidence: 0.9 }],
       }),
     });
     render(<AnomalyPanel />);
@@ -118,20 +174,20 @@ describe("AnomalyPanel", () => {
   });
 });
 
-// The model unloads after idling, and findings from five minutes ago are still
+// The model unloads after idling, and answers from five minutes ago are still
 // about this record. A panel that forgot them because the engine went quiet
 // would look like it had lost its work.
-describe("AnomalyPanel — findings outlive the engine", () => {
-  it("keeps showing findings after the model unloads", () => {
+describe("AnomalyPanel — answers outlive the engine", () => {
+  it("keeps showing answers after the model unloads", () => {
     seed({
       state: { kind: "no-model" },
       analysis: analysis({
         status: "findings",
-        findings: [{ field: "email", severity: "warning", reason: "Throwaway." }],
+        answers: [{ id: "throwaway", type: "boolean", p: 0.9, confidence: 0.9 }],
       }),
     });
     render(<AnomalyPanel />);
-    expect(screen.getByText("Throwaway.")).toBeInTheDocument();
+    expect(screen.getByText("Is the domain a throwaway?")).toBeInTheDocument();
     expect(screen.queryByText(/No model downloaded yet/)).toBeNull();
   });
 

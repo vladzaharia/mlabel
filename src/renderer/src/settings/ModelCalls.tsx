@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
-import type { ModelCallEntry, ModelCallStatus } from "@core";
+import { answerLabel, type ModelCallEntry, type ModelCallStatus } from "@core";
 import { Button } from "../components/ui/button";
 import { SEVERITY, type SeverityKind } from "../components/Severity";
 import { Empty, Eyebrow } from "./SettingsSection";
@@ -35,9 +35,9 @@ const STATUS_LABEL: Record<ModelCallStatus, string> = {
 
 const describe = (entry: ModelCallEntry): string =>
   entry.status === "findings"
-    ? entry.findings.length === 1
-      ? "1 note"
-      : `${String(entry.findings.length)} notes`
+    ? entry.answers.length === 1
+      ? "1 answer"
+      : `${String(entry.answers.length)} answers`
     : STATUS_LABEL[entry.status];
 
 const time = (at: number): string => new Date(at).toLocaleTimeString();
@@ -84,16 +84,18 @@ function Detail({
         <p className={cn("text-xs", SEVERITY.danger.textClass)}>{entry.error}</p>
       )}
 
-      {entry.findings.length > 0 && (
+      {entry.answers.length > 0 && (
         <div>
-          <Eyebrow>Notes shown</Eyebrow>
+          {/* Every answer, not only the ones that crossed a threshold. This panel
+              exists so a person can check the claim that the model runs locally
+              and see exactly what it said — filtering it here would hide the
+              most interesting case, where it was nearly sure and stayed quiet. */}
+          <Eyebrow>Answers</Eyebrow>
           <ul className="mt-1 flex flex-col gap-1">
-            {entry.findings.map((finding, i) => (
-              <li key={i} className="text-xs">
-                <span className="text-muted-foreground">
-                  {finding.field ?? finding.card ?? "this record"}:
-                </span>{" "}
-                {finding.reason}
+            {entry.answers.map((answer) => (
+              <li key={answer.id} className="text-xs">
+                <span className="text-muted-foreground">{answer.id}:</span>{" "}
+                <span className="tabular-nums">{answerLabel(answer)}</span>
               </li>
             ))}
           </ul>
@@ -105,7 +107,9 @@ function Detail({
           call and mostly of interest once. */}
       <Block label="The record, as the model saw it">{entry.suffix}</Block>
       <Block label="Instructions">{entry.prefix}</Block>
-      {entry.raw !== undefined && <Block label="Raw reply">{entry.raw}</Block>}
+      {/* No "raw reply" block any more. Nothing is generated, so there is no text
+          that could differ from what was parsed — the answers above *are* the
+          reply, read straight off the model's probabilities. */}
     </div>
   );
 }

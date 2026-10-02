@@ -64,7 +64,7 @@ beforeEach(() => {
       shortcuts: {},
       updateChecks: true,
       aiEnabled: false,
-      aiModelId: "qwen3.5-2b",
+      aiModelId: "jevk5-4b",
     },
     updateStatus: null,
   });
@@ -118,7 +118,7 @@ describe("SettingsDialog: keys", () => {
       shortcuts: {},
       updateChecks: true,
       aiEnabled: false,
-      aiModelId: "qwen3.5-2b",
+      aiModelId: "jevk5-4b",
       ...patch,
     }));
     install({ setSettings });
@@ -283,7 +283,7 @@ describe("SettingsDialog: network", () => {
       shortcuts: {},
       updateChecks: false,
       aiEnabled: false,
-      aiModelId: "qwen3.5-2b",
+      aiModelId: "jevk5-4b",
     }));
     install({ setSettings });
     const user = userEvent.setup();
@@ -405,13 +405,13 @@ describe("SettingsDialog: anomaly detection", () => {
           id: 1,
           at: Date.parse("2026-05-01T12:00:00Z"),
           recordIndex: 3,
-          modelId: "qwen3.5-2b",
+          modelId: "jevk5-4b",
           status: "findings" as const,
           elapsedMs: 1200,
           prefix: "Instructions here.",
           suffix: "The row to review:\nemail: a@b.com",
           raw: '{"reasoning":"x","findings":[]}',
-          findings: [{ field: "email", severity: "warning" as const, reason: "Throwaway." }],
+          answers: [{ id: "anomalous", type: "boolean" as const, p: 0.9, confidence: 0.9 }],
         },
       ],
     });

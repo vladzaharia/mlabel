@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { InputField } from "@core/config";
 import { resolveCards } from "@core/config";
-import { decorationsFromAnalysis, evaluateDecorations, mergeDecorations } from "@core";
+import { decorationsFromAnalysis, evaluateDecorations, mergeDecorations, questionsOf } from "@core";
 import { announce } from "../a11y/announcer";
 import { useStore, selectCurrentRecord } from "../store/store";
 import { CategoryCard } from "./CategoryCard";
@@ -48,12 +48,12 @@ export function InputContent(): React.JSX.Element {
 
   // Evaluated per rendered record rather than for the whole file: only one
   // record is on screen, and rules read the values it actually holds.
-  // Authored rules first, the model's findings after — `toneOf` prefers an
+  // Authored rules first, the model's answers after — `toneOf` prefers an
   // authored tone regardless, so a guess cannot recolour a field the config
   // author had already styled.
   const decorations = mergeDecorations(
     evaluateDecorations(config.input.rules, record.inputValues),
-    decorationsFromAnalysis(analysis),
+    decorationsFromAnalysis(analysis, questionsOf(config)),
   );
   // Already computed in main and sent over IPC — it just never had a consumer,
   // so a cell that failed to parse looked exactly like an empty one.

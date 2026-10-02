@@ -1,5 +1,13 @@
 import { Loader2, Sparkles } from "lucide-react";
-import type { Analysis, Finding } from "@core";
+import {
+  answerLabel,
+  isWorthShowing,
+  questionsOf,
+  severityOf,
+  type Analysis,
+  type Answer,
+  type TargetedQuestion,
+} from "@core";
 import { SEVERITY } from "../components/Severity";
 import { useStore } from "../store/store";
 import { cn } from "../lib/utils";
@@ -14,14 +22,23 @@ import { cn } from "../lib/utils";
  * like this in a labeling tool is that a plausible wrong hint quietly becomes
  * the answer.
  *
- * Findings that name a field or a card are *also* shown beside the data they
- * are about. This panel is the only place the unscoped ones appear.
+ * Answers about a field or a card are *also* shown beside the data they are
+ * about. This panel is the only place the record-level ones appear, including
+ * the two the app always asks.
+ *
+ * A probability is shown as a probability. It is better calibrated than the
+ * prose this replaced and more persuasive for the same reason, which is why
+ * nothing here reads as a verdict and why answers below their threshold are not
+ * shown at all — an uncertain claim in a confident voice is the one thing this
+ * panel must never be.
  */
 export function AnomalyPanel(): React.JSX.Element | null {
   const available = useStore((s) => s.settings.aiEnabled);
   const index = useStore((s) => s.index);
   const analysis = useStore((s) => s.analyses[s.index]);
   const engine = useStore((s) => s.aiState);
+  const config = useStore((s) => s.config);
+  const questions = questionsOf(config);
 
   if (!available) return null;
 
@@ -38,7 +55,7 @@ export function AnomalyPanel(): React.JSX.Element | null {
         Model notes
       </h3>
       <div aria-live="polite" className="mt-1.5">
-        <Body analysis={analysis} engineKind={engine.kind} />
+        <Body analysis={analysis} engineKind={engine.kind} questions={questions} />
       </div>
     </section>
   );
@@ -47,19 +64,23 @@ export function AnomalyPanel(): React.JSX.Element | null {
 function Body({
   analysis,
   engineKind,
+  questions,
 }: {
   analysis: Analysis | undefined;
   engineKind: string;
+  questions: readonly TargetedQuestion[];
 }): React.JSX.Element {
   // An answer already given outranks whatever the engine is doing now. The
-  // model unloads after idling, and findings from five minutes ago are still
+  // model unloads after idling, and answers from five minutes ago are still
   // about this record — dropping them because the engine went quiet would make
   // the panel forget things it had already told you.
   if (analysis?.status === "clean") return <Quiet>Nothing stood out.</Quiet>;
   if (analysis?.status === "failed") {
     return <Quiet>Could not read this record. {analysis.error ?? ""}</Quiet>;
   }
-  if (analysis?.status === "findings") return <Findings analysis={analysis} />;
+  if (analysis?.status === "findings") {
+    return <Answers analysis={analysis} questions={questions} />;
+  }
 
   if (engineKind === "no-model") {
     return <Quiet>No model downloaded yet — set one up in Settings.</Quiet>;
@@ -71,19 +92,44 @@ function Body({
   return <Working>Waiting to look at this…</Working>;
 }
 
-function Findings({ analysis }: { analysis: Analysis }): React.JSX.Element {
+function Answers({
+  analysis,
+  questions,
+}: {
+  analysis: Analysis;
+  questions: readonly TargetedQuestion[];
+}): React.JSX.Element {
+  const byId = new Map(questions.map((question) => [question.id, question]));
+
+  // An answer whose question has vanished — a config reloaded while the cache
+  // survived — is dropped rather than shown without its heading. A probability
+  // with nothing to attach it to is not a note, it is a number.
+  const shown = analysis.answers.flatMap((answer) => {
+    const question = byId.get(answer.id);
+    if (!question || !isWorthShowing(answer, question.showAbove)) return [];
+    return [{ answer, question }];
+  });
+
+  if (shown.length === 0) return <Quiet>Nothing stood out.</Quiet>;
+
   return (
     <ul className="flex flex-col gap-1.5">
-      {analysis.findings.map((finding, i) => (
-        <Note key={`${finding.field ?? finding.card ?? "row"}-${String(i)}`} finding={finding} />
+      {shown.map(({ answer, question }) => (
+        <Note answer={answer} key={answer.id} question={question} />
       ))}
     </ul>
   );
 }
 
-function Note({ finding }: { finding: Finding }): React.JSX.Element {
-  const tone = finding.severity === "warning" ? "warning" : "info";
-  const scope = finding.field ?? finding.card;
+function Note({
+  answer,
+  question,
+}: {
+  answer: Answer;
+  question: TargetedQuestion;
+}): React.JSX.Element {
+  const tone = severityOf(answer);
+  const scope = question.field ?? question.card;
   return (
     <li className="flex items-start gap-1.5 text-xs">
       <span
@@ -92,7 +138,12 @@ function Note({ finding }: { finding: Finding }): React.JSX.Element {
       />
       <span className="min-w-0">
         {scope && <span className="font-medium">{scope}: </span>}
-        <span className={SEVERITY[tone].textClass}>{finding.reason}</span>
+        <span className={SEVERITY[tone].textClass}>{question.ask}</span>{" "}
+        {/* The number is deliberately quieter than the question. What a labeler
+            needs first is what was asked; the probability qualifies it. */}
+        <span className="font-medium tabular-nums text-muted-foreground">
+          {answerLabel(answer)}
+        </span>
       </span>
     </li>
   );

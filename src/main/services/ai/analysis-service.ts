@@ -1,12 +1,12 @@
 import { BrowserWindow } from "electron";
 import {
-  BUILT_IN_QUESTIONS,
   buildPrefix,
   buildSuffix,
   cacheIsValid,
   evaluateCondition,
   findModel,
   isWorthShowing,
+  questionsOf,
   schedule,
   windowAround,
   type Analysis,
@@ -102,7 +102,7 @@ export function setInput(
   current = {
     config,
     records,
-    questions: [...BUILT_IN_QUESTIONS, ...(config.ai.questions ?? [])],
+    questions: questionsOf(config),
     prefix: buildPrefix(config.input.fields, config.ai.context),
     modelId,
   };

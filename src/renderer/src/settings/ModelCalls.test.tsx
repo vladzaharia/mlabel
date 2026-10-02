@@ -8,11 +8,11 @@ const call = (over: Partial<ModelCallEntry> = {}): ModelCallEntry => ({
   id: 1,
   at: Date.parse("2026-05-01T12:00:00Z"),
   recordIndex: 0,
-  modelId: "qwen3.5-2b",
+  modelId: "jevk5-4b",
   status: "clean",
   prefix: "You are helping a human reviewer read one row.",
   suffix: "The row to review:\nemail: a@b.com",
-  findings: [],
+  answers: [],
   ...over,
 });
 
@@ -38,21 +38,21 @@ describe("ModelCalls", () => {
     expect(rows[1]).toHaveTextContent("Record 1");
   });
 
-  it("counts the notes a call produced", () => {
+  it("counts the answers a call produced", () => {
     render(
       <ModelCalls
         entries={[
           call({
             status: "findings",
-            findings: [
-              { field: "email", severity: "warning", reason: "Throwaway." },
-              { severity: "info", reason: "Odd hour." },
+            answers: [
+              { id: "throwaway", type: "boolean", p: 0.9, confidence: 0.9 },
+              { id: "hour", type: "boolean", p: 0.8, confidence: 0.8 },
             ],
           }),
         ]}
       />,
     );
-    expect(screen.getByText("2 notes")).toBeInTheDocument();
+    expect(screen.getByText("2 answers")).toBeInTheDocument();
   });
 
   it("distinguishes a clean run from a failed one", () => {
@@ -88,11 +88,29 @@ describe("ModelCalls — opening one", () => {
     expect(screen.getByText(/You are helping a human reviewer/)).toBeInTheDocument();
   });
 
-  it("shows the raw reply, before any parsing", async () => {
+  // Every answer, including the ones that stayed below their threshold. This
+  // panel exists so a person can check that the model runs locally and see what
+  // it actually said; filtering it would hide the most interesting case.
+  it("shows every answer, not only the ones the panel surfaced", async () => {
     const user = userEvent.setup();
-    render(<ModelCalls entries={[call({ raw: '{"reasoning":"x","findings":[]}' })]} />);
+    render(
+      <ModelCalls
+        entries={[
+          call({
+            status: "findings",
+            answers: [
+              { id: "anomalous", type: "boolean", p: 0.91, confidence: 0.91 },
+              { id: "ambiguous", type: "boolean", p: 0.02, confidence: 0.98 },
+            ],
+          }),
+        ]}
+      />,
+    );
     await user.click(screen.getByRole("button", { name: /Record 1/ }));
-    expect(screen.getByText(/"reasoning":"x"/)).toBeInTheDocument();
+    expect(screen.getByText("anomalous:")).toBeInTheDocument();
+    expect(screen.getByText("91%")).toBeInTheDocument();
+    expect(screen.getByText("ambiguous:")).toBeInTheDocument();
+    expect(screen.getByText("2%")).toBeInTheDocument();
   });
 
   it("explains a failure", async () => {
