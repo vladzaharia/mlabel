@@ -6,28 +6,29 @@ sidebar:
 ---
 
 `src/core/` is pure logic. No Electron, no Node file system, no DOM. Everything here is
-directly unit-testable, and it is where the TDD rule bites hardest.
+directly unit-testable, and changes here require a failing test before implementation.
 
 ## Module map
 
-| Module                  | Owns                                                               |
-| ----------------------- | ------------------------------------------------------------------ |
-| `config/schema.ts`      | The Zod `AppConfig` and every cross-field check.                   |
-| `config/value-type.ts`  | The nine type variants, widgets-by-type, display and style shapes. |
-| `config/loader.ts`      | JSONC parse → version gate → Zod, with line/column on every issue. |
-| `config/json-schema.ts` | Emitting the editor-facing JSON Schema.                            |
-| `coercion.ts`           | Raw value → typed `CoercedValue`, per declared type.               |
-| `automapping.ts`        | Fill semantics: who fills, what is required, which widget.         |
-| `labels.ts`             | Merging per-record, session and timestamp values.                  |
-| `completion.ts`         | Validating a value, and deciding a record's status.                |
-| `conditions.ts`         | Evaluating a `Condition` over a record.                            |
-| `decorations.ts`        | Turning display rules into presentation intent.                    |
-| `session.ts`            | Reviving a persisted session; fingerprint comparison.              |
-| `prepare.ts`            | Chunking, header matching, duplicate detection, join validation.   |
-| `shortcuts.ts`          | Chord parsing, matching, formatting; the reserved list.            |
-| `adapters/`             | Adapter interfaces, the registry, and the CSV adapter.             |
+| Module                  | Owns                                                                  |
+| ----------------------- | --------------------------------------------------------------------- |
+| `config/schema.ts`      | The Zod `AppConfig` and every cross-field check.                      |
+| `config/value-type.ts`  | The nine type variants, widgets-by-type, display and style shapes.    |
+| `config/loader.ts`      | JSONC parse → version gate → Zod, with line/column on every issue.    |
+| `config/json-schema.ts` | Emitting the editor-facing JSON Schema.                               |
+| `coercion.ts`           | Raw value → typed `CoercedValue`, per declared type.                  |
+| `automapping.ts`        | Fill semantics: who fills, what is required, which widget.            |
+| `labels.ts`             | Merging per-record, session and timestamp values.                     |
+| `completion.ts`         | Validating a value, and deciding a record's status.                   |
+| `conditions.ts`         | Evaluating a `Condition` over a record.                               |
+| `decorations.ts`        | Turning display rules into presentation intent.                       |
+| `session.ts`            | Reviving a persisted session; fingerprint comparison.                 |
+| `prepare.ts`            | Chunking, header matching, duplicate detection, join validation.      |
+| `actions.ts`            | Built-in actions, effective bindings, overrides, and keyboard guards. |
+| `shortcuts.ts`          | Chord parsing, matching, formatting; the reserved list.               |
+| `adapters/`             | Adapter interfaces, the registry, and the CSV adapter.                |
 
-## `typeVariants` is the keystone
+## Shared type definitions
 
 `config/value-type.ts` generates all nine type variants once, for every position a type can
 appear — input field, output field, `array.items`, `map.values`, nested object member:
@@ -68,10 +69,7 @@ completion.evaluateRecord           unlabeled | partial | complete
 The progress bar, the label form and the export split all call through it, so they cannot
 disagree about whether a record is finished.
 
-`evaluateRecord` switches on the **type**, sharing a discriminant with `coerceValue`. It
-used to switch on the widget, which meant presentation-only variants (`number`/`slider`,
-`text`/`textarea`) had to be kept in sync by hand and composite values could not be
-validated at all.
+`evaluateRecord` switches on the **type**, sharing a discriminant with `coerceValue`. Validation follows the value type, so different controls for the same type share the same checks.
 
 ## Conditions and decorations are deliberately separate
 
@@ -79,8 +77,7 @@ validated at all.
 a note.
 
 The split is the guarantee that display rules cannot affect output: **nothing on the export
-path imports `decorations.ts`**. A future feature needing a condition — conditional
-required-ness, show/hide — reuses `conditions.ts` without reaching into presentation.
+path imports `decorations.ts`**. Keep other consumers of conditions independent of presentation decorations.
 
 `evaluateCondition` never throws. A rule pointed at a missing or wrongly-typed value simply
 does not fire, because a malformed rule should leave the data looking ordinary rather than

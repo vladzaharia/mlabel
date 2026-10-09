@@ -1,0 +1,60 @@
+---
+title: Read and export semicolon-separated files
+description: Use a source file from a spreadsheet or pipeline that separates columns with semicolons.
+sidebar:
+  order: 8
+---
+
+import Shot from "../../../../components/Shot.astro";
+import RecipeFiles from "../../../../components/RecipeFiles.astro";
+
+Use a source file from a spreadsheet or pipeline that separates columns with semicolons.
+
+## What the labeler sees
+
+<Shot
+  name="recipe-semicolon-input"
+  alt="The semicolon-separated source is displayed as separate Record ID and Customer comment fields."
+  caption="Captured from this recipe’s downloadable configuration and sample data."
+/>
+
+<RecipeFiles name="semicolon" />
+
+## Configure it
+
+Set `delimiter` independently for input and output. This example also chooses Windows-style line endings for output.
+
+Delimiter settings change the file format, not the form. The downloaded sample begins with `id;comment`; MLabel still shows those as two separate fields.
+
+The relevant setting is in `input.adapterConfig` and `output.adapterConfig`. The download above includes the surrounding configuration.
+
+```jsonc
+{
+  "input": {
+    "adapterConfig": {
+      "delimiter": ";",
+    },
+  },
+  "output": {
+    "adapterConfig": {
+      "delimiter": ";",
+      "newline": "\r\n",
+    },
+  },
+}
+```
+
+## Try it and check the result
+
+Choose Pass and export. The output should contain:
+
+```text
+id;verdict
+r001;pass
+```
+
+A remaining file preserves the input’s detected dialect. Changing the output delimiter does not convert remaining records to that delimiter.
+
+If your file is shown as one large column, check that its actual separator matches `input.adapterConfig.delimiter`. [More CSV settings →](/config/adapters/)
+
+[Browse all illustrated recipes →](/config/cookbook/)

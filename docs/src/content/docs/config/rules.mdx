@@ -1,0 +1,121 @@
+---
+title: Highlight source information
+description: Use rules to add a visible explanation to fields, cards, or individual list items.
+---
+
+import Shot from "../../../components/Shot.astro";
+import RecipeFiles from "../../../components/RecipeFiles.astro";
+
+A display rule points out source information that deserves attention. It can tint a value, add a note, or annotate a whole card. It does not select an answer or change an exported value.
+
+## Start with a visible comparison
+
+<Shot
+  name="recipe-highlight-input"
+  alt="Inspection score 0.4 and required score 0.7 are highlighted with a note explaining the comparison."
+  caption="Highlight both values when a rule compares them, so the labeler can check the evidence."
+/>
+
+The example adds this to `input.rules`:
+
+```jsonc
+[
+  {
+    "name": "below-threshold",
+    "when": {
+      "op": "lt",
+      "field": "score",
+      "otherField": "threshold",
+    },
+    "appliesTo": ["score", "threshold"],
+    "appliesToCards": ["inspection"],
+    "style": {
+      "tone": "warning",
+      "note": "Below the required score. Review the delivery evidence.",
+    },
+  },
+]
+```
+
+[Download the complete example and try the non-matching case →](/config/recipes/highlight-input/)
+
+## The keys
+
+| Setting          | What to put there                                                                |
+| ---------------- | -------------------------------------------------------------------------------- |
+| `name`           | An identifier for the rule. Choose a distinct, descriptive name.                 |
+| `when`           | A condition over the current record's input values.                              |
+| `appliesTo`      | Input fields to highlight. Without explicit targets, the tested fields are used. |
+| `appliesToCards` | Input card names to annotate. A card target replaces default field targeting.    |
+| `forEach`        | An input list to evaluate one item at a time.                                    |
+| `style`          | A `tone`, an explanatory `note`, or both.                                        |
+
+Rules read input values, not the labeler's answers. [Conditions and operators →](/config/conditions/)
+
+## Annotating a whole card
+
+Use `appliesToCards` when an explanation concerns a group. The note appears in the card's **Analysis** footer. The highlighted comparison above uses both field and card targets; remove one when repeating the note would distract.
+
+A card target uses `name`, not the displayed heading. Card names and field names are separate.
+
+## Per-item rules
+
+Use `forEach` when only certain list entries deserve a warning:
+
+<Shot
+  name="recipe-list-rules"
+  alt="Delivery delays lists 0, 1, 4, 0, and 3 days; only 4 and 3 receive warning notes, and the Analysis footer counts the matches."
+/>
+
+```jsonc
+[
+  {
+    "name": "long-delay",
+    "forEach": "delays",
+    "when": {
+      "op": "gt",
+      "field": "delays",
+      "value": 2,
+    },
+    "style": {
+      "tone": "warning",
+      "note": "More than two days late.",
+    },
+  },
+]
+```
+
+<RecipeFiles name="list-rules" />
+
+The sample tests each `delays` item against 2. A per-item rule cannot also set `appliesTo` or `appliesToCards`. [Detailed list-rule behavior →](/config/conditions/#per-item-rules)
+
+## Tones
+
+<Shot
+  name="recipe-tones"
+  alt="Six source values demonstrate muted, info, success, warning, danger, and accent tones with explanatory notes."
+  caption="Each tone includes words as well as color. Both light and dark themes are supported."
+/>
+
+| Tone      | Suggested meaning                            |
+| --------- | -------------------------------------------- |
+| `muted`   | Lower priority                               |
+| `info`    | Useful context                               |
+| `success` | Supporting evidence                          |
+| `warning` | Check carefully                              |
+| `danger`  | A serious issue to review                    |
+| `accent`  | Draw attention without suggesting a judgment |
+
+<RecipeFiles name="tones" />
+
+## Several rules on one field
+
+Rules run in declaration order. The last matching tone wins, but all matching notes remain visible. Prefer a small number of clear notes over many overlapping ones.
+
+## Rules are hints, not instructions
+
+Write notes such as “Below the required score; review the evidence.” Avoid asserting the labeler's final judgment. Test both matching and non-matching records before distributing a project.
+
+Missing or incompatible values may cause a condition not to match. Invalid regular expressions are rejected when the config loads. [Troubleshoot a configuration](/config/errors/).
+
+[Rule reference](/reference/display-rule/) · [Condition reference](/reference/condition/)

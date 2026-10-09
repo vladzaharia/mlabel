@@ -1,79 +1,67 @@
 ---
-title: Sessions and resuming
-description: Autosave, picking up where you left off, and what happens when the source file has changed.
-sidebar:
-  order: 4
+title: Save and resume
+description: Keep unfinished answers when you take a break and resume the right files.
 ---
 
 import Shot from "../../../components/Shot.astro";
 
-## Autosave
+MLabel saves your position, record answers, and session answers automatically while you
+work. The **Save** button exports files; you do not need it to preserve a session.
+The saved session lives on this computer and is associated
+with the configuration path and input-file path.
 
-Your labels are saved continuously — there is no save button and no "unsaved changes"
-state. The session records which record you were on, every label you have entered, and your
-session answers.
+## Take a break
 
-It is keyed to the **pair** of config and input file. Opening a different data file, or the
-same file with a different config, is a different session.
-
-Only one session is kept at a time. Starting work on a different file replaces it.
-
-## Resuming
+1. Close MLabel without exporting if you need to keep partially entered answers.
+2. Keep the configuration and input file at their current paths.
+3. Later, open the same configuration and input file.
+4. Accept the resume prompt to restore your answers and position.
 
 <Shot
   name="resume-dialog"
-  alt="The resume dialog, offering to restore a saved session or start fresh."
+  alt="The resume prompt offers to restore a saved session or start fresh."
+  caption="Resume restores saved answers. Starting fresh discards that saved session."
 />
 
-Reopen the same config and data file and MLabel offers to restore your progress. Decline
-and you start clean — the saved session is discarded.
+Only **one saved session** is kept at a time. Starting work on another file can replace it.
+Export completed work before changing assignments, and remember that remaining files do
+not carry partially entered labels.
 
-The prompt only appears when there is something worth restoring. A session that matches
-what the file would load anyway — because every value in it was auto-copied rather than
-entered by you — is not offered, since restoring it would change nothing.
+## “This file has changed”
 
-## "This file has changed"
+The input file's contents differ from the saved version. Labels are stored by row position;
+adding, removing, or reordering rows can attach restored answers to the wrong records.
 
-MLabel fingerprints the source file by content when it saves. On resume, it compares.
+If possible, restore the original input file before resuming. Otherwise ask the preparer
+how to recover the assignment. A byte-identical copy is not treated as changed merely
+because its modification date differs.
 
-If the file has changed since you last worked on it, the dialog says so. Restoring anyway
-is allowed but rarely what you want: labels are stored by row position, so if rows were
-added, removed or reordered, your labels will land on the wrong records.
+## Exporting clears the session
 
-The fingerprint compares **size and content hash only** — not the modification time.
-Re-downloading a byte-identical file does not read as a change.
+A successful export clears the saved session. Finished answers are in the output file;
+unfinished **source records** are in the remaining file. Unfinished answers are not exported.
 
-:::note
-Sessions written by an older version of MLabel are discarded rather than trusted. The file
-holds typed values whose meaning depends on the config schema, and a mismatched read is
-worse than starting fresh.
-:::
+**Keep editing** keeps the current answers in memory. The next edit starts autosaving again.
+A failed export does not clear the saved session.
+
+## Inspect or clear a session
+
+Open **Settings → Session** to see the current files and progress. **Clear session** asks
+for confirmation, then discards the entered answers and saved session. It cannot be undone.
+
+<Shot
+  name="settings-session"
+  alt="The Session section in Settings shows the active configuration, input file, and saved progress."
+  caption="Check which files a saved session belongs to before clearing it."
+/>
 
 ## Where it lives
 
-| Platform | Path                                                |
+| Platform | Saved session                                       |
 | -------- | --------------------------------------------------- |
 | macOS    | `~/Library/Application Support/MLabel/session.json` |
 | Windows  | `%APPDATA%\MLabel\session.json`                     |
 
-Deleting the file discards the session. Nothing else is affected — your data files and
-exports are untouched.
-
-Writes are atomic and flushed to disk, and a save immediately followed by a clear can never
-race. A crash mid-write leaves the previous session intact rather than a truncated file.
-
-## Exporting clears the session
-
-A **successful** export deletes the saved session. Your files on disk are now the record of
-the work, so there is nothing left to resume.
-
-Your labels are still in memory, so **Keep editing** returns you to the same records with
-everything in place — and the moment you change anything, a fresh session starts saving
-again.
-
-The one gap worth knowing: between a successful export and your next edit, there is no
-saved session. Quitting in that window and reopening the same files offers nothing to
-resume. Your exported `*-output` and `*-remaining` files are unaffected, and reloading
-`*-remaining` picks the work back up.
-
-A **failed** export leaves the session completely untouched.
+Moving this file is not the normal handoff process. Use [exports](/guide/exporting/) when
+returning work. Sessions with an incompatible saved-session format are discarded; this is
+separate from the application's release number.

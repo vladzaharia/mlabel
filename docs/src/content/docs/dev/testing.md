@@ -20,16 +20,13 @@ pnpm test:watch
 | `dom`   | happy-dom   | `src/renderer/**/*.test.{ts,tsx}`                      |
 
 Tests are co-located with what they test. The split exists so pure logic runs without a DOM
-and stays fast — the node project is most of the suite and finishes in about a second.
+without browser-specific setup.
 
 ## TDD is the rule for `core` and `main`
 
 Red, green, refactor. Write the failing test first.
 
-This is not ceremony here: nearly every non-obvious behaviour in those layers exists because
-something went wrong once, and the test is what stops it coming back. The comments in the
-source name those failures deliberately — "committing first left a rejected document in main
-state", "a `Date` left as an ISO string and came back a string". Each of those is a test.
+Cover the observable behavior and relevant failure paths. In particular, protect export rollback, session write ordering, rejected-input handling, and date restoration.
 
 ## Fixtures describe intent, not shape
 
@@ -42,7 +39,7 @@ configObject({ output: [{ name: "verdict", kind: "choice", choices: ["good", "ba
 
 not `control: radio` with options. The indirection is deliberate: when the schema changes,
 only the serializers in the fixture move, and the twenty-odd test files using it stay put.
-The v2 schema rewrite is what proved this out.
+Keep fixture serializers aligned with the schema.
 
 Break a valid config in exactly one way with the `tweak` helper, rather than string-replacing
 JSON:
@@ -88,16 +85,6 @@ The pure half gets thorough unit tests with no Electron, no temp directories and
 Follow it when adding a service — if something is hard to test, the split is usually in the
 wrong place.
 
-## Docs examples are tested too
-
-`scripts/docs-examples.test.ts` extracts every complete `jsonc` config from the
-documentation and runs it through `loadConfig`. Fragments — anything containing `…` — are
-skipped rather than failed.
-
-Documentation examples rot silently otherwise: nobody runs the config in a code fence, and a
-schema change leaves the site confidently telling people to write something the app now
-rejects.
-
 ## Other gates
 
 | Command                | Checks                                               |
@@ -122,7 +109,13 @@ This caught a real bug. `"display": "Some title"` is expanded by the loader _bef
 runs, so the emitted schema knew only the object form and rejected the project's own example
 config six times over.
 
-CI runs lint, format, typecheck and test as a parallel matrix, plus a build.
+CI runs lint, format, typecheck and test as a parallel matrix, plus app and documentation builds.
+
+## Documentation checks
+
+`pnpm -C docs build` regenerates the reference, builds all pages, and checks internal links. `scripts/docs-examples.test.ts` validates complete configurations in prose and every downloadable cookbook example. Fragments containing `…` are excluded from whole-config validation. Capture scripts exercise the actual application with those sample files, so the screenshots and downloads can be checked together.
+
+After changing documentation layout or images, run `pnpm -C docs check:browser` against the local preview. It checks all built routes for missing images, visible screenshot pairs, and horizontal overflow at desktop and phone widths. Review the saved page captures as well.
 
 ## Hooks
 

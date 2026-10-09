@@ -1,0 +1,56 @@
+---
+title: Flag values that need attention
+description: Help a reviewer notice when an inspection score falls below the required score.
+sidebar:
+  order: 6
+---
+
+import Shot from "../../../../components/Shot.astro";
+import RecipeFiles from "../../../../components/RecipeFiles.astro";
+
+Help a reviewer notice when an inspection score falls below the required score.
+
+## What the labeler sees
+
+<Shot
+  name="recipe-highlight-input"
+  alt="Both scores are highlighted, and the card’s Analysis footer explains that the inspection is below the required score."
+  caption="Captured from this recipe’s downloadable configuration and sample data."
+/>
+
+<RecipeFiles name="highlight-input" />
+
+## Configure it
+
+Add this rule to `input.rules`. `when` compares `score` with `threshold` from the same record. `appliesTo` highlights both values so the comparison is easy to read.
+
+`appliesToCards` also adds the explanation to the named card’s **Analysis** footer. Use the card’s `name`, not its display title. Remove `appliesToCards` if a field-level note is enough.
+
+The relevant setting is in `input.rules`. The download above includes the surrounding configuration.
+
+```jsonc
+[
+  {
+    "name": "below-threshold",
+    "when": {
+      "op": "lt",
+      "field": "score",
+      "otherField": "threshold",
+    },
+    "appliesTo": ["score", "threshold"],
+    "appliesToCards": ["inspection"],
+    "style": {
+      "tone": "warning",
+      "note": "Below the required score. Review the delivery evidence.",
+    },
+  },
+]
+```
+
+## Try it and check the result
+
+The sample score is **0.4** and the threshold is **0.7**, so the rule fires. In a fresh copy of the sample CSV, change the score to **0.8** and reload it: the warning should disappear.
+
+A rule does not choose the review decision or change an exported value. A warning is a reading aid; the labeler still applies your project guidelines.
+
+[Browse all illustrated recipes →](/config/cookbook/)

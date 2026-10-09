@@ -39,6 +39,32 @@ function urlFor(file) {
   return slug === "" ? `${SITE}/` : `${SITE}/${slug}/`;
 }
 
+/** Keep the text edition useful when a page embeds screenshots or downloadable recipes. */
+function readableBody(body) {
+  const attr = (tag, name) => tag.match(new RegExp(`${name}="([^"]*)"`))?.[1] ?? "";
+  return body
+    .replace(/^import .+;\n/gm, "")
+    .replace(/<RecipeFiles\b[^>]*\/>/g, (tag) => {
+      const name = attr(tag, "name");
+      if (!/^[a-z-]+$/.test(name)) throw new Error(`Invalid text-edition recipe: ${name}`);
+      const dir = resolve(here, `../public/examples/cookbook/${name}`);
+      return `Complete example:\n\n\x60\x60\x60jsonc\n${readFileSync(join(dir, "config.jsonc"), "utf8")}\x60\x60\x60\n\nSample data:\n\n\x60\x60\x60csv\n${readFileSync(join(dir, "data.csv"), "utf8")}\x60\x60\x60\n`;
+    })
+    .replace(
+      /<Shot\b[^>]*\/>/g,
+      (tag) => `Screenshot: ${attr(tag, "alt")} ${attr(tag, "caption")}\n`,
+    )
+    .replace(
+      /<LinkCard\b[^>]*\/>/g,
+      (tag) => `- [${attr(tag, "title")}](${attr(tag, "href")}): ${attr(tag, "description")}\n`,
+    )
+    .replace(
+      /<FieldGallery\s*\/>/g,
+      "[Compare answer controls and their configuration](/config/widgets/).\n",
+    )
+    .replace(/<\/?(?:Steps|CardGrid)>/g, "");
+}
+
 /**
  * Emit `/llms.txt` and `/llms-full.txt`.
  *
@@ -58,14 +84,14 @@ export function llmsTxt() {
             url: urlFor(file),
             title: meta.title ?? "Untitled",
             description: meta.description ?? "",
-            body,
+            body: readableBody(body),
           };
         });
 
         const index = [
           "# MLabel",
           "",
-          "> A fully local, zero-network desktop app for manual data labeling. Everything shown and captured is driven by a single `.jsonc` config file.",
+          "> A local desktop app for manual data labeling, with optional update checks. Everything shown and captured is driven by a single `.jsonc` config file.",
           "",
           `The config JSON Schema is served at ${SITE}/mlabel.schema.json — point a config's \`$schema\` at it for editor validation.`,
           "",
@@ -84,7 +110,7 @@ export function llmsTxt() {
         const full = [
           "# MLabel — complete documentation",
           "",
-          `Generated from ${SITE}. Every page, in sidebar order.`,
+          `Generated from ${SITE}. Every page, in alphabetical order.`,
           "",
           ...entries.map((e) => `---\n\n# ${e.title}\n\nSource: ${e.url}\n\n${e.body.trim()}\n`),
         ].join("\n");

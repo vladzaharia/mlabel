@@ -15,8 +15,7 @@ IpcApi (src/core/ipc.ts)
    └── renderer consumes it      window.api: IpcApi
 ```
 
-Renaming or retyping a method here fails the build in all three layers. That is the whole
-design: there is no string channel name typed twice, and no way for the three to drift.
+Renaming or retyping a method here fails the build in all three layers. Shared channel maps and types keep implementations aligned; the IPC tests check method/channel coverage.
 
 ## Channels
 
@@ -31,17 +30,19 @@ export const IPC_EVENT  = { themeChanged: "theme:changed", updateStatus: "update
 
 ## The surface
 
-| Group    | Methods                                                                                                             |
-| -------- | ------------------------------------------------------------------------------------------------------------------- |
-| Config   | `getStartupConfig`, `pickConfig`, `unloadConfig`                                                                    |
-| Input    | `pickInput`, `loadInput`, `pathForFile`, `unloadInput`                                                              |
-| Session  | `saveSession`, `clearSession`                                                                                       |
-| Export   | `exportLabels`                                                                                                      |
-| Prepare  | `pickSplitFile`, `analyzeSplitFile`, `runSplit`, `pickPrepareFiles`, `pickJoinFiles`, `analyzeJoinFiles`, `runJoin` |
-| Update   | `onUpdateStatus`, `installUpdate`, `checkForUpdates`, `openExternal`                                                |
-| Shell    | `revealPath`                                                                                                        |
-| Chrome   | `getTheme`, `onThemeChange`, `onSetMode`, `setMenuContext`                                                          |
-| Liveness | `ping`                                                                                                              |
+| Group       | Methods                                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------------------------- |
+| Config      | `getStartupConfig`, `pickConfig`, `unloadConfig`                                                                    |
+| Input       | `pickInput`, `loadInput`, `pathForFile`, `unloadInput`                                                              |
+| Session     | `saveSession`, `clearSession`, `getSessionInfo`, `getRecent`                                                        |
+| Export      | `exportLabels`                                                                                                      |
+| Prepare     | `pickSplitFile`, `analyzeSplitFile`, `runSplit`, `pickPrepareFiles`, `pickJoinFiles`, `analyzeJoinFiles`, `runJoin` |
+| Update      | `onUpdateStatus`, `installUpdate`, `checkForUpdates`, `openExternal`                                                |
+| Shell       | `revealPath`                                                                                                        |
+| Chrome      | `getTheme`, `onThemeChange`, `onSetMode`, `setMenuContext`                                                          |
+| Settings    | `getAppInfo`, `getSettings`, `setSettings`, `resetSettings`, `onOpenSettings`                                       |
+| Network log | `getNetworkLog`, `onNetworkLog`                                                                                     |
+| Liveness    | `ping`                                                                                                              |
 
 ## Subscriptions return an unsubscribe
 
@@ -52,11 +53,11 @@ onThemeChange: (listener: ThemeListener) => () => void;
 ```
 
 The renderer calls them in a `useEffect` cleanup. There is no channel name at the call site
-and no way to leak a listener by forgetting the counterpart.
+and the returned cleanup removes the listener.
 
 ## Response shapes carry their own failure
 
-Methods return discriminated results rather than throwing across the boundary:
+Config loading returns a discriminated result so normal outcomes can be handled explicitly:
 
 ```ts
 type ConfigLoadResponse =
@@ -91,7 +92,7 @@ not survive JSON.
 4. Register the handler in `src/main/ipc.ts`.
 5. Call it from the renderer.
 
-Steps 3 and 4 fail to compile until they match step 1. `src/core/ipc.test.ts` additionally
+Keep the preload implementation and main registration in sync with the interface. `src/core/ipc.test.ts` additionally
 asserts that every method has a channel and vice versa, so a half-added method is caught
 even before the build.
 

@@ -1,0 +1,66 @@
+---
+title: Select several answers
+description: Let a labeler record every issue that applies to a delivery.
+sidebar:
+  order: 1
+---
+
+import Shot from "../../../../components/Shot.astro";
+import RecipeFiles from "../../../../components/RecipeFiles.astro";
+
+Let a labeler record every issue that applies to a delivery.
+
+## What the labeler sees
+
+<Shot
+  name="recipe-multi-select"
+  alt="Late delivery and Damaged packaging are selected; Missing contents is not."
+  caption="Captured from this recipe’s downloadable configuration and sample data."
+/>
+
+<RecipeFiles name="multi-select" />
+
+## Configure it
+
+Put an **array of enum choices** in `output.fields`. Each choice becomes a checkbox. Set `required: false` when an empty selection is a valid “no issues” answer.
+
+The example includes **D**, **P**, and **M** shortcuts. They toggle a choice on or off. A labeler can also click each checkbox.
+
+The relevant setting is in `output.fields.1`. The download above includes the surrounding configuration.
+
+```jsonc
+{
+  "name": "issues",
+  "type": "array",
+  "display": "Problems present",
+  "required": false,
+  "items": {
+    "type": "enum",
+    "choices": [
+      {
+        "name": "delivery",
+        "display": "Late delivery",
+        "shortcut": "d",
+      },
+      {
+        "name": "packaging",
+        "display": "Damaged packaging",
+        "shortcut": "p",
+      },
+      {
+        "name": "contents",
+        "display": "Missing contents",
+        "shortcut": "m",
+      },
+    ],
+  },
+}
+```
+
+## Try it and check the result
+
+Select Damaged packaging, then Late delivery, and export with **Save**. The `issues` cell contains `["delivery","packaging"]`: configured order, even if the labeler clicked in a different order. CSV adds quotation marks around the JSON array.
+
+Try again with no boxes selected. Because the field is optional, the record can still be exported. A required multi-select needs at least one selection; use a separate explicit “None” decision if your project needs proof that someone reviewed every record.
+
+[Browse all illustrated recipes →](/config/cookbook/)

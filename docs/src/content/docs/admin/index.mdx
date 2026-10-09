@@ -1,0 +1,55 @@
+---
+title: Set up and administer a project
+description: Design the labeling form and the exported dataset, then test and distribute them.
+prev: false
+---
+
+import FieldGallery from "../../../components/FieldGallery.astro";
+import Shot from "../../../components/Shot.astro";
+
+As an administrator, you decide what labelers read, what they answer, and what the finished
+dataset contains. You describe those decisions in a `.jsonc` configuration file. A schema
+is simply the definition of those fields: their names, value types, and rules.
+
+## Choose what labelers will see
+
+Start with the question you need answered. These are actual MLabel controls; each link shows the configuration that creates it.
+
+<FieldGallery />
+
+[**See all controls, their settings, and validation states →**](/config/widgets/)
+
+## Start from a working example
+
+The [illustrated cookbook](/config/cookbook/) pairs every recipe with screenshots, a downloadable configuration, and sample data. Choose a recipe for multiple answers, reviewer details, source tables, warning rules, or another common task.
+
+## Build your first project
+
+[Create a small working project →](/admin/first-project/)
+
+The tutorial includes a complete configuration and sample CSV. You will copy a record ID,
+ask for a decision, add optional notes, and check the export.
+
+## Design and launch
+
+1. [Plan the output](/admin/planning/): define what each column means and which answers are required.
+2. [Choose field types and controls](/config/widgets/): see what labelers will actually use.
+3. [Add clear captions and help](/config/display/) and [arrange fields into cards](/config/cards/).
+4. [Validate the configuration](/config/#check-your-work), then pilot it on representative records.
+5. [Distribute the app and configuration](/admin/deploying/) and hand the data to a [preparer](/preparers/).
+
+## Look up a configuration setting
+
+| Question                                      | Guide                                                      |
+| --------------------------------------------- | ---------------------------------------------------------- |
+| What belongs in a configuration file?         | [Configuration structure](/config/)                        |
+| Which values can a field hold?                | [Value types](/config/types/)                              |
+| Where does an output value come from?         | [Copy, session, user, and timestamp fields](/config/fill/) |
+| How do I highlight information for a labeler? | [Display rules](/config/rules/)                            |
+| How do project shortcuts work?                | [Configuration shortcuts](/config/shortcuts/)              |
+| How do I disable update traffic?              | [Network policy](/config/network/)                         |
+| What does this validation error mean?         | [Error reference](/config/errors/)                         |
+| What are all the allowed keys?                | [Generated schema reference](/reference/)                  |
+
+Use a new configuration filename when changing a live project's schema, and keep outputs
+from different versions separate until you have checked compatibility.

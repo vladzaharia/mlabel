@@ -1,0 +1,57 @@
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  "network": {
+    "updateChecks": false,
+  },
+  "input": {
+    "fields": [
+      {
+        "name": "delays",
+        "type": "array",
+        "items": {
+          "type": "integer",
+        },
+        "display": {
+          "title": "Delivery delays (days)",
+          "titlePosition": "above",
+        },
+      },
+    ],
+    "rules": [
+      {
+        "name": "long-delay",
+        "forEach": "delays",
+        "when": {
+          "op": "gt",
+          "field": "delays",
+          "value": 2,
+        },
+        "style": {
+          "tone": "warning",
+          "note": "More than two days late.",
+        },
+      },
+    ],
+  },
+  "output": {
+    "fields": [
+      {
+        "name": "verdict",
+        "type": "enum",
+        "widget": "radio",
+        "display": "Review decision",
+        "choices": [
+          {
+            "name": "pass",
+            "display": "Pass",
+          },
+          {
+            "name": "fail",
+            "display": "Fail",
+          },
+        ],
+      },
+    ],
+  },
+}

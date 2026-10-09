@@ -1,85 +1,96 @@
 ---
-title: Labeling
-description: Moving through records, what counts as complete, and how progress is tracked.
-sidebar:
-  order: 1
+title: Label and check answers
+description: Read a record, enter your judgment, and understand what counts as finished.
 ---
 
 import Shot from "../../../components/Shot.astro";
 
+Read the source information, answer the questions in the form, then move to the next
+record. Your project decides which fields appear and which answers are required.
+
 <Shot
-  name="labeling"
-  alt="The labeling view: read-only input cards showing the record, and the output form beside them."
+  name="tutorial-labeling"
+  alt="Source cards and the answer form in MLabel's labeling view."
+  caption="Source information is read-only. Enter your judgments in the answer form."
 />
 
-The record you are judging is on one side; the form you fill in is on the other. Both
-layouts come entirely from the config — see [Cards](/config/cards/).
+## Recognize the answer controls
+
+<Shot
+  name="recipe-three-key"
+  alt="A radio group asks for exactly one Verdict."
+  caption="Round radio buttons select one answer."
+/>
+
+<Shot
+  name="recipe-multi-select"
+  alt="A group of checkboxes allows several delivery issues to be selected."
+  caption="Square checkboxes can select more than one answer. Your project may allow none."
+/>
+
+A dropdown also chooses one value. A text box accepts a short answer; a larger text area accepts notes. Required fields have an asterisk.
+
+## Answer a record
+
+1. Read the source fields and any project instructions. Open a help icon for extra guidance.
+2. Fill in the required answers, marked with an asterisk. Add optional notes if useful.
+3. Correct any inline validation message.
+4. Select **Next** or press the next-record shortcut.
+
+Answers are saved automatically while you work; you can return to an earlier record to revise them.
+A highlight on a source field is guidance from the project. It does not fill in an answer
+for you. See [reading a record](/guide/reading-a-record/).
+
+## What “complete” means
+
+A record is complete when its required output values are present and its supplied answers
+pass validation. Values copied from the source and session answers can also contribute to
+completion. You may not need to type into every field.
+
+| Status    | Meaning                                          | On export                       |
+| --------- | ------------------------------------------------ | ------------------------------- |
+| Unlabeled | No per-record answer has been entered            | Source record goes to remaining |
+| Partial   | Work has started, but the record is not complete | Source record goes to remaining |
+| Complete  | Required values and validation checks pass       | Finished record goes to output  |
+
+Answering the setup questions alone does not make every record count as started.
+
+## Validation messages
+
+A field can reject an answer that is too long, outside a numeric range, or otherwise outside
+the project's rules. The message appears beside the field. You can move on and return later,
+but resolve the error before expecting that record in the finished output.
+
+<Shot
+  name="field-invalid"
+  alt="A rating field contains 9 and shows a validation error because the permitted maximum is 5."
+  caption="An invalid answer stays visible so you can correct it. The message explains the constraint."
+/>
+
+A warning beside a **source** value is different: it means MLabel could not read that cell
+as the expected type. You cannot edit source data here. Follow the project guidance or ask
+your administrator if it prevents a judgment.
 
 ## Moving between records
 
-| Key                       | Action                         |
-| ------------------------- | ------------------------------ |
-| <kbd>→</kbd>              | Next record                    |
-| <kbd>←</kbd>              | Previous record                |
-| <kbd>Enter</kbd>          | Next record                    |
-| <kbd>⇧</kbd>+<kbd>→</kbd> | Next **unfinished** record     |
-| <kbd>⇧</kbd>+<kbd>←</kbd> | Previous **unfinished** record |
+Use **Previous** and **Next**, or the default keys below. Your Settings may assign different
+keys; press **?** to see the bindings currently in use.
 
-<kbd>Enter</kbd> is ignored where it already means something — inside a textarea, on a focused
-button, or while a dropdown is open — so it never fires twice.
+| Default key          | Action                     |
+| -------------------- | -------------------------- |
+| Right arrow or Enter | Next record                |
+| Left arrow           | Previous record            |
+| Shift + Right arrow  | Next unfinished record     |
+| Shift + Left arrow   | Previous unfinished record |
 
-The shift-arrow pair is how you sweep up leftovers: work through the file quickly, skipping
-anything that needs thought, then jump between just the gaps.
+Text boxes, dropdowns, and other controls keep the keys they need while you are interacting
+with them. For example, Enter in a multiline notes box starts a new line. See
+[keyboard shortcuts](/guide/keyboard/).
 
-## What "complete" means
+## Stop or finish
 
-A record is **complete** when every _required_ output field holds a value that passes its
-own rules. Nothing else counts — how many fields you touched is irrelevant.
+- **Taking a break:** close the app, then [resume the same files](/guide/sessions/) later.
+- **Returning work:** select **Save** to [export the finished and remaining records](/guide/exporting/).
 
-Required-ness defaults sensibly and can be overridden per field:
-
-- fields **you** answer (`user`, `session`) are required by default,
-- fields the **app** provides (`copy`, `timestamp`) are not,
-- an explicit `"required": true` or `false` always wins.
-
-Three states show in the progress bar:
-
-| State       | Meaning                                                       |
-| ----------- | ------------------------------------------------------------- |
-| `unlabeled` | You have not entered anything on this record.                 |
-| `partial`   | You have started, but a required field is missing or invalid. |
-| `complete`  | Ready to export.                                              |
-
-:::note
-Session answers do not make a record count as started. If they did, every untouched record
-would show as partially labeled the moment you answered the setup questions.
-:::
-
-## Validation
-
-Values are checked as you enter them, against the constraints the config declares — length,
-range, whether a number is whole, whether a choice is one of the permitted ones.
-
-An invalid value is flagged inline on the field. It does not block you from moving on; it
-blocks the record from being **complete**, which means it goes to `*-remaining` rather than
-`*-output` when you export.
-
-## Input problems
-
-Sometimes a source cell cannot be read as the type the config declares — the text `abc` in
-a column declared `number`, say. MLabel does not refuse the file over it. The cell shows as
-empty with a note attached, and you carry on. The value is preserved verbatim in
-`*-remaining` if the record ends up there.
-
-This is deliberate: a labeler cannot fix the source data, so a bad cell is information
-rather than a task.
-
-## Saving
-
-Everything is saved continuously, keyed to the config and input file you have open. You can
-quit at any point. See [Sessions and resuming](/guide/sessions/).
-
-## Finishing
-
-Press **Done**, or <kbd>⌘/Ctrl</kbd>+<kbd>Enter</kbd>. You do not have to complete every
-record first — see [Exporting](/guide/exporting/) for what lands where.
+Exporting is not the same as saving a session: unfinished answers are not included in the
+remaining file, and a successful export clears the saved session.

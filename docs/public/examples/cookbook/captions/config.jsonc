@@ -1,0 +1,57 @@
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  "network": {
+    "updateChecks": false,
+  },
+  "input": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "display": "Record ID",
+      },
+      {
+        "name": "comment",
+        "type": "text",
+        "display": {
+          "title": "What the customer wrote",
+          "description": "Read the entire comment before choosing a decision.",
+          "help": "Judge the delivery experience, not the writing style. If the evidence is incomplete, follow your project guidelines.",
+          "titlePosition": "above",
+          "textSize": "lg",
+        },
+      },
+    ],
+  },
+  "output": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "fill": {
+          "kind": "copy",
+        },
+      },
+      {
+        "name": "verdict",
+        "type": "enum",
+        "widget": "radio",
+        "display": "Review decision",
+        "choices": [
+          {
+            "name": "pass",
+            "display": "Pass",
+          },
+          {
+            "name": "fail",
+            "display": "Fail",
+            "selectedStyle": {
+              "tone": "danger",
+            },
+          },
+        ],
+      },
+    ],
+  },
+}

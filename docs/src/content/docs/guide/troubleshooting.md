@@ -1,8 +1,9 @@
 ---
-title: Troubleshooting
+title: Solve a problem
 description: Common problems and what they actually mean.
 sidebar:
   order: 7
+next: false
 ---
 
 ## "The input file does not match the input schema"
@@ -27,22 +28,23 @@ rows, the config's declared type is probably wrong for the data — tell whoever
 
 ## The config won't load
 
-Every problem is listed at once, each with a line, column and path. The usual causes:
+Errors include locations where available. Validation runs in stages; fix the current
+errors and try again to reveal any further problems. If you are a labeler, send the message
+to the administrator rather than changing the project definition yourself. Common causes:
 
 | Message contains                            | Cause                                                    |
 | ------------------------------------------- | -------------------------------------------------------- |
 | `Unrecognized key`                          | A typo. Every object is strict; unknown keys are errors. |
-| `no version` / `Unsupported config version` | The config predates the v2 schema.                       |
+| `no version` / `Unsupported config version` | The config format is missing or incompatible.            |
 | `does not match input field`                | A `copy` field's type differs from its source column.    |
 | `cannot be filled by a user`                | An `object` or `map` output field with no `fill`.        |
 | `is reserved`                               | A shortcut the app or OS already owns.                   |
 
-The full catalogue with fixes is at [Every error explained](/config/errors/).
+Administrators can find fixes in [Configuration errors](/config/errors/).
 
 ## "These files already exist"
 
-You have exported once already. MLabel will not overwrite a previous export — move or
-delete `*-output` and `*-remaining`, then press **Done** again. See
+You have exported once already. MLabel will not overwrite a previous export — archive the existing `*-output` and `*-remaining` files, then press **Save** again. See
 [Exporting](/guide/exporting/#a-second-export-is-refused).
 
 ## My labels are gone
@@ -50,18 +52,18 @@ delete `*-output` and `*-remaining`, then press **Done** again. See
 Check, in order:
 
 1. **Did you export?** A successful export clears the saved session by design. Your work is
-   in `*-output` and `*-remaining`.
+   in `*-output`; `*-remaining` contains only the unfinished source records, not partial answers.
 2. **Is it the same pair of files?** Sessions are keyed to config _and_ input path. A
    renamed or moved file is a different session.
 3. **Did you decline the resume prompt?** Declining discards the saved session.
-4. **Did MLabel update?** A session written by a different version is discarded rather than
-   read with the wrong meaning.
+4. **Is the saved-session format compatible?** Incompatible session formats are discarded.
+   This does not mean every application update discards your session.
 
 ## The resume prompt says the file changed
 
 The source file's contents differ from when you last saved. Labels are stored by row
 position, so restoring onto a file whose rows were added, removed or reordered puts your
-labels on the wrong records. Starting fresh is usually right.
+labels on the wrong records. Keep the original files and ask your preparer how to recover the assignment before discarding saved answers.
 
 Re-downloading a byte-identical file does **not** trigger this — only content is compared,
 never the modification time.
@@ -72,13 +74,13 @@ never the modification time.
   [Install on macOS](/start/install-macos/#why-applications-specifically).
 - **Windows**: you have the portable build, which cannot self-install. See
   [Install on Windows](/start/install-windows/#the-portable-build).
-- **Either**: your config sets `"network": { "updateChecks": false }`, which disables all
+- **Either**: your personal update preference may be off, or your config sets `"network": { "updateChecks": false }`, which disables all
   network activity.
 
 ## A keyboard shortcut does nothing
 
 Bare letter chords are suppressed while you are typing in a text box, textarea or dropdown
-search — otherwise that letter could never be typed. Chords with a modifier work everywhere.
+search — otherwise that letter could never be typed. Ctrl, Cmd, and Alt combinations can remain active while typing; bare and Shift-only shortcuts pause.
 An open dialog takes the keyboard entirely. See [Keyboard shortcuts](/guide/keyboard/).
 
 ## Prepare refuses to join

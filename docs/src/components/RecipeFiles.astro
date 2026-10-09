@@ -1,0 +1,17 @@
+---
+import { Code } from "@astrojs/starlight/components";
+interface Props { name: string; }
+const { name } = Astro.props;
+if (!/^[a-z-]+$/.test(name)) throw new Error(`Invalid recipe: ${name}`);
+const files = import.meta.glob<string>("../../public/examples/cookbook/*/*", {
+  eager: true, query: "?raw", import: "default",
+});
+const config = files[`../../public/examples/cookbook/${name}/config.jsonc`];
+const csv = files[`../../public/examples/cookbook/${name}/data.csv`];
+if (!config || !csv) throw new Error(`Missing recipe files: ${name}`);
+---
+<div class="recipe-files">
+  <p><strong>Try this example:</strong> download the <a href={`/examples/cookbook/${name}/config.jsonc`} download={`${name}.jsonc`}>complete configuration</a> and <a href={`/examples/cookbook/${name}/data.csv`} download={`${name}.csv`}>sample CSV</a>. Open the configuration in MLabel, then load the CSV.</p>
+  <details><summary>View the complete configuration</summary><Code code={config} lang="jsonc" /></details>
+  <details><summary>View the sample CSV</summary><Code code={csv} lang="csv" /></details>
+</div>

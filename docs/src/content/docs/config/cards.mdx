@@ -1,0 +1,100 @@
+---
+title: Arrange fields into cards
+description: Design readable source cards, group short values, and separate setup questions from record answers.
+---
+
+import Shot from "../../../components/Shot.astro";
+import RecipeFiles from "../../../components/RecipeFiles.astro";
+
+Cards group related information. Use them to put the main evidence first and supporting details underneath. Define source layout in `input.cards` and answer layout in `output.cards`.
+
+## Start with the result
+
+<Shot
+  name="recipe-layout"
+  alt="A customer comment has its own card above a Customer context card with ID, region, and previous orders."
+  caption="One full-width row for the comment; one compact row for three short facts."
+/>
+
+<RecipeFiles name="layout" />
+
+## Declaring them
+
+This is the sample's `input.cards` setting:
+
+```jsonc
+[
+  {
+    "name": "comment-card",
+    "display": {
+      "title": "Read the customer comment",
+      "description": "Use the comment as the evidence for your decision.",
+    },
+    "rows": [
+      {
+        "use": ["comment"],
+      },
+    ],
+  },
+  {
+    "name": "context",
+    "display": "Customer context",
+    "rows": [
+      {
+        "perRow": 3,
+        "use": ["id", "region", "orders"],
+      },
+    ],
+  },
+]
+```
+
+Read it from the outside in:
+
+| Setting   | What it controls                                                           |
+| --------- | -------------------------------------------------------------------------- |
+| `name`    | A unique identifier for the card. Rules use this name.                     |
+| `display` | The heading and optional description shown to the labeler.                 |
+| `rows`    | Groups of fields, from top to bottom.                                      |
+| `use`     | Names of fields declared on the same side of the config, in display order. |
+| `perRow`  | How many fields to fit across before wrapping.                             |
+
+## `perRow`
+
+Use one field per row for long text. Group short values such as an ID, region, and count on one row.
+
+<Shot
+  name="recipe-layout-metadata"
+  alt="Customer context displays Record ID, Region, and Previous orders in a single row."
+/>
+
+`{ "perRow": 2, "use": ["a", "b", "c", "d"] }` creates two rows of two fields. If you omit `perRow`, it defaults to the number of fields in `use`. The window can still force wrapping, so test at the screen size your team uses. The answer panel is narrower than the source area.
+
+## Omit them entirely
+
+Without `cards`, MLabel shows the fields in a default group, one per row. Start there for a short form; add cards when grouping helps someone read the record.
+
+## Fields you leave out
+
+Once you declare cards, a field omitted from every `use` list is hidden. This is useful for an ID you only want copied to output. Check omissions carefully: an accidentally hidden required answer can prevent records from becoming complete.
+
+Copy and timestamp output fields have no controls. You do not need to include them in the answer layout.
+
+## Session cards
+
+Questions about the reviewer or guideline version belong on the setup screen. Give those fields `fill.kind: "session"`, then place them in a card with `scope: "session"`.
+
+<Shot
+  name="recipe-audit-setup"
+  alt="Before you begin asks once for the reviewer's name and guideline version."
+/>
+
+[Use the complete reviewer-details recipe →](/config/recipes/audit-trail/)
+
+If you declare session cards, include each setup question you want shown. A session field placed in a record card does not render there. With no session cards, MLabel uses a default layout for the setup questions.
+
+## Ordering
+
+Cards follow their declaration order. Rows follow the order in `rows`; fields follow the order in `use`. This changes screen layout only. Exported columns follow `output.fields` order.
+
+[Card settings](/reference/card/) · [Row settings](/reference/card-row/)

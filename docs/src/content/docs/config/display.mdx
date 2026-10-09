@@ -1,0 +1,102 @@
+---
+title: Write captions and help
+description: Give fields clear names, keep instructions visible, and put longer guidance behind a help button.
+---
+
+import Shot from "../../../components/Shot.astro";
+import RecipeFiles from "../../../components/RecipeFiles.astro";
+
+Use `display` to turn internal column names into language your labelers understand. It changes the screen, not the CSV headers or stored answer values.
+
+## Caption, instruction, and help
+
+<Shot
+  name="recipe-captions"
+  alt="What the customer wrote appears above the full comment, with an instruction below and a Help button beside the caption."
+  caption="A clear title says what to read. The description tells the labeler what to do."
+/>
+
+The `comment` input field uses:
+
+```jsonc
+{
+  "name": "comment",
+  "type": "text",
+  "display": {
+    "title": "What the customer wrote",
+    "description": "Read the entire comment before choosing a decision.",
+    "help": "Judge the delivery experience, not the writing style. If the evidence is incomplete, follow your project guidelines.",
+    "titlePosition": "above",
+    "textSize": "lg",
+  },
+}
+```
+
+<RecipeFiles name="captions" />
+
+## The shorthand
+
+For a title alone, use a string: `"display": "Customer comment"`. It means the same as `"display": { "title": "Customer comment" }`.
+
+Without a title, MLabel uses the field's `name`. Set a friendly title when names such as `delivery_score_v2` would be confusing.
+
+## The keys
+
+| Setting         | Use it for                                                      | Available on                          |
+| --------------- | --------------------------------------------------------------- | ------------------------------------- |
+| `title`         | A short caption or heading                                      | Fields, cards, choices, table columns |
+| `description`   | A short instruction shown with the content where supported      | Display objects                       |
+| `help`          | Guidance opened with the question-mark button where supported   | Display objects                       |
+| `titlePosition` | `above` for long source values; `left` for compact source facts | Fields                                |
+| `textSize`      | `sm`, `md`, or `lg` for source values                           | Fields                                |
+
+The source view uses caption placement and text size. Answer controls have their own layouts; a radio group or text box is not laid out like a read-only source field. Card descriptions and help are visible on source cards; answer-group and setup-group headings use the card title.
+
+## Layout for long values
+
+Set `titlePosition: "above"` for paragraphs so the caption does not take width away from the text. `textSize: "lg"` can help emphasize the main passage. Leave short metadata at the default size.
+
+## Description or help?
+
+Use **description** for an instruction everyone needs on every record. Use **help** for definitions, edge cases, or a longer example.
+
+<Shot
+  name="recipe-help"
+  alt="An open help popover explains how to judge the delivery experience and handle incomplete evidence."
+  caption="The help text appears when the labeler opens the question-mark button."
+/>
+
+Keep both practical: “Choose every delivery issue mentioned” is more useful than repeating the field's name. Explain what an answer means without telling labelers which judgment to make.
+
+## Styling a selected choice
+
+A choice can use `selectedStyle` to add a tone when selected:
+
+```jsonc
+[
+  {
+    "name": "pass",
+    "display": "Pass",
+  },
+  {
+    "name": "fail",
+    "display": "Fail",
+    "selectedStyle": {
+      "tone": "danger",
+    },
+  },
+]
+```
+
+<Shot
+  name="recipe-selected-choice"
+  alt="Fail is selected in the Review decision radio group and uses the danger tone."
+/>
+
+Use color to reinforce a meaning already stated in words. [See all six tones](/config/rules/#tones).
+
+## The window title
+
+Use `"ui": { "appTitle": "Delivery review" }` for a fixed title, or `"ui": { "appTitle": { "field": "id" } }` to show the current record's input ID.
+
+[Display settings](/reference/field-display/) · [Choice settings](/reference/choice/) · [Text display settings](/reference/text-display/)

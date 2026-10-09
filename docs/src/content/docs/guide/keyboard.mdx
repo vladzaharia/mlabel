@@ -7,14 +7,14 @@ sidebar:
 
 import Shot from "../../../components/Shot.astro";
 
-Press <kbd>?</kbd> at any time for a list that includes whatever your config adds.
+Press <kbd>?</kbd> outside a text-entry control to see the current shortcuts. You can also use the help button in the bottom bar. The list includes project bindings and your saved overrides.
 
 <Shot
   name="shortcuts-dialog"
   alt="The keyboard shortcuts dialog, listing built-in shortcuts and the config's own chords."
 />
 
-## Built in
+## Default shortcuts
 
 | Keys                                                  | Action                                |
 | ----------------------------------------------------- | ------------------------------------- |
@@ -41,7 +41,7 @@ rating, this is the whole interaction: press a digit, press
 
 A config can attach a chord to a **field** (moves focus to it) or to an individual
 **choice** (selects it directly). Both appear in the <kbd>?</kbd> dialog automatically, so
-that list is always truthful for the config you have open.
+you can check the active binding without opening the configuration file.
 
 Choice chords fire **app-wide**, not only while their own field has focus. That is what
 makes them worth having — you can press <kbd>c</kbd> for "correct" without first tabbing to
@@ -50,15 +50,16 @@ file.
 
 ## Changing any of them
 
-Every shortcut above, and every chord your config adds, can be rebound in
+Editable application shortcuts and project bindings can be changed in
 **Settings → Keys** (<kbd>⌘/Ctrl</kbd>+<kbd>,</kbd>). Click a key cap, press the
 keystroke you want, and it is saved.
 
-A few rules the pane enforces so a rebinding cannot quietly break something:
+Native menu shortcuts and number-key choice selection are fixed. The pane marks bindings
+that cannot be changed. For editable bindings:
 
 - **A chord the system owns is refused.** <kbd>⌘</kbd>+<kbd>V</kbd> stays Paste.
 - **A chord another action already claims is refused**, with the clash named —
-  two bindings on one keystroke would fight at runtime.
+  each editable shortcut must be unambiguous.
 - **An override replaces the default rather than adding to it.** Rebinding "next
   record" to <kbd>N</kbd> means <kbd>→</kbd> no longer moves.
 
@@ -75,8 +76,8 @@ A bare letter chord is held back while you are **typing**: in a text box, a text
 dropdown's search field. Otherwise a chord on <kbd>c</kbd> would make the letter "c"
 impossible to type in your notes.
 
-Chords with a modifier (<kbd>⌘</kbd>, <kbd>Ctrl</kbd>, <kbd>Alt</kbd>, <kbd>⇧</kbd>) are
-**not** held back — they stay live everywhere, including inside a text field.
+Shortcuts using <kbd>⌘</kbd>, <kbd>Ctrl</kbd>, or <kbd>Alt</kbd> can remain active in a text
+field. Shift alone does not make a letter shortcut safe while typing.
 
 Radio groups and sliders are a deliberate middle ground: they consume arrow keys, not
 letters, so bare chords keep working while one of them has focus.

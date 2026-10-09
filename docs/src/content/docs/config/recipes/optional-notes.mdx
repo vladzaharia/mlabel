@@ -1,0 +1,51 @@
+---
+title: Add optional notes
+description: Allow useful context without forcing labelers to write an explanation for every record.
+sidebar:
+  order: 10
+---
+
+import Shot from "../../../../components/Shot.astro";
+import RecipeFiles from "../../../../components/RecipeFiles.astro";
+
+Allow useful context without forcing labelers to write an explanation for every record.
+
+## What the labeler sees
+
+<Shot
+  name="recipe-optional-notes"
+  alt="A multiline Notes box includes a short instruction and an example explanation, without a required asterisk."
+  caption="Captured from this recipe’s downloadable configuration and sample data."
+/>
+
+<RecipeFiles name="optional-notes" />
+
+## Configure it
+
+Use a text field with `widget: "textarea"`. `required: false` lets labelers leave it blank; `maxLength: 500` limits any answer they do enter.
+
+Use the description for a short instruction about when a note is helpful. Put longer guidance in `display.help`.
+
+The relevant setting is in `output.fields.2`. The download above includes the surrounding configuration.
+
+```jsonc
+{
+  "name": "notes",
+  "type": "text",
+  "widget": "textarea",
+  "required": false,
+  "maxLength": 500,
+  "display": {
+    "title": "Notes",
+    "description": "Add context when it will help the next reviewer.",
+  },
+}
+```
+
+## Try it and check the result
+
+Select Pass and export with Notes empty: the record should be complete and its `notes` cell blank. In another run, enter a note and confirm it appears in the output.
+
+Optional means **empty is allowed**, not that any value is valid. More than 500 characters produces an error and prevents that record from entering the finished output until corrected.
+
+[Browse all illustrated recipes →](/config/cookbook/)

@@ -1,0 +1,81 @@
+---
+title: Group values in a source table
+description: Show several checks without spreading their results across a wide table.
+sidebar:
+  order: 4
+---
+
+import Shot from "../../../../components/Shot.astro";
+import RecipeFiles from "../../../../components/RecipeFiles.astro";
+
+Show several checks without spreading their results across a wide table.
+
+## What the labeler sees
+
+<Shot
+  name="recipe-nested-table"
+  alt="Delivery checks has Check and Result columns; each result combines a boolean and confidence value."
+  caption="Captured from this recipe’s downloadable configuration and sample data."
+/>
+
+<RecipeFiles name="nested-table" />
+
+## Configure it
+
+Declare an input `array` whose `items` are objects. Each object becomes a row. Inside the item definition, `table.columns` chooses the columns and their contents.
+
+The **Result** column puts `passed` and `confidence` together using `layout: "inline"`. Use `stack` for one value per line or `chips` for separately outlined values. `use` names members of the object, such as `passed`, not top-level CSV columns.
+
+The relevant setting is in `input.fields.0`. The download above includes the surrounding configuration.
+
+```jsonc
+{
+  "name": "checks",
+  "type": "array",
+  "display": {
+    "title": "Delivery checks",
+    "titlePosition": "above",
+  },
+  "items": {
+    "type": "object",
+    "fields": [
+      {
+        "name": "name",
+        "type": "text",
+        "display": "Check",
+      },
+      {
+        "name": "passed",
+        "type": "boolean",
+        "display": "Passed",
+      },
+      {
+        "name": "confidence",
+        "type": "number",
+        "display": "Confidence",
+      },
+    ],
+    "table": {
+      "columns": [
+        {
+          "name": "Check",
+          "use": ["name"],
+        },
+        {
+          "name": "Result",
+          "use": ["passed", "confidence"],
+          "layout": "inline",
+        },
+      ],
+    },
+  },
+}
+```
+
+## Try it and check the result
+
+Load the sample and confirm that three checks appear as three table rows. The `checks` CSV cell holds a JSON array; use the downloadable CSV as a quoting example.
+
+This table is read-only. Labelers answer the separate review decision; they do not edit the checks. Add an output field with a matching type and `fill: { "kind": "copy" }` if the checks must also be retained in the output.
+
+[Browse all illustrated recipes →](/config/cookbook/)

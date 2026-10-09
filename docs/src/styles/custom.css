@@ -26,17 +26,16 @@
   min-width: 100%;
 }
 
-/*
- * The key column is held on one line — those are identifiers, and breaking them
- * mid-token is worse than scrolling. Everything else wraps, including long
- * values like a filesystem path.
- */
-.sl-markdown-content th:first-child,
-.sl-markdown-content td:first-child {
-  white-space: nowrap;
+/* Prose in the first column must wrap too; otherwise it squeezes links into a
+ * few pixels on phones. Wider reference tables scroll inside their container. */
+.sl-markdown-content th,
+.sl-markdown-content td {
+  min-width: 8rem;
+  padding: 0.75rem 1rem;
+  white-space: normal;
 }
 
-.sl-markdown-content td:not(:first-child) code {
+.sl-markdown-content td code {
   overflow-wrap: anywhere;
 }
 
@@ -56,18 +55,93 @@
  * load-bearing rather than cosmetic.
  */
 .shot {
-  margin: 1.5rem 0;
+  margin: 2rem 0;
 }
 
 .shot img {
   display: block;
   max-width: 100%;
   height: auto;
-  border-radius: 0.5rem;
-  border: 1px solid var(--sl-color-gray-5);
+  margin-inline: auto;
+  border-radius: 0.25rem;
 }
 
 :root[data-theme="light"] .shot-dark,
 :root[data-theme="dark"] .shot-light {
   display: none;
+}
+
+.shot figcaption {
+  margin-top: 0.75rem;
+  padding-inline: 0.25rem;
+  color: var(--sl-color-gray-2);
+  font-size: var(--sl-text-sm);
+  line-height: 1.6;
+}
+
+/* Visual choices stay readable beside the prose, including narrow windows. */
+:root {
+  --sl-content-width: 52rem;
+}
+.shot > a {
+  display: block;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.75rem;
+  background: var(--sl-color-bg);
+}
+/* The field captures end at the controls. Extend their canvas inside the
+ * frame so labels, inputs, and focus rings have room on every side. */
+.shot-field > a {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  background: rgb(22 27 39);
+}
+:root[data-theme="light"] .shot-field > a {
+  background: rgb(243 246 249);
+}
+.shot > a:focus-visible {
+  outline: 3px solid var(--sl-color-accent);
+  outline-offset: 4px;
+}
+.shot-hint {
+  font-size: 0.8rem;
+}
+.field-gallery {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  margin: 2rem 0;
+}
+.field-tile {
+  min-width: 0;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+.sl-markdown-content .field-tile h3 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+.field-tile .shot {
+  margin: 1.5rem 0;
+}
+.field-tile .shot > a {
+  padding: 1.25rem;
+}
+.field-tile p {
+  font-size: 0.95rem;
+}
+.recipe-files {
+  border-inline-start: 3px solid var(--sl-color-accent);
+  padding: 1rem 1.5rem;
+  margin: 2rem 0;
+}
+.recipe-files summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.5rem 0;
+}
+
+.sl-markdown-content .field-gallery > section {
+  margin-block: 0;
 }

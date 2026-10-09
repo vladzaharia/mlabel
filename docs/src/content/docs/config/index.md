@@ -1,10 +1,11 @@
 ---
-title: Anatomy of a config
-description: The shape of an MLabel config file, the two rules that govern all of it, and a worked example from minimal to complete.
+title: Understand the configuration file
+description: Find the right setting without reading the whole schema.
 ---
 
-A config is one `.jsonc` file — JSON with comments and trailing commas — that fully
-describes what MLabel shows and what it captures.
+A project configuration is a `.jsonc` file. It defines the source columns, questions, exported values, and screen layout. JSONC permits comments and trailing commas.
+
+If you want a working starting point, use the [first-project tutorial](/admin/first-project/) or an [illustrated recipe](/config/cookbook/). This page is a map of the file, not a prerequisite for labeling.
 
 ## The smallest working config
 
@@ -12,171 +13,76 @@ describes what MLabel shows and what it captures.
 {
   "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
   "version": 2,
-  "input": {
-    "fields": [{ "name": "text", "type": "text" }],
-  },
+  "network": { "updateChecks": false },
+  "input": { "fields": [{ "name": "comment", "type": "text" }] },
   "output": {
     "fields": [
       {
-        "name": "label",
+        "name": "decision",
         "type": "enum",
-        "choices": [{ "name": "good" }, { "name": "bad" }],
+        "widget": "radio",
+        "choices": [{ "name": "pass" }, { "name": "fail" }],
       },
     ],
   },
 }
 ```
 
-That is a complete, valid config. It reads a CSV with a `text` column, shows it, and asks
-for one of two labels. Everything else — layout, widgets, required-ness — has a sensible
-default.
-
-## The two rules
-
-Almost everything else follows from these.
-
-### 1. Every object is strict
-
-An unrecognised key is an **error**, not a silently ignored one:
-
-```jsonc
-"network": { "updateCheck": false }   // ✗ Unrecognized key: "updateCheck"
-```
-
-This is not pedantry. A silently dropped `updateChecks` would leave the permissive default
-in place, so a config that reads as opting out of all network would still be making
-requests. Failing loudly is the only safe behaviour.
-
-The single exception is [`adapterConfig`](/config/adapters/), which is owned by the adapter
-rather than by MLabel — the core never inspects it, so it cannot judge what belongs there.
-
-### 2. A field is a type
-
-`type` is a flat tag, and it decides which other keys exist:
-
-```jsonc
-{ "name": "notes",  "type": "text",   "maxLength": 500 }   // ✓ maxLength is a text key
-{ "name": "rating", "type": "integer", "min": 1, "max": 5 } // ✓ min/max are number keys
-{ "name": "notes",  "type": "text",   "min": 1 }            // ✗ min is not a text key
-```
-
-Input and output fields share this shape. Output fields add two more keys, which are
-independent of the type and of each other:
-
-- [`fill`](/config/fill/) — **who** provides the value.
-- [`widget`](/config/widgets/) — **how** it renders.
+This reads a source file with a `comment` column and asks for one decision per record. The answer is required by default. The example also disables update traffic.
 
 ## Top level
 
-| Key       | Required | What it does                                              |
-| --------- | -------- | --------------------------------------------------------- |
-| `$schema` | no       | Points editors at the JSON Schema for autocomplete.       |
-| `version` | **yes**  | Must be `2`. See [Versioning](/config/versioning/).       |
-| `ui`      | no       | Window title.                                             |
-| `network` | no       | The update-check switch. See [Network](/config/network/). |
-| `input`   | **yes**  | Columns to read and display.                              |
-| `output`  | **yes**  | Columns to write.                                         |
+| Setting                       | Purpose                                               | Guide                                                   |
+| ----------------------------- | ----------------------------------------------------- | ------------------------------------------------------- |
+| `$schema`                     | Editor autocomplete and structural validation         | [Check your work](#check-your-work)                     |
+| `version`                     | Configuration format; use `2`                         | [Compatibility](/config/versioning/)                    |
+| `input.fields`                | Source columns and how to read them                   | [Fields](/config/fields/)                               |
+| `output.fields`               | Exported columns, including entered and copied values | [Value sources](/config/fill/)                          |
+| `input.cards`, `output.cards` | Screen grouping and ordering                          | [Cards](/config/cards/)                                 |
+| `input.rules`                 | Visual hints over source values                       | [Display rules](/config/rules/)                         |
+| `ui`                          | App title                                             | [Captions and title](/config/display/#the-window-title) |
+| `network`                     | Permission for update traffic                         | [Network policy](/config/network/)                      |
 
-`input` and `output` each take `adapterId`, `adapterConfig`, `fields` and `cards`; `input`
-additionally takes `rules`. Full key-by-key detail is in
-[the generated reference](/reference/).
+`input` and `output` can also set `adapterId` and `adapterConfig` for file handling. CSV is the default. [File-format options](/config/adapters/).
+
+## The two rules
+
+### Use supported settings
+
+Unknown keys are rejected, so a misspelling does not silently change your project's behavior. `adapterConfig` is the exception: its supported options belong to the file adapter, and unknown keys may be ignored.
+
+### Separate the three field decisions
+
+- **Type:** what the value means, such as text, a number, or a choice.
+- **Fill:** where an output value comes from, such as a labeler or source column.
+- **Widget:** the control used when a person provides it.
+
+A matching input and output name does not automatically copy a value. Set `fill.kind: "copy"` when that is what you intend.
 
 ## Growing the example
 
-Adding display, layout, a copied ID and a timestamp:
+Add one behavior at a time and check the result:
 
-```jsonc
-{
-  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
-  "version": 2,
+1. [Choose answer controls visually](/config/widgets/).
+2. [Carry an ID into output](/config/recipes/rename-column/).
+3. [Ask once for reviewer details](/config/recipes/audit-trail/).
+4. [Arrange cards](/config/cards/) and [add helpful captions](/config/display/).
+5. [Highlight a source comparison](/config/recipes/highlight-input/).
 
-  // Track the record on screen in the window title.
-  "ui": { "appTitle": { "field": "id" } },
-
-  "input": {
-    "fields": [
-      { "name": "id", "type": "text" },
-      {
-        "name": "text",
-        "type": "text",
-        // A bare string is shorthand for { "title": "…" }.
-        "display": { "title": "Text under review", "titlePosition": "above", "textSize": "lg" },
-      },
-      { "name": "score", "type": "number", "min": 0, "max": 1, "display": "Model score" },
-    ],
-
-    // Purely visual. Rules can never change what is exported.
-    "rules": [
-      {
-        "name": "very-confident",
-        "when": { "op": "gt", "field": "score", "value": 0.9 },
-        "style": { "tone": "warning", "note": "Unusually confident — check carefully." },
-      },
-    ],
-
-    "cards": [
-      {
-        "name": "sample",
-        "display": "Sample",
-        "rows": [{ "use": ["text"] }, { "perRow": 2, "use": ["id", "score"] }],
-      },
-    ],
-  },
-
-  "output": {
-    "fields": [
-      // Carried over from the input column of the same name.
-      { "name": "id", "type": "text", "fill": { "kind": "copy" } },
-      {
-        "name": "label",
-        "type": "enum",
-        "widget": "radio",
-        "display": "Your label",
-        "choices": [
-          { "name": "good", "display": "Good", "shortcut": "g" },
-          {
-            "name": "bad",
-            "display": "Bad",
-            "shortcut": "b",
-            "selectedStyle": { "tone": "danger" },
-          },
-        ],
-      },
-      {
-        "name": "notes",
-        "type": "text",
-        "widget": "textarea",
-        "required": false,
-        "maxLength": 500,
-      },
-      // Answered once at the start, written onto every row.
-      { "name": "annotator", "type": "text", "fill": { "kind": "session" } },
-      // Stamped by the app when a record becomes complete.
-      { "name": "labeledAt", "type": "date", "fill": { "kind": "timestamp" } },
-    ],
-    "cards": [
-      {
-        "name": "labels",
-        "display": "Labels",
-        "rows": [{ "use": ["label"] }, { "use": ["notes"] }],
-      },
-    ],
-  },
-}
-```
+Each example supplies a runnable configuration and sample data, so you can compare its screen and exported values before adapting it.
 
 ## Check your work
+
+Open the config in MLabel. If it loads, try representative source records and export a small result. Check required answers, blank values, column order, and the exact stored choice names.
+
+In a repository checkout with development dependencies installed, you can also run:
 
 ```bash
 pnpm validate path/to/config.jsonc
 ```
 
-Every problem is reported at once, with a line, column and path. See
-[Every error explained](/config/errors/).
+Fix errors and rerun until it succeeds. Syntax, structure, and relationships between fields are checked in stages.
 
-## Where to go next
+The `$schema` URL helps your editor find structural errors; it cannot express every relationship the app checks. A config that passes editor validation may still be rejected by MLabel. [Understand validation errors](/config/errors/).
 
-- [Value types](/config/types/) — the nine types and their constraints.
-- [Fill](/config/fill/) — where an output value comes from.
-- [Cookbook](/config/cookbook/) — recipes for common shapes.
-- [Authoring as an agent](/config/agents/) — a procedure for models.
+[Complete key reference →](/reference/)

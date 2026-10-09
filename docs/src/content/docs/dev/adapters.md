@@ -9,6 +9,8 @@ Adding a format must require **no changes** to `src/core/` beyond registering it
 at all to the renderer or the config schema. If your change touches either, the abstraction
 has leaked.
 
+Read the existing CSV adapter and the interfaces in `src/core/adapters/` before implementing a format. This guide describes the required behavior; the TypeScript interfaces remain the API source of truth.
+
 ## The two interfaces
 
 ```ts
@@ -50,7 +52,7 @@ content-only adapter should throw on it, as the CSV adapter does.
 
 ## The provenance token
 
-This is the piece that makes the whole thing work.
+Each parsed record carries the data its source adapter needs to write it back.
 
 ```ts
 interface ProvenanceToken<T = unknown> {
@@ -69,7 +71,7 @@ document's header cells, delimiter and newline; `reemit` decodes them back.
 :::caution[Internals are enforced, not requested]
 Put format-specific types under `src/core/adapters/<id>/internal/`. An oxlint
 `no-restricted-imports` rule fails the build if anything outside your adapter folder imports
-them. This is deliberately not left to discipline.
+them. Keep these types private when adding imports.
 :::
 
 ## Issues
@@ -109,7 +111,7 @@ so prefer a warning attached to the cell over rejecting the whole file.
    }
    ```
 
-That is the only file in `src/core/` you touch.
+Outside the new adapter directory, registration is the only required core change.
 
 ## The round-trip property test
 
@@ -134,7 +136,7 @@ fc.assert(
 );
 ```
 
-This is the test that matters. Prepare's join flow depends on `*-remaining` reloading
+Include this test before relying on a new adapter for unfinished records. Prepare's join flow depends on `*-remaining` reloading
 cleanly, and a round-trip bug there is silent data loss.
 
 ## What you do not implement
@@ -148,6 +150,6 @@ cleanly, and a round-trip bug there is silent data loss.
 - [ ] Nothing outside your folder imports `internal/`.
 - [ ] No Electron and no `node:fs` import — main hands you text.
 - [ ] `parse` never throws on bad data; it reports issues.
-- [ ] Only a genuinely unusable file produces `severity: "error"`.
+- [ ] Only an unusable file produces `severity: "error"`.
 - [ ] The round-trip property test passes.
 - [ ] `pnpm test` and `pnpm lint` are green — the import fence is a lint rule.

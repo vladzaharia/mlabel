@@ -29,11 +29,8 @@ import { _electron as electron, type ElectronApplication, type Page } from "play
 
 const here = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(here, "../..");
-const MAIN = join(REPO, "out/main/index.mjs");
+const MAIN = REPO;
 const SHOTS = resolve(here, "../src/assets/shots");
-
-/** 16:10 — big enough to read, small enough to embed. */
-const VIEWPORT = { width: 1280, height: 800 };
 
 /**
  * Fixed, and deliberately not `os.tmpdir()`.
@@ -101,7 +98,13 @@ function makeWorkspace(config: "sample" | "broken" | "none"): Workspace {
   mkdirSync(join(dir, "userdata"), { recursive: true });
 
   if (config === "sample") {
-    cpSync(join(REPO, "examples/config.jsonc"), join(dir, "config.jsonc"));
+    writeFileSync(
+      join(dir, "config.jsonc"),
+      readFileSync(join(REPO, "examples/config.jsonc"), "utf8").replace(
+        /"version": 2,/,
+        '"version": 2, "network": { "updateChecks": false },',
+      ),
+    );
   } else if (config === "broken") {
     // Three distinct failures, so the error screen shows a realistic list
     // rather than one lonely message.
@@ -110,7 +113,7 @@ function makeWorkspace(config: "sample" | "broken" | "none"): Workspace {
       JSON.stringify(
         {
           version: 2,
-          network: { updateCheck: false },
+          network: { updateChecks: false },
           input: { fields: [{ name: "prompt", type: "text" }] },
           output: {
             fields: [
@@ -134,7 +137,7 @@ async function launch(workspace: Workspace): Promise<{ app: ElectronApplication;
     cwd: workspace.dir,
   });
   const page = await app.firstWindow();
-  await page.setViewportSize(VIEWPORT);
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.maximize());
   await page.waitForLoadState("domcontentloaded");
   return { app, page };
 }

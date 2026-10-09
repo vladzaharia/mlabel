@@ -1,0 +1,70 @@
+---
+title: Ask once for reviewer details
+description: Record the reviewer and guideline version once per file, alongside each completed record.
+sidebar:
+  order: 2
+---
+
+import Shot from "../../../../components/Shot.astro";
+import RecipeFiles from "../../../../components/RecipeFiles.astro";
+
+Record the reviewer and guideline version once per file, alongside each completed record.
+
+## What the labeler sees
+
+<Shot
+  name="recipe-audit-setup"
+  alt="The setup screen asks for Your name and Guideline version before labeling begins."
+  caption="Captured from this recipe’s downloadable configuration and sample data."
+/>
+
+<RecipeFiles name="audit-trail" />
+
+## Configure it
+
+Use `fill.kind: "session"` for questions about the whole assignment. Put them in a card with `scope: "session"` when declaring cards. Keep the per-record decision in a separate record card.
+
+`id` is copied from the source. `labeledAt` is supplied automatically when a record becomes complete; later edits to a complete record update it. Neither needs a control.
+
+These entries go inside `output`. Keep the copied ID and per-record decision from the complete download; this excerpt focuses on setup and timestamp fields.
+
+```jsonc
+"fields": [
+  {
+    "name": "annotator", "type": "text", "display": "Your name",
+    "fill": { "kind": "session" }
+  },
+  {
+    "name": "guidelines", "type": "enum", "widget": "radio",
+    "display": "Guideline version", "fill": { "kind": "session" },
+    "choices": [
+      { "name": "v3", "display": "Version 3" },
+      { "name": "v4", "display": "Version 4" }
+    ]
+  },
+  {
+    "name": "labeledAt", "type": "date",
+    "fill": { "kind": "timestamp" }
+  }
+],
+"cards": [
+  { "name": "run", "scope": "session", "display": "About this run",
+    "rows": [{ "use": ["annotator"] }, { "use": ["guidelines"] }] }
+]
+```
+
+## Try it and check the result
+
+Enter **Alex**, choose **Version 4**, and select **Start labeling**. The record form asks only for the review decision:
+
+<Shot
+  name="recipe-audit-trail"
+  alt="The per-record form asks for a Pass or Fail review decision, without repeating reviewer details."
+  caption="Session questions disappear from the record form after setup."
+/>
+
+Select Pass and export. Check for `id`, `verdict`, `annotator`, `guidelines`, and `labeledAt`. The sample produces `r001`, `pass`, `Alex`, `v4`, and a timestamp from your run.
+
+Session answers are added to finished output rows. They are not added to the source records in a remaining file.
+
+[Browse all illustrated recipes →](/config/cookbook/)

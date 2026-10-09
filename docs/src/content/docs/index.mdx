@@ -1,74 +1,76 @@
 ---
-title: MLabel
-description: A fully local, zero-network desktop app for manual data labeling, driven entirely by one .jsonc config file.
-template: splash
-hero:
-  tagline: Label tabular data one record at a time, on your machine, with nothing hard-coded. One <code>.jsonc</code> file decides everything you see and everything you capture.
-  image:
-    file: ../../assets/icon.svg
-  actions:
-    - text: Download
-      link: /start/download/
-      icon: down-arrow
-      variant: primary
-    - text: Write a config
-      link: /config/
-      icon: pencil
-      variant: minimal
-    - text: GitHub
-      link: https://github.com/vladzaharia/mlabel
-      icon: external
-      variant: minimal
+title: MLabel documentation
+description: Label records, prepare files for a team, or design a labeling project.
 ---
 
-import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+import { LinkCard, CardGrid } from "@astrojs/starlight/components";
+import Shot from "../../components/Shot.astro";
+import FieldGallery from "../../components/FieldGallery.astro";
 
-## What it is
+MLabel helps you read one record at a time, enter your judgment, and save the results as a
+file. Your data and labels stay on your computer. A project configuration determines what
+you see and which questions you answer.
 
-MLabel ingests tabular data, shows you one record at a time, and exports labeled data
-matching a configured output schema. It runs entirely on your machine: nothing you load
-or label ever leaves it.
-
-<CardGrid stagger>
-  <Card title="Nothing is hard-coded" icon="setting">
-    Fields, types, widgets, layout, validation and keyboard shortcuts all come from your config.
-    Adding a column means editing one file, not shipping a build.
-  </Card>
-  <Card title="Local by construction" icon="approve-check">
-    The only remote request MLabel can make is its update check, and a single config key switches
-    even that off. Everything else is denied at the network layer.
-  </Card>
-  <Card title="Nothing is lost" icon="document">
-    Finished records go to `*-output`; anything unfinished is re-emitted to `*-remaining`, ready to
-    load straight back in.
-  </Card>
-  <Card title="Built for teams" icon="puzzle">
-    Split a file across labelers, then join their finished work back together — with schema
-    validation and duplicate detection on the way in.
-  </Card>
-</CardGrid>
-
-## Start here
+## What do you need to do?
 
 <CardGrid>
   <LinkCard
-    title="Download and install"
+    title="Label records"
+    href="/labelers/"
+    description="Open your assignment, answer questions, pause safely, and return your work."
+  />
+  <LinkCard
+    title="Prepare and collect data"
+    href="/preparers/"
+    description="Check source files, divide work into batches, and combine returned files."
+  />
+  <LinkCard
+    title="Set up a project"
+    href="/admin/"
+    description="Create a configuration, choose fields and controls, and test the exported results."
+  />
+  <LinkCard
+    title="Install MLabel"
     href="/start/download/"
-    description="Pick the right build for macOS or Windows and get it running."
-  />
-  <LinkCard
-    title="Your first labeling run"
-    href="/start/first-run/"
-    description="Config, data, label, export — end to end."
-  />
-  <LinkCard
-    title="Write a config"
-    href="/config/"
-    description="The anatomy of a config file, key by key."
-  />
-  <LinkCard
-    title="Authoring as an agent"
-    href="/config/agents/"
-    description="A procedure and a rejection list for models writing configs."
+    description="Download the app for macOS or Windows."
   />
 </CardGrid>
+
+You can take more than one role. If you are working alone, start with
+[creating a project](/admin/first-project/), then follow the labeling guide.
+
+## The labeling screen
+
+<Shot
+  name="tutorial-labeling"
+  alt="MLabel shows source information in read-only cards beside a form for the labeler's answers."
+  caption="Read the source information, then answer the questions beside it. Your project's field names and layout may differ."
+/>
+
+## Designing a project? Start with the form
+
+Choose controls that match the decisions your labelers need to make. Each preview links to its configuration.
+
+<FieldGallery />
+
+[**Browse the illustrated cookbook and runnable examples →**](/config/cookbook/)
+
+## How the files fit together
+
+| File                             | What it is for                                              | Who supplies it                        |
+| -------------------------------- | ----------------------------------------------------------- | -------------------------------------- |
+| Project configuration (`.jsonc`) | Defines the source columns, questions, and exported columns | Administrator                          |
+| Input data (`.csv`)              | The records to label                                        | Preparer                               |
+| `*-output.csv`                   | Finished records and their labels                           | MLabel, when you select Save           |
+| `*-remaining.csv`                | Unfinished source records, ready for another pass           | MLabel, when unfinished records remain |
+
+A saved session is separate from these files. It lets you resume unfinished answers on the
+same computer; a remaining file contains the source records, **not partially entered labels**.
+See [saving and resuming](/guide/sessions/).
+
+## Using version 0.4.0
+
+These guides cover 0.4.0, including [Settings](/guide/settings/),
+[personal keyboard shortcuts](/guide/keyboard/), and [display-rule notes](/guide/reading-a-record/).
+Administrators can use the [configuration tutorial](/admin/first-project/),
+[visual field guide](/config/widgets/), and [full schema reference](/reference/).

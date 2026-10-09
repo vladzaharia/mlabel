@@ -14,9 +14,10 @@ interface Props {
   /** Base name under `src/assets/shots`, without the `.light`/`.dark` suffix. */
   name: string;
   alt: string;
+  caption?: string;
 }
 
-const { name, alt } = Astro.props;
+const { name, alt, caption } = Astro.props;
 
 const shots = import.meta.glob<{ default: ImageMetadata }>(
   "/src/assets/shots/*.{png,webp}",
@@ -28,30 +29,15 @@ const pick = (theme: "light" | "dark"): ImageMetadata | undefined =>
 
 const light = pick("light");
 const dark = pick("dark");
+if (!light || !dark) throw new Error(`Missing screenshot pair: ${name}`);
 ---
 
-{
-  light && dark ? (
-    <figure class="shot not-content">
-      <Image class="shot-light" src={light} alt={alt} loading="lazy" />
-      <Image class="shot-dark" src={dark} alt={alt} loading="lazy" />
-    </figure>
-  ) : (
-    <aside class="shot-missing">
-      <p>
-        <strong>Screenshot pending:</strong> <code>{name}</code>. Run{" "}
-        <code>pnpm -C docs screenshots</code> to capture it.
-      </p>
-    </aside>
-  )
-}
-
-<style>
-  .shot-missing {
-    border: 1px dashed var(--sl-color-gray-4);
-    border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
-    color: var(--sl-color-gray-2);
-    font-size: var(--sl-text-sm);
-  }
-</style>
+<figure class:list={["shot", "not-content", { "shot-field": name.startsWith("field-") }]}>
+  <a class="shot-light" href={light.src} target="_blank" rel="noopener" aria-label={`Open full-size image: ${alt}`}>
+    <Image src={light} alt={alt} loading="lazy" />
+  </a>
+  <a class="shot-dark" href={dark.src} target="_blank" rel="noopener" aria-label={`Open full-size image: ${alt}`}>
+    <Image src={dark} alt={alt} loading="lazy" />
+  </a>
+  <figcaption>{caption && <span>{caption} </span>}<span class="shot-hint">Select image to enlarge.</span></figcaption>
+</figure>

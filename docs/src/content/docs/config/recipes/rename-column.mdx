@@ -1,0 +1,59 @@
+---
+title: Carry an ID into a renamed column
+description: Keep a source identifier in the exported dataset without asking anyone to retype it.
+sidebar:
+  order: 3
+---
+
+import Shot from "../../../../components/Shot.astro";
+import RecipeFiles from "../../../../components/RecipeFiles.astro";
+
+Keep a source identifier in the exported dataset without asking anyone to retype it.
+
+## What the labeler sees
+
+<Shot
+  name="recipe-rename-column-input"
+  alt="Record ID is displayed as r001 in the source information."
+  caption="Captured from this recipe’s downloadable configuration and sample data."
+/>
+
+<RecipeFiles name="rename-column" />
+
+## Configure it
+
+Declare `sourceId` as an output field and set `fill.from` to the input name `id`. The input and output types must match.
+
+A copied field produces **no answer control**. The labeler sees the ID in the source card and answers the separate review question. To copy the same ID into another column, add another text output field with the same `fill.from`.
+
+The relevant setting is in `output.fields.0`. The download above includes the surrounding configuration.
+
+```jsonc
+{
+  "name": "sourceId",
+  "type": "text",
+  "fill": {
+    "kind": "copy",
+    "from": "id",
+  },
+}
+```
+
+## Try it and check the result
+
+Select Pass and export. The resulting CSV is:
+
+```csv
+sourceId,verdict
+r001,pass
+```
+
+The source column is still named `id`. `display` only changes on-screen captions; use the output field’s `name` to change an exported header.
+
+<Shot
+  name="recipe-rename-column"
+  alt="The answer form contains only Review decision, with Pass selected."
+  caption="There is no sourceId box to fill in: that value is copied automatically."
+/>
+
+[Browse all illustrated recipes →](/config/cookbook/)

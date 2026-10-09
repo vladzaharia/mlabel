@@ -1,20 +1,22 @@
 ---
-title: Every error explained
-description: The complete catalogue of config rejection messages, what each one means, and how to fix it.
+title: Fix configuration errors
+description: Find a validation message, understand its location, and correct the configuration.
 ---
 
-Check a config without launching the app:
+If you received this configuration for an assignment, send the error text and filename to its administrator. If you maintain it, find the message below, correct the setting, and reload the file in MLabel.
+
+In a repository checkout with dependencies installed, you can also validate without opening the app:
 
 ```bash
 pnpm validate path/to/config.jsonc
 ```
 
-The messages below are exact.
+The examples below use representative field names. Your message will name the field or card in your file.
 
 ## Validation happens in three stages
 
 Each stage only runs if the one before it passed, so **fixing an error can reveal new ones**.
-That is not the config getting worse — it is the next stage finally getting to run.
+Later checks run only after earlier checks pass.
 
 | Stage            | Checks                                                                         |
 | ---------------- | ------------------------------------------------------------------------------ |
@@ -35,7 +37,7 @@ fix it, re-run
               Shortcut "mod+v" is reserved by the app or the OS.
 ```
 
-Re-run until it is clean rather than assuming the first clean-ish result is final.
+Repeat until validation succeeds, then test the form with sample data.
 
 ## Version
 
@@ -50,9 +52,7 @@ The config is written for a different format version. Both directions are refuse
 config in an older build fails just as cleanly.
 
 :::note
-The version is checked **before** everything else, deliberately. A v1 config measured
-against the v2 schema produces nine errors with the real cause buried among eight
-consequences.
+The format version is checked after JSONC parsing, before structural and cross-field validation.
 :::
 
 ## Syntax
@@ -70,9 +70,7 @@ You may see two syntax errors for one mistake; fix the first and re-run.
 
 A typo, or a key that does not exist on that object. Every object in the config is strict.
 
-This is the single most valuable check in the schema. A silently dropped `updateChecks`
-would leave the permissive default in place, so a config that reads as opting out of all
-network would still be making requests.
+Check spelling and which object the setting belongs to. The update key is `updateChecks`, with a final **s**.
 
 The one place unknown keys are allowed is
 [`adapterConfig`](/config/adapters/#adapterconfig), which is owned by the adapter.
@@ -129,8 +127,7 @@ on the way back in. Fix whichever side is wrong.
 ### `"object" fields cannot be filled by a user; give the field a \`fill\`.`
 
 Also for `map`. There is no widget that could capture an arbitrary nested structure, so an
-output field of either type must be `copy`, `session` or `timestamp` — realistically
-`copy`. See [Widgets](/config/widgets/#composite-types-render-no-widget).
+output field of either type should copy a compatible input value with `fill.kind: "copy"`. See [Widgets](/config/widgets/#composite-types-render-no-widget).
 
 ### `A "copy" field renders no widget.`
 
@@ -157,7 +154,7 @@ reserved chord is fine — `"c"` is unrelated to `mod+c`.
 ### `e.g. "p" or "mod+s"`
 
 The chord did not parse. It must be zero or more of `mod` `ctrl` `alt` `shift` `meta`,
-each followed by `+`, then exactly one letter or digit. `"ctrl+"` has no key; `"ctrl+ab"`
+each followed by `+`, then a letter, digit, or supported named key such as `enter` or `up`. `"ctrl+"` has no key; `"ctrl+ab"`
 has two.
 
 ## Rules
@@ -203,7 +200,7 @@ type that owns them. This surfaces as an unrecognised key for the type you wrote
 
 The path is the fastest way in: `output.fields.1.type` is the `type` of the second field in
 `output.fields`. When a cross-field check names a path with no exact source node, the
-location degrades to the nearest ancestor — a roughly-right line beats none.
+location degrades to the nearest ancestor — start with the indicated parent object when there is no exact source location.
 
 ## Still stuck?
 

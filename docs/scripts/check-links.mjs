@@ -1,66 +1,53 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, relative, resolve } from "node:path";
 
-/**
- * Fail the build on an internal link that goes nowhere.
- *
- * Starlight already validates sidebar slugs, but nothing checks links inside
- * prose — and a docs site whose cross-references quietly rot is worse than one
- * with fewer of them. Runs over the built output, so it sees exactly what a
- * reader would request.
- *
- * External links are not checked: that needs the network, which would make the
- * build non-hermetic and flaky for a class of breakage nobody here controls.
- */
-
+// Check the built site, including section links and downloadable example files.
+// External destinations are intentionally not fetched during a documentation build.
 const DIST = resolve(dirname(fileURLToPath(import.meta.url)), "../dist");
-
-/** Directories whose contents are emitted by tooling, not authored. */
-const GENERATED_PREFIXES = ["/_astro/", "/pagefind/"];
-
+const ORIGIN = "https://docs.invalid";
 function htmlFiles(dir) {
   return readdirSync(dir).flatMap((entry) => {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) return htmlFiles(full);
-    return entry.endsWith(".html") ? [full] : [];
+    const file = join(dir, entry);
+    return statSync(file).isDirectory() ? htmlFiles(file) : entry.endsWith(".html") ? [file] : [];
   });
 }
-
-const files = htmlFiles(DIST);
 const routeOf = (file) =>
   `/${relative(DIST, file)
     .replace(/index\.html$/, "")
     .replaceAll("\\", "/")}`;
-
-const pages = new Set(files.map(routeOf));
-const assets = new Set(
-  readdirSync(DIST)
-    .filter((entry) => statSync(join(DIST, entry)).isFile())
-    .map((entry) => `/${entry}`),
+const pages = new Map(
+  htmlFiles(DIST).map((file) => {
+    const html = readFileSync(file, "utf8");
+    return [
+      routeOf(file),
+      { html, ids: new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1])) },
+    ];
+  }),
 );
-
 const broken = new Map();
-
-for (const file of files) {
-  const html = readFileSync(file, "utf8");
-  for (const match of html.matchAll(/href="(\/[^"#?]*)/g)) {
-    let href = match[1];
-    // Starlight emits directory-style routes; normalise so `/config` matches `/config/`.
-    if (!href.endsWith("/") && !href.includes(".")) href += "/";
-    if (pages.has(href) || assets.has(href)) continue;
-    if (GENERATED_PREFIXES.some((prefix) => href.startsWith(prefix))) continue;
+for (const [route, { html }] of pages) {
+  for (const match of html.matchAll(/\bhref="([^"]+)"/g)) {
+    const url = new URL(match[1].replaceAll("&amp;", "&"), `${ORIGIN}${route}`);
+    if (url.origin !== ORIGIN) continue;
+    let path = decodeURIComponent(url.pathname);
+    if (!path.endsWith("/") && !path.includes(".")) path += "/";
+    const target = pages.get(path);
+    const anchor = decodeURIComponent(url.hash.slice(1));
+    if (target && (!anchor || target.ids.has(anchor))) continue;
+    const asset = join(DIST, path.slice(1));
+    if (!target && existsSync(asset) && statSync(asset).isFile()) continue;
+    const href = `${path}${url.hash}`;
     if (!broken.has(href)) broken.set(href, new Set());
-    broken.get(href).add(routeOf(file));
+    broken.get(href).add(route);
   }
 }
-
-if (broken.size > 0) {
-  for (const [href, sources] of [...broken].sort()) {
-    process.stderr.write(`  ${href}\n      linked from ${[...sources].sort().join(", ")}\n`);
-  }
-  process.stderr.write(`\n${String(broken.size)} broken internal link target(s).\n`);
+if (broken.size) {
+  for (const [href, sources] of [...broken].sort())
+    process.stderr.write(`${href}\n  linked from ${[...sources].join(", ")}\n`);
+  process.stderr.write(`${broken.size} broken link target(s).\n`);
   process.exit(1);
 }
-
-process.stdout.write(`Checked ${String(files.length)} pages — no broken internal links.\n`);
+process.stdout.write(
+  `Checked ${pages.size} pages, section links, and local downloads — no broken internal links.\n`,
+);

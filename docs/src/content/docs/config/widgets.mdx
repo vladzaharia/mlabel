@@ -1,0 +1,254 @@
+---
+title: Visual field guide
+description: See the actual controls labelers use and the configuration for each one.
+---
+
+import Shot from "../../../components/Shot.astro";
+
+A **type** defines the value stored in a field. A **widget** defines the control a labeler
+uses to answer it. These previews are cropped renders of the real MLabel 0.4.0 controls,
+using synthetic example answers. They are images, not editable forms.
+
+Each code block is **one output-field fragment**. Put it inside `output.fields` in your
+configuration. For a complete file, use the [first-project tutorial](/admin/first-project/).
+
+## Choose a control
+
+| Answer needed               | Type                          | Control                              |
+| --------------------------- | ----------------------------- | ------------------------------------ |
+| Short text                  | `text`                        | [Text box](#short-text) (default)    |
+| Several lines of text       | `text`                        | [`textarea`](#long-text)             |
+| Whole number                | `integer`                     | Number input (default) or `slider`   |
+| Decimal number              | `number`                      | Number input (default) or `slider`   |
+| True or false               | `boolean`                     | [Checkbox](#a-yesno-checkbox)        |
+| Calendar date               | `date`                        | [Date picker](#a-date)               |
+| One of several options      | `enum`                        | Dropdown (default) or `radio`        |
+| Several options             | `array` of `enum`             | [Checkboxes](#several-choices)       |
+| Nested data to read or copy | `object`, `map`, other arrays | Read-only display; no answer control |
+
+## Short text
+
+A short phrase or explanation. Use a text area when a sentence or paragraph is expected.
+
+<Shot name="field-text" alt="A one-line text box containing Packaging was torn." />
+
+```jsonc
+{
+  "name": "reason",
+  "type": "text",
+  "display": "Short explanation",
+}
+```
+
+## Long text
+
+Notes and explanations spanning several lines. Make optional notes explicitly optional.
+
+<Shot name="field-textarea" alt="A multiline text area containing review notes." />
+
+```jsonc
+{
+  "name": "notes",
+  "type": "text",
+  "widget": "textarea",
+  "required": false,
+  "display": "Review notes",
+}
+```
+
+## Whole numbers
+
+Counts or integer ratings. Set minimum and maximum values when the scale is bounded.
+
+<Shot name="field-integer" alt="A number input showing a rating of 4." />
+
+```jsonc
+{
+  "name": "rating",
+  "type": "integer",
+  "min": 1,
+  "max": 5,
+  "display": "Rating (1–5)",
+}
+```
+
+## Decimal numbers
+
+Measurements or scores that can include a fractional part. The step controls the input increment; it is not a validation rule.
+
+<Shot name="field-number" alt="A number input showing 0.75." />
+
+```jsonc
+{
+  "name": "confidence",
+  "type": "number",
+  "min": 0,
+  "max": 1,
+  "step": 0.01,
+  "display": "Confidence (0–1)",
+}
+```
+
+## A bounded slider
+
+A position on a known scale. Declare min, max, and step so the control matches the question. Its initial thumb position is not an answer until the labeler supplies a value.
+
+<Shot name="field-slider" alt="A slider with its current numeric value displayed beside it." />
+
+```jsonc
+{
+  "name": "rating",
+  "type": "integer",
+  "widget": "slider",
+  "display": "Rating (1–5)",
+  "min": 1,
+  "max": 5,
+  "step": 1,
+}
+```
+
+## A yes/no checkbox
+
+A boolean value. A missing answer is different from false. If you need an explicit Yes or No decision that is easy to review, consider an enum with radio buttons.
+
+<Shot name="field-checkbox" alt="A checked checkbox labeled Needs follow-up." />
+
+```jsonc
+{
+  "name": "followUp",
+  "type": "boolean",
+  "display": "Needs follow-up",
+}
+```
+
+## A date
+
+A calendar date. The app reads and displays dates as UTC; the appearance of the date picker can vary by operating system.
+
+<Shot name="field-date" alt="A date control with October 9, 2026 selected." />
+
+```jsonc
+{
+  "name": "reviewDate",
+  "type": "date",
+  "display": "Review date",
+}
+```
+
+## One choice, visible options
+
+Choose one answer from a short list. Stored values come from each choice name; display captions are for the labeler.
+
+<Shot
+  name="field-radio"
+  alt="Radio buttons for Positive, Negative, and Unclear; Negative is selected."
+/>
+
+```jsonc
+{
+  "name": "sentiment",
+  "type": "enum",
+  "widget": "radio",
+  "display": "How does the customer feel?",
+  "choices": [
+    {
+      "name": "positive",
+      "display": "Positive",
+    },
+    {
+      "name": "negative",
+      "display": "Negative",
+    },
+    {
+      "name": "unclear",
+      "display": "Unclear",
+    },
+  ],
+}
+```
+
+## One choice, dropdown
+
+Choose one answer while using less screen space. This is the default for enum fields.
+
+<Shot name="field-select" alt="A closed dropdown showing Negative." />
+
+```jsonc
+{
+  "name": "sentiment",
+  "type": "enum",
+  "display": "Sentiment",
+  "choices": [
+    {
+      "name": "positive",
+      "display": "Positive",
+    },
+    {
+      "name": "negative",
+      "display": "Negative",
+    },
+    {
+      "name": "unclear",
+      "display": "Unclear",
+    },
+  ],
+}
+```
+
+## Several choices
+
+Select any of the allowed options. Interactive arrays must contain enum items. Selected names are exported as a JSON list in configuration order. With this optional example, selecting nothing leaves the value empty.
+
+<Shot name="field-checkboxes" alt="Checkboxes for Delivery and Packaging; Packaging is selected." />
+
+```jsonc
+{
+  "name": "issues",
+  "type": "array",
+  "display": "Issues to report",
+  "required": false,
+  "items": {
+    "type": "enum",
+    "choices": [
+      {
+        "name": "delivery",
+        "display": "Delivery",
+      },
+      {
+        "name": "packaging",
+        "display": "Packaging",
+      },
+    ],
+  },
+}
+```
+
+<span id="composite-types-render-no-widget" />
+
+## Reading structured input
+
+Input fields are read-only. Text and numbers display as values, scalar lists as individual
+entries, and structured objects and maps as tables. Arrays of objects use one row per item.
+
+<Shot
+  name="input-types"
+  alt="A source card shows a comment, a list of tags, customer details, a delivery-history table, and category counts."
+  caption="The same type definitions describe source data, but source fields display values instead of answer controls."
+/>
+
+See [value types](/config/types/) for the structure and [cards and layout](/config/cards/)
+for arranging the display. Objects and maps can be copied into output fields with
+`fill: { "kind": "copy" }`; they cannot be entered by a labeler.
+
+## Required answers and errors
+
+An asterisk marks a required answer. User and session fields are required unless the
+configuration sets `required: false`. Constraints such as text length or numeric range
+are checked beside the answer.
+
+<Shot name="field-invalid" alt="The rating field contains 9 and reports that the maximum is 5." />
+
+A control must support its field's type. For example, a text field cannot use a slider.
+Copied values and timestamps have no answer control, so do not assign them a widget.
+
+[All output-field settings →](/reference/output-field/)

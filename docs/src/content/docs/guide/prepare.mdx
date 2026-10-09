@@ -1,103 +1,86 @@
 ---
-title: Prepare mode
-description: Split a file across labelers and join their finished work back together.
-sidebar:
-  order: 6
+title: Split and join files
+description: Step-by-step instructions for distributing records and combining returned work.
 ---
 
 import Shot from "../../../components/Shot.astro";
 
-Prepare mode is the other half of MLabel: not labeling, but getting work to labelers and
-collecting it back.
+Load the project's configuration, then choose **Mode → Prepare**. You can also use
+**⌘/Ctrl + Shift + P**. Return to labeling with **⌘/Ctrl + Shift + L**.
 
-Reach it from the **Mode** menu, or <kbd>⌘/Ctrl</kbd>+<kbd>⇧</kbd>+<kbd>P</kbd>.
+Prepare mode checks files against the loaded configuration. Keep output files and remaining
+files in separate groups because they contain different columns.
 
-<kbd>⌘/Ctrl</kbd>+<kbd>⇧</kbd>+<kbd>L</kbd> goes back to labeling. A config must be loaded first —
-Prepare validates files against it.
+## Choose the files
 
-<Shot
-  name="prepare-idle"
-  alt="Prepare mode's idle state, a large drop zone inviting you to drop files."
-/>
+Drop files into the Prepare window or use the file picker. MLabel proposes an operation,
+then asks you to confirm it.
 
-## Drop first
-
-You do not pick an operation and then find files. You drop files, and MLabel works out what
-you are trying to do:
-
-| What you drop                      | What it proposes   |
-| ---------------------------------- | ------------------ |
-| One file matching the input schema | **Split**          |
-| Several `*-output` files           | **Join outputs**   |
-| Several `*-remaining` files        | **Join remaining** |
+| Files selected              | Expected operation |
+| --------------------------- | ------------------ |
+| One source file             | Split              |
+| Several `*-output` files    | Join outputs       |
+| Several `*-remaining` files | Join remaining     |
 
 <Shot
   name="prepare-confirm"
-  alt="The confirm stage, showing the proposed operation and the files it will act on."
+  alt="Prepare mode asks the user to confirm a proposed operation for the selected files."
+  caption="Check both the proposed operation and the filenames before continuing."
 />
 
-It always asks before acting. The proposal is a guess from filenames and contents, and
-joining the wrong set of files is not something to discover afterwards.
+## Split a source file
 
-## Splitting
+1. Select one input file and confirm **Split**.
+2. Choose the number of parts.
+3. Review the names and record counts in the preview.
+4. Run the operation, then locate the new parts beside the source file.
 
 <Shot
   name="prepare-split"
-  alt="The split configuration screen with a parts selector and a preview of the resulting chunk sizes."
+  alt="Split preview with the chosen part count and the resulting file sizes."
 />
 
-Choose how many parts. MLabel divides the records into **contiguous** chunks whose sizes
-differ by at most one, with the larger chunks first — 10 records into 3 parts gives 4, 3, 3.
+For example, `data.csv` split into three parts produces `data-part1-of-3.csv`,
+`data-part2-of-3.csv`, and `data-part3-of-3.csv`. Ten records become groups of 4, 3, and 3.
+Each part contains consecutive source records; splitting does not shuffle them.
 
-Files are written next to the source, named predictably:
+Give each labeler their assigned part and the same project configuration. The original
+source file stays unchanged. If a destination filename already exists, the split fails
+instead of overwriting it.
 
-```
-data.csv  ──▶  data-part1-of-3.csv
-               data-part2-of-3.csv
-               data-part3-of-3.csv
-```
+## Join finished output
 
-The preview shows exactly which names will be written before you commit. Existing files are
-never overwritten — a collision fails the operation and names the files.
-
-Each part is a valid input file for the same config, so each labeler just opens theirs.
-
-## Joining
-
-When labelers send work back, you have a pile of `*-output` files (and possibly
-`*-remaining` ones). Drop them all in.
+1. Select the returned output files together and confirm **Join outputs**.
+2. Review the validation result for every file.
+3. Resolve errors and investigate duplicate warnings.
+4. Choose where to save the combined file and run the join.
 
 <Shot
   name="prepare-join"
-  alt="The join configuration screen listing each file with its row count and validation status."
+  alt="Join view lists files, row counts, and validation results."
+  caption="Review the file list and warnings before combining submissions."
 />
 
-Every file is checked before anything is written:
+| Result                  | Meaning                                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| Header error            | Column names or their order do not match. Check project versions and file kinds.                      |
+| Output validation error | A value, required answer, or field constraint does not match the output schema.                       |
+| Duplicate warning       | Rows repeat. Check for resubmitted batches or overlapping work.                                       |
+| Remaining-value warning | A source value could not be read as its configured type; this does not block joining remaining files. |
 
-- **Headers must match exactly**, including order — cells are positional, so a reordered
-  header would silently shift every value. A mismatch is a blocking error.
-- **Output files are validated against the output schema**: every value must coerce to its
-  declared type, required fields must be present, and provided values must pass their
-  rules. Any failure blocks the join.
-- **Remaining files are validated against the input schema**, but non-blockingly. Labeling
-  itself tolerates a cell that will not coerce, so joining does too — you get a warning.
-- **Duplicate rows are flagged** as warnings. This is what catches the same part being
-  submitted twice.
+MLabel validates values; it does not decide whether a human judgment is correct.
 
-You choose where the result is saved. The default name strips the part and kind suffixes
-and adds the join kind: `data-part1-of-3-output.csv` → `data-output-joined.csv`.
+## Join and reassign remaining records
 
-## The round-trip caveat
+Join remaining files separately using **Join remaining**. You can then split the combined
+file and distribute it for another pass with the same configuration.
 
-A joined `*-remaining` file is value-faithful but not byte-faithful — see
-[Exporting](/guide/exporting/#what-round-trips-and-what-doesnt). It reloads into MLabel
-perfectly, which is what the workflow depends on.
+Remaining files preserve source values, not partially entered labels. Their CSV formatting
+may differ from the original; see [export behavior](/guide/exporting/#what-round-trips-and-what-doesnt).
 
-## Prepare holds no state
+## If something changes before you run
 
-Files are re-read from disk when you run an operation, not cached from when you dropped
-them. Editing a file after analysing it and before running is safe: you get the current
-contents, not a stale snapshot.
+Prepare reads the files again when the operation runs. Keep the source files stable while
+reviewing the preview, and recheck if someone has edited or replaced them.
 
-For the full workflow of running a project this way, see
-[Distributing work](/admin/distributing/).
+[Check returned work and missing batches →](/preparers/checking-results/)

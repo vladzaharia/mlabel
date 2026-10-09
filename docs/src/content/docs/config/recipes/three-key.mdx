@@ -1,0 +1,60 @@
+---
+title: Make a three-choice form
+description: Let labelers answer one short question with the keyboard.
+sidebar:
+  order: 9
+---
+
+import Shot from "../../../../components/Shot.astro";
+import RecipeFiles from "../../../../components/RecipeFiles.astro";
+
+Let labelers answer one short question with the keyboard.
+
+## What the labeler sees
+
+<Shot
+  name="recipe-three-key"
+  alt="Verdict shows Correct, Incorrect, and Unclear together, with Correct selected."
+  caption="Captured from this recipe’s downloadable configuration and sample data."
+/>
+
+<RecipeFiles name="three-key" />
+
+## Configure it
+
+Choose `type: "enum"` and `widget: "radio"` to keep all three options visible. Their `name` values are stored in the file; their `display` values are the words the labeler sees.
+
+The built-in digits **1**, **2**, and **3** select options in their configured order. You do not need to define shortcuts for them.
+
+The relevant setting is in `output.fields.1`. The download above includes the surrounding configuration.
+
+```jsonc
+{
+  "name": "verdict",
+  "type": "enum",
+  "widget": "radio",
+  "display": "Verdict",
+  "choices": [
+    {
+      "name": "correct",
+      "display": "Correct",
+    },
+    {
+      "name": "incorrect",
+      "display": "Incorrect",
+    },
+    {
+      "name": "unclear",
+      "display": "Unclear",
+    },
+  ],
+}
+```
+
+## Try it and check the result
+
+Click outside the form controls, then press **2**. Incorrect should become selected. Export and check that `verdict` is `incorrect`, not the display text `Incorrect`.
+
+On a multi-record assignment, **Enter** moves to the next record when a text-entry control is not consuming the key. With several choice fields, digits act on the focused choice field, or the first one if none is focused. [Shortcut behavior →](/guide/keyboard/)
+
+[Browse all illustrated recipes →](/config/cookbook/)

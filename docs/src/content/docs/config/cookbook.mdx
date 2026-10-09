@@ -1,0 +1,120 @@
+---
+title: Illustrated cookbook
+description: Ten runnable projects, each with the actual form or settings it produces and a check for the result.
+---
+
+import Shot from "../../../components/Shot.astro";
+
+Choose the result you want, then open its recipe. Every recipe includes **a complete configuration, sample CSV, actual MLabel screenshots, and a result to check**. You can run them without editing the application.
+
+The small screenshots below focus on the relevant control or card. Select an image to see it at full size.
+
+## Multi-select
+
+Let a labeler record every issue that applies to a delivery.
+
+<Shot
+  name="recipe-multi-select"
+  alt="Late delivery and Damaged packaging are selected; Missing contents is not."
+/>
+
+[**Select several answers: configuration, sample data, and walkthrough →**](/config/recipes/multi-select/)
+
+## An audit trail
+
+Record the reviewer and guideline version once per file, alongside each completed record.
+
+<Shot
+  name="recipe-audit-setup"
+  alt="The setup screen asks for Your name and Guideline version before labeling begins."
+/>
+
+[**Ask once for reviewer details: configuration, sample data, and walkthrough →**](/config/recipes/audit-trail/)
+
+## Renaming a column on the way out
+
+Keep a source identifier in the exported dataset without asking anyone to retype it.
+
+<Shot
+  name="recipe-rename-column-input"
+  alt="Record ID is displayed as r001 in the source information."
+/>
+
+[**Carry an ID into a renamed column: configuration, sample data, and walkthrough →**](/config/recipes/rename-column/)
+
+## A nested table with grouped columns
+
+Show several checks without spreading their results across a wide table.
+
+<Shot
+  name="recipe-nested-table"
+  alt="Delivery checks has Check and Result columns; each result combines a boolean and confidence value."
+/>
+
+[**Group values in a source table: configuration, sample data, and walkthrough →**](/config/recipes/nested-table/)
+
+## A dictionary of objects
+
+Make named prior annotations readable without turning each reviewer into a separate CSV column.
+
+<Shot
+  name="recipe-dictionary"
+  alt="A Prior annotations table shows keys alex and sam with Role and Confidence values."
+/>
+
+[**Display a dictionary as a table: configuration, sample data, and walkthrough →**](/config/recipes/dictionary/)
+
+## Highlighting suspicious input
+
+Help a reviewer notice when an inspection score falls below the required score.
+
+<Shot
+  name="recipe-highlight-input"
+  alt="Both scores are highlighted, and the card’s Analysis footer explains that the inspection is below the required score."
+/>
+
+[**Flag values that need attention: configuration, sample data, and walkthrough →**](/config/recipes/highlight-input/)
+
+## A fully offline config
+
+Configure an assignment for a computer that must not make update requests.
+
+<Shot
+  name="recipe-offline"
+  alt="Settings shows Version and updates with Update checks off and no Network tab."
+/>
+
+[**Disable update traffic: configuration, sample data, and walkthrough →**](/config/recipes/offline/)
+
+## A semicolon-delimited source
+
+Use a source file from a spreadsheet or pipeline that separates columns with semicolons.
+
+<Shot
+  name="recipe-semicolon-input"
+  alt="The semicolon-separated source is displayed as separate Record ID and Customer comment fields."
+/>
+
+[**Read and export semicolon-separated files: configuration, sample data, and walkthrough →**](/config/recipes/semicolon/)
+
+## A fast three-key form
+
+Let labelers answer one short question with the keyboard.
+
+<Shot
+  name="recipe-three-key"
+  alt="Verdict shows Correct, Incorrect, and Unclear together, with Correct selected."
+/>
+
+[**Make a three-choice form: configuration, sample data, and walkthrough →**](/config/recipes/three-key/)
+
+## An optional free-text note
+
+Allow useful context without forcing labelers to write an explanation for every record.
+
+<Shot
+  name="recipe-optional-notes"
+  alt="A multiline Notes box includes a short instruction and an example explanation, without a required asterisk."
+/>
+
+[**Add optional notes: configuration, sample data, and walkthrough →**](/config/recipes/optional-notes/)

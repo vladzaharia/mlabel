@@ -1,0 +1,109 @@
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  "network": {
+    "updateChecks": false,
+  },
+  "input": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "display": "Record ID",
+      },
+      {
+        "name": "comment",
+        "type": "text",
+        "display": {
+          "title": "Customer comment",
+          "titlePosition": "above",
+        },
+      },
+    ],
+  },
+  "output": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "fill": {
+          "kind": "copy",
+        },
+      },
+      {
+        "name": "verdict",
+        "type": "enum",
+        "widget": "radio",
+        "display": "Review decision",
+        "choices": [
+          {
+            "name": "pass",
+            "display": "Pass",
+          },
+          {
+            "name": "fail",
+            "display": "Fail",
+          },
+        ],
+      },
+      {
+        "name": "annotator",
+        "type": "text",
+        "display": "Your name",
+        "fill": {
+          "kind": "session",
+        },
+      },
+      {
+        "name": "guidelines",
+        "type": "enum",
+        "widget": "radio",
+        "display": "Guideline version",
+        "choices": [
+          {
+            "name": "v3",
+            "display": "Version 3",
+          },
+          {
+            "name": "v4",
+            "display": "Version 4",
+          },
+        ],
+        "fill": {
+          "kind": "session",
+        },
+      },
+      {
+        "name": "labeledAt",
+        "type": "date",
+        "fill": {
+          "kind": "timestamp",
+        },
+      },
+    ],
+    "cards": [
+      {
+        "name": "run",
+        "scope": "session",
+        "display": "About this run",
+        "rows": [
+          {
+            "use": ["annotator"],
+          },
+          {
+            "use": ["guidelines"],
+          },
+        ],
+      },
+      {
+        "name": "labels",
+        "display": "Review",
+        "rows": [
+          {
+            "use": ["verdict"],
+          },
+        ],
+      },
+    ],
+  },
+}

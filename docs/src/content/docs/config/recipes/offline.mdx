@@ -1,0 +1,45 @@
+---
+title: Disable update traffic
+description: Configure an assignment for a computer that must not make update requests.
+sidebar:
+  order: 7
+---
+
+import Shot from "../../../../components/Shot.astro";
+import RecipeFiles from "../../../../components/RecipeFiles.astro";
+
+Configure an assignment for a computer that must not make update requests.
+
+## What the labeler sees
+
+<Shot
+  name="recipe-offline"
+  alt="Settings shows Version and updates with Update checks off and no Network tab."
+  caption="Captured from this recipe’s downloadable configuration and sample data."
+/>
+
+<RecipeFiles name="offline" />
+
+## Configure it
+
+Set this at the top level of the configuration. With `updateChecks: false`, MLabel does not start the updater and the user cannot enable it through their own settings.
+
+All downloadable examples in this cookbook use this policy. The application never fetches the `$schema` URL; an editor may fetch it while you author the file.
+
+The relevant setting is in `network`. The download above includes the surrounding configuration.
+
+```jsonc
+{
+  "updateChecks": false,
+}
+```
+
+## Try it and check the result
+
+Load the configuration and open **Settings → Version**. **Check now** is unavailable, and **Network** is absent from the settings tabs.
+
+That screen helps confirm the loaded policy. For deployment details and the distinction between configuration and personal preference, read [Network policy](/config/network/).
+
+Install future releases manually using files approved for your environment.
+
+[Browse all illustrated recipes →](/config/cookbook/)

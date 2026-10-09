@@ -16,15 +16,28 @@ src/preload/   contextBridge exposing `window.api`, typed by the IPC contract.
 src/renderer/  React 19 UI. Imports from @core only.
 ```
 
+## Choose the right layer
+
+| Change                                   | Start here                                                   |
+| ---------------------------------------- | ------------------------------------------------------------ |
+| A configuration key or validation rule   | `src/core/config/`, then regenerate the schema and reference |
+| Answer completion or source conversion   | `src/core/completion.ts` or `coercion.ts`                    |
+| A shortcut action or binding rule        | `src/core/actions.ts`, then the renderer shortcut provider   |
+| A file operation or persisted preference | `src/main/services/`                                         |
+| A control, card, or Settings screen      | `src/renderer/src/`                                          |
+| A renderer/main operation                | The [IPC contract](/dev/ipc/)                                |
+
+Read [Contributing](/dev/contributing/) for setup and required checks.
+
 ## The five rules
 
-Everything about the layout follows from these.
+These boundaries apply to each change.
 
 ### 1. Zero unsolicited network
 
 No `fetch`, no telemetry, no remote calls anywhere — with exactly one exception, the
 GitHub-Releases update check. It runs only in **main**, is gated by `network.updateChecks`
-in the loaded config, and starts only after a permitting config loads. The renderer's
+in the loaded config, and starts only after a permitting config loads and the saved user preference also allows it. The renderer's
 content policy stays `connect-src 'self'`; update traffic is Node-side and never reaches
 the window.
 
@@ -85,8 +98,7 @@ parsing, re-emitting and parsing again. Incidental formatting does not: BOM, hea
 whitespace, original quoting style, blank lines, trailing newline.
 
 The contract it must honour is that the file **stays loadable as input**, because Prepare's
-join flow depends on it. Byte fidelity was never the requirement, and pursuing it would have
-pushed format detail up into the core.
+join flow depends on it. Do not expose adapter internals to preserve incidental formatting.
 
 ## Aliases
 

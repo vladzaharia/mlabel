@@ -1,62 +1,40 @@
 ---
 title: Install on Windows
-description: Installer or portable, and how to get past the SmartScreen warning on unsigned builds.
-sidebar:
-  order: 4
+description: Choose the installer or portable app and find your project files.
 ---
 
 ## The installer (recommended)
 
-1. Download `MLabel-<version>-<arch>.exe` from the
-   [Releases page](https://github.com/vladzaharia/mlabel/releases/latest) —
-   `x64` for most machines, `arm64` for Windows-on-ARM devices.
-2. Run it. See [SmartScreen](#smartscreen) below.
-3. MLabel installs and adds a Start-menu entry.
+1. [Download the Setup `.exe` for your computer](/start/download/).
+2. Run it and follow the installer prompts.
+3. Open **MLabel** from the Start menu.
+4. [Load your configuration and assignment](/start/first-run/).
 
-This build **updates itself**: it checks GitHub Releases on startup, downloads in the
-background, and applies the update on the next restart.
+The installed build can download and install updates when both the project and your preferences permit them. [Update behavior →](/start/updating/)
 
 ## The portable build
 
-`MLabel-<version>-<arch>-portable.exe` is a single self-contained executable. Nothing is
-installed and nothing is written to Program Files, which makes it the right choice when
-you do not have administrator rights or need to run from removable media.
+The file with `portable` in its name runs without a separate installation step. Save it in a folder you can access, then open it. It still stores settings and saved-session data on the computer; “portable” does not mean no local files are written.
 
-It **cannot update itself** — a portable exe has no installer to hand off to. When a newer
-version exists, MLabel says so in the chrome bar and offers a link to the matching release
-asset, which you download and replace by hand.
+The portable build cannot install an update in place. When permitted to check, it can offer a link to a newer release. Replace the executable manually after closing the app.
 
 ## SmartScreen
 
-Windows builds are **not code-signed**, so Windows shows:
+Windows builds are unsigned, so SmartScreen may display **Windows protected your PC**. Confirm the source and expected filename before continuing. If your organization's policy permits running the official release, **More info → Run anyway** is the Windows option for proceeding.
 
-> **Windows protected your PC**
-> Microsoft Defender SmartScreen prevented an unrecognised app from starting.
-
-Click **More info**, then **Run anyway**.
-
-This warning means "this publisher has not bought a code-signing certificate", not "this
-file is dangerous". If you want to satisfy yourself independently, every release is built
-in the open by
-[a GitHub Actions workflow](https://github.com/vladzaharia/mlabel/blob/main/.github/workflows/release.yml)
-from a tagged commit — the build log shows exactly what went into the binary.
-
-:::note
-Code signing is planned but not in place. Until then, expect this prompt on every fresh
-download.
-:::
+If the file came from an unexpected source, or your organization blocks the app, ask your administrator. Do not disable system-wide protection to install it.
 
 ## Where things go
 
-| What                                    | Where                                                   |
-| --------------------------------------- | ------------------------------------------------------- |
-| The app (installer build)               | `%LOCALAPPDATA%\Programs\MLabel`                        |
-| Session, recent paths, window placement | `%APPDATA%\MLabel\`                                     |
-| Your labels                             | Next to the input file you opened — never anywhere else |
+| Item                                           | Location                                 |
+| ---------------------------------------------- | ---------------------------------------- |
+| Installed app                                  | Usually `%LOCALAPPDATA%\Programs\MLabel` |
+| Personal settings, recent paths, saved session | `%APPDATA%\MLabel\`                      |
+| Labeling exports                               | Beside the input file                    |
+| Joined datasets                                | The destination chosen in Prepare mode   |
 
-To uninstall, use _Apps & features_ (installer) or just delete the exe (portable), then
-remove `%APPDATA%\MLabel\` if you want to discard any unfinished session.
+Use a writable project folder for configuration and input files. Keep the source filenames and locations stable when resuming a saved session.
 
-## Next
+## Uninstall
 
-[Set up your config](/start/setup/) →
+Remove the installed build through Windows' installed-app settings, or delete the portable executable. Project files are separate. Remove `%APPDATA%\MLabel\` only if you also want to discard saved preferences and any unfinished session.

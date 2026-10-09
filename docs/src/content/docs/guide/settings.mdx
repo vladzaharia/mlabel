@@ -1,0 +1,58 @@
+---
+title: Settings
+description: Change shortcuts, check the installed version, and inspect your configuration and saved session.
+---
+
+import Shot from "../../../components/Shot.astro";
+
+Open **Settings** with the sliders button in the bottom bar or **⌘/Ctrl + ,**.
+It opens over your current work.
+
+<Shot
+  name="settings-keys"
+  alt="Settings opens to Keys, with a searchable list of keyboard actions and their current bindings."
+  caption="The Keys section shows the shortcuts currently in use, including your project's choices."
+/>
+
+| Section | Use it to…                                                                           |
+| ------- | ------------------------------------------------------------------------------------ |
+| Keys    | Find actions, change editable shortcuts, and restore defaults                        |
+| Version | Check the app version, platform, and update status                                   |
+| Config  | Read a summary of the current project's fields, layout, and rules                    |
+| Session | Inspect saved progress or clear the current session                                  |
+| Network | Inspect update activity and change your update preference, when the config allows it |
+
+## Change a shortcut
+
+1. In **Keys**, search for the action or field.
+2. Select its editable key control and press the new combination.
+3. Resolve any conflict reported by the dialog. Press Escape to cancel recording.
+4. Check the new binding in the help dialog or beside the relevant field.
+
+Some bindings are fixed, including native menu actions and number-key choice selection.
+The app rejects reserved system shortcuts and combinations already assigned elsewhere.
+See [keyboard shortcuts](/guide/keyboard/#changing-any-of-them).
+
+## Check the configuration
+
+**Config** summarizes the project in plain language. Use it to confirm the input/output
+formats, fields, and display rules before working on an assignment.
+
+**Change…** loads a different configuration and closes the current data file. Finish or
+safely preserve your work before switching projects.
+
+## Clear a session
+
+**Session → Clear session** asks for confirmation and discards your entered answers and
+saved session. Copied source values remain. There is no undo; see
+[saving and resuming](/guide/sessions/).
+
+## Updates and network activity
+
+**Version** shows the installed version and update status. **Network** shows activity during
+this launch and lets you turn update checks off. The project configuration can forbid
+updates; your preference cannot override that restriction, and the Network section is
+hidden when the configuration forbids them.
+
+The activity log is held in memory and clears when you quit. The log is a troubleshooting
+aid, not a permanent audit record.

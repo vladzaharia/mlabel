@@ -1,0 +1,85 @@
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  "network": {
+    "updateChecks": false,
+  },
+  "input": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "display": "Record ID",
+      },
+      {
+        "name": "comment",
+        "type": "text",
+        "display": {
+          "title": "Customer comment",
+          "titlePosition": "above",
+        },
+      },
+      {
+        "name": "region",
+        "type": "text",
+        "display": "Region",
+      },
+      {
+        "name": "orders",
+        "type": "integer",
+        "display": "Previous orders",
+      },
+    ],
+    "cards": [
+      {
+        "name": "comment-card",
+        "display": {
+          "title": "Read the customer comment",
+          "description": "Use the comment as the evidence for your decision.",
+        },
+        "rows": [
+          {
+            "use": ["comment"],
+          },
+        ],
+      },
+      {
+        "name": "context",
+        "display": "Customer context",
+        "rows": [
+          {
+            "perRow": 3,
+            "use": ["id", "region", "orders"],
+          },
+        ],
+      },
+    ],
+  },
+  "output": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "fill": {
+          "kind": "copy",
+        },
+      },
+      {
+        "name": "verdict",
+        "type": "enum",
+        "widget": "radio",
+        "display": "Review decision",
+        "choices": [
+          {
+            "name": "pass",
+            "display": "Pass",
+          },
+          {
+            "name": "fail",
+            "display": "Fail",
+          },
+        ],
+      },
+    ],
+  },
+}

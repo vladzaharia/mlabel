@@ -1,6 +1,6 @@
 ---
 title: Contributing
-description: Getting set up, the conventions that are not negotiable, and how to work on the docs site.
+description: Install development dependencies, choose the right checks, and maintain the app and documentation.
 sidebar:
   order: 9
 ---
@@ -78,7 +78,11 @@ and hoisting Astro's Vite next to the app's would be an avoidable source of brea
 pnpm -C docs install
 pnpm -C docs dev          # localhost:4321
 pnpm -C docs build
-pnpm -C docs screenshots  # needs `pnpm build` first
+pnpm -C docs screenshots    # needs `pnpm build` first
+pnpm -C docs field-previews # individual controls and Settings, both themes
+pnpm -C docs cookbook-shots # runnable recipes, their UI, and exports
+pnpm -C docs tutorial-shots # the beginner project and completion screen
+pnpm -C docs check:browser  # rendered site, with a local preview running
 ```
 
 What is generated and what is written by hand:
@@ -91,10 +95,22 @@ What is generated and what is written by hand:
 | `src/assets/shots/**`            | Captured by `pnpm -C docs screenshots`, committed |
 | Everything else                  | Hand-written                                      |
 
+The capture commands open maximized app windows and use isolated sample data. They
+require macOS and leave your normal session untouched. Commit the resulting PNGs when
+the interface changes.
+
 Never edit anything under `reference/` — it is deleted and rewritten on every build.
 
 Deployment is automatic: pushing to `main` with changes under `docs/`, `schema/` or
 `src/core/config/` publishes to <https://mlabel.vlad.gg>.
+
+## Writing documentation
+
+Lead with the reader’s task, then show the result before the configuration. Keep operational steps in role guides, runnable examples in the cookbook, and exhaustive key details in the generated reference.
+
+When adding a cookbook recipe, include a complete config and CSV under `docs/public/examples/cookbook/`, a screenshot pair of that exact example, and an export or visual check readers can repeat. Add the capture scenario to `docs/scripts/cookbook-screenshots.ts`. Do not substitute a similar-looking field from another example.
+
+Keep existing routes working when consolidating pages. Check section links after moving content, and review both themes at narrow widths.
 
 ## Pull requests
 

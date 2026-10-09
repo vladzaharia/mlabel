@@ -1,0 +1,16 @@
+---
+import Shot from "./Shot.astro";
+const fields = [
+  ["One answer", "radio", "one-choice-visible-options", "Use radio buttons for a short list of choices.", "Positive, Negative, and Unclear radio options."],
+  ["Several answers", "checkboxes", "several-choices", "Use checkboxes when more than one option can apply.", "Delivery and Packaging checkboxes."],
+  ["A rating", "slider", "a-bounded-slider", "Use a slider for a score with a defined range.", "A rating slider between 1 and 5."],
+  ["An explanation", "textarea", "long-text", "Use a text area for notes and longer answers.", "A multiline Review notes control."],
+];
+---
+<div class="field-gallery">
+  {fields.map(([title, shot, anchor, description, alt]) => <section class="field-tile">
+    <h3><a href={`/config/widgets/#${anchor}`}>{title}</a></h3>
+    <Shot name={`field-${shot}`} alt={alt} />
+    <p>{description}</p>
+  </section>)}
+</div>

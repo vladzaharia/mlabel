@@ -1,0 +1,61 @@
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  "network": {
+    "updateChecks": false,
+  },
+  "input": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "display": "Record ID",
+      },
+      {
+        "name": "comment",
+        "type": "text",
+        "display": {
+          "title": "Customer comment",
+          "titlePosition": "above",
+        },
+      },
+    ],
+  },
+  "output": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "fill": {
+          "kind": "copy",
+        },
+      },
+      {
+        "name": "issues",
+        "type": "array",
+        "display": "Problems present",
+        "required": false,
+        "items": {
+          "type": "enum",
+          "choices": [
+            {
+              "name": "delivery",
+              "display": "Late delivery",
+              "shortcut": "d",
+            },
+            {
+              "name": "packaging",
+              "display": "Damaged packaging",
+              "shortcut": "p",
+            },
+            {
+              "name": "contents",
+              "display": "Missing contents",
+              "shortcut": "m",
+            },
+          ],
+        },
+      },
+    ],
+  },
+}

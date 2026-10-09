@@ -1,95 +1,39 @@
 ---
-title: Concepts
-description: The vocabulary — input, output, field, fill, widget, card, record, session — and how the pieces relate.
-sidebar:
-  order: 8
+title: Words used in these guides
+description: A plain-language glossary of records, fields, schemas, configurations, and sessions.
 ---
 
-Eight words carry most of MLabel. Learning them makes both the app and the config file
-read easily.
+You do not need to memorize these terms before labeling. Use this page when you meet an
+unfamiliar word in the app or a guide.
 
-## Input and output
+| Term                   | Meaning                                                 | Example                                    |
+| ---------------------- | ------------------------------------------------------- | ------------------------------------------ |
+| Record                 | One row of source data; one item to label               | A customer comment                         |
+| Field                  | One piece of information or one answer                  | Comment text, sentiment, notes             |
+| Input                  | The source data you read                                | `review.csv`                               |
+| Output                 | The finished records and captured values                | `review-output.csv`                        |
+| Configuration (config) | The `.jsonc` file defining a project                    | Which questions to ask                     |
+| Schema                 | The definition of a dataset's fields, types, and rules  | Sentiment must be one of three choices     |
+| Type                   | The kind of value a field holds                         | Text, a number, a date                     |
+| Widget                 | The on-screen control used to enter an answer           | Radio buttons, a dropdown, a text box      |
+| Card                   | A group of displayed fields under a heading             | Customer details                           |
+| Fill                   | Where an output value comes from                        | A labeler, the source file, or a timestamp |
+| Display rule           | A project-defined condition that highlights information | A warning beside an unusual score          |
 
-A config has two halves.
+## Two uses of “schema”
 
-**Input** is what MLabel _reads and shows you_. It declares the columns of your source
-file and how each should be displayed. You never edit input — it is the evidence.
+A **project schema** describes your data and answer fields. The published **JSON Schema** describes which settings are allowed in the configuration file; editors use it for autocomplete and checks.
 
-**Output** is what MLabel _writes_. It declares the columns of the exported file: what you
-are asked to record, plus anything carried over or stamped automatically.
+## Two uses of “session”
 
-They are deliberately separate. An output column may share a name with an input column, or
-not; the connection between them is always stated explicitly rather than inferred.
+A **saved session** remembers your current file, position, and answers so you can resume.
+MLabel keeps one saved session at a time.
 
-## Field
+A **session field** is a question answered once for the whole run, such as your name or the
+guideline version. Its answer is included on every finished output row.
 
-One column, on either side. A field **is** its type:
+## Complete, partial, and unlabeled
 
-```jsonc
-{ "name": "score", "type": "number", "min": 0, "max": 1 }
-```
-
-The `type` decides which other keys are legal. `minLength` only exists on `text`; `min`
-only on numbers; `choices` only on `enum`. There are [nine types](/config/types/).
-
-## Fill
-
-Only on output fields: **where the value comes from**.
-
-| Fill        | Who provides it                                      |
-| ----------- | ---------------------------------------------------- |
-| `user`      | You, on every record. The default.                   |
-| `session`   | You, once at the start; copied onto every row.       |
-| `copy`      | Carried over from an input column.                   |
-| `timestamp` | Stamped by the app when the record becomes complete. |
-
-Fill is independent of type and of widget. See [Fill](/config/fill/).
-
-## Widget
-
-**How** a field is rendered — a slider or a number box, radio buttons or a dropdown. Each
-type has a small set of legal widgets and a sensible default, so most fields never name
-one. See [Widgets](/config/widgets/).
-
-Fill and widget are orthogonal: fill says _who answers_, widget says _what it looks like_.
-A field nobody answers (`copy`, `timestamp`) renders no widget at all.
-
-## Card
-
-A group of fields under a heading, arranged in rows. Cards are how a screen full of columns
-becomes something readable — "Sample" here, "Automated signals" there. Omit them and you
-get one card with every field, one per row. See [Cards](/config/cards/).
-
-## Record
-
-One row of your data file, and one screenful of work. A record is **complete** when every
-required output field holds a valid value, **partial** when you have answered some of it,
-and **unlabeled** when you have not touched it. Only complete records are exported to
-`*-output`.
-
-## Session
-
-The answers you give once at the start, before labeling begins — the values of every
-`session`-filled field. They are written onto every exported row. Use them for facts about
-the _run_ rather than the record: who is labeling, which guideline version, which batch.
-
-## Display rule
-
-A purely visual annotation on input values: tint this red, add a note saying why. Rules can
-flag a suspicious value or a canned refusal so it catches your eye.
-
-Rules **can never change what is exported**. That is a structural guarantee in how MLabel
-is built, not a promise — the code that evaluates rules is never reachable from the code
-that writes files. See [Display rules](/config/rules/).
-
-## Putting it together
-
-```
-CSV row ──▶ input fields (typed, displayed) ──▶ you read it
-                                                    │
-                        session answers ─────┐      ▼
-                        copied values ───────┼──▶ output fields ──▶ *-output.csv
-                        timestamp ───────────┘                      *-remaining.csv
-```
-
-Ready to write one? [Anatomy of a config](/config/) →
+A complete record has the required valid answers. A partial record has been started but is
+not complete. An unlabeled record has not been started. Only complete records go to the
+finished output; see [labeling](/guide/labeling/#what-complete-means).

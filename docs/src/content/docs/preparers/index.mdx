@@ -1,0 +1,74 @@
+---
+title: Prepare and collect data
+description: Check a dataset, distribute batches, and collect finished and unfinished work.
+prev: false
+---
+
+import Shot from "../../../components/Shot.astro";
+
+As a preparer, you manage the files moving between the source dataset and the labelers.
+You use **Prepare mode** to split and join files. The administrator supplies the configuration
+that defines the columns; you do not need to edit it to distribute work.
+
+## Before you start
+
+Have a tested configuration, the source CSV, a list of labelers, and a place to track which
+batch each person receives. Keep an unchanged copy of the source file.
+
+| Check                 | What to look for                                                                                    |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| Correct project       | Use the same configuration version for splitting, labeling, and joining.                            |
+| Column headers        | Every declared input column is present; spelling and capitalization match.                          |
+| Stable IDs            | Ask the administrator to carry a record ID into the output so results can be matched to the source. |
+| Representative sample | Open several records and check dates, lists, and unusual or empty cells.                            |
+| Writable folder       | Labelers need permission to write exports beside their input files.                                 |
+
+## Send work out
+
+1. Load the configuration and choose **Mode → Prepare**.
+2. Drop one source file into the window.
+3. Confirm **Split**, choose the number of parts, and review the filenames and row counts.
+4. Run the split. Send each labeler a part, the matching configuration, and the labeling instructions.
+5. Record the part name, recipient, configuration version, and return status in your batch list.
+
+<Shot
+  name="prepare-split"
+  alt="Prepare mode shows the number of parts and the filenames and record counts to be written."
+  caption="Review the split preview before creating files. Existing files will not be overwritten."
+/>
+
+Use batches small enough to finish and return regularly. Split preserves record order; it
+does not randomize the dataset or create overlapping assignments for agreement checking.
+
+## Collect the results
+
+Ask each labeler for **both** `*-output.csv` and `*-remaining.csv`, if present. Keep the
+received files together with their batch information.
+
+1. Drop the output files into Prepare together and confirm **Join outputs**.
+2. Resolve errors. Review duplicate warnings against your batch list before proceeding.
+3. Save the joined output under a new filename.
+4. Separately join remaining files, then split or reassign them for another labeling pass.
+
+[See the full split and join instructions →](/guide/prepare/)
+
+## Choose the next guide
+
+| Task                                   | Guide                                               |
+| -------------------------------------- | --------------------------------------------------- |
+| Use the split/join controls            | [Split and join files](/guide/prepare/)             |
+| Keep an assignment register            | [Manage batches](/admin/distributing/)              |
+| Resolve errors and missing submissions | [Check returned work](/preparers/checking-results/) |
+
+## Check that everything came back
+
+For each assignment, finished records plus remaining records should account for the input
+records. Investigate missing batches, repeat submissions, and unexpected counts before
+using the combined dataset. A duplicate warning is a prompt to review the files; it does
+not decide which person's judgment to keep.
+
+Remaining files contain original source values, not the labeler's unfinished answers.
+If somebody needs to continue their partial answers, have them resume their saved session
+on the original computer before exporting.
+
+[Resolve common handoff problems →](/preparers/checking-results/)

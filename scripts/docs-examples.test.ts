@@ -53,6 +53,26 @@ function completeExamples(): Example[] {
 describe("docs config examples", () => {
   const examples = completeExamples();
 
+  const recipes = readdirSync("docs/public/examples/cookbook");
+  it.each(recipes)("cookbook/%s is a complete valid configuration", (recipe) => {
+    const file = `docs/public/examples/cookbook/${recipe}/config.jsonc`;
+    const issues = validateConfigText(readFileSync(file, "utf8"));
+    expect(issues, formatIssues(file, issues)).toEqual([]);
+  });
+
+  it("ships the same usable configuration and CSV as the first-project tutorial", () => {
+    const tutorial = readFileSync(`${DOCS}/admin/first-project.mdx`, "utf8");
+    for (const extension of ["jsonc", "csv"]) {
+      const download = readFileSync(`docs/public/examples/review.${extension}`, "utf8").trim();
+      const fence = tutorial
+        .split(`\x60\x60\x60${extension}\n`)[1]
+        ?.split("\x60\x60\x60")[0]
+        ?.trim();
+      expect(download).toBe(fence);
+      if (extension === "jsonc") expect(validateConfigText(download)).toEqual([]);
+    }
+  });
+
   it("finds examples to check, so a broken extractor can't pass vacuously", () => {
     expect(examples.length).toBeGreaterThan(0);
   });

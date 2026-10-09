@@ -1,0 +1,84 @@
+---
+title: Define input and output fields
+description: Connect source columns, on-screen questions, and exported columns without confusing their names.
+---
+
+import Shot from "../../../components/Shot.astro";
+import RecipeFiles from "../../../components/RecipeFiles.astro";
+
+A **field** is a named value in your project. Input fields describe what the labeler reads. Output fields describe what the finished file contains.
+
+## Start with a question
+
+Suppose your source has `id` and `comment`, and you need a review decision. Declare the source columns in `input.fields`, then define the copied ID and the decision in `output.fields`.
+
+<Shot
+  name="recipe-rename-column-input"
+  alt="A source record shows its ID and customer comment as read-only values."
+  caption="Input fields display evidence; they are not answer boxes."
+/>
+
+<Shot
+  name="recipe-rename-column"
+  alt="The output form asks the labeler for a Pass or Fail review decision."
+  caption="An output field with user fill creates a question. A copied output ID creates no control."
+/>
+
+[Run this complete example →](/config/recipes/rename-column/)
+
+## The shared shape
+
+Every field needs `name` and `type`. Add `display` for a friendly caption, then the settings supported by its type.
+
+```jsonc
+{
+  "name": "rating",
+  "type": "integer",
+  "display": "Delivery rating",
+  "min": 1,
+  "max": 5,
+}
+```
+
+An input field with this definition reads a rating from the source. An output field with it asks for a rating. [Compare the controls before choosing a type](/config/widgets/).
+
+## Naming
+
+Use `name` for the file's column header and `display` for the wording on screen.
+
+- Names can contain letters, digits, `_`, `-`, and internal spaces.
+- Do not use leading/trailing whitespace or `.`, `[`, `]`, `*`.
+- Each input name must be unique. Each output name must be unique.
+- An input and an output may share a name. They are only connected when you explicitly use `fill.kind: "copy"`.
+
+Names inside a nested object are JSON member names rather than CSV headers and have different restrictions; see [structured data](/config/types/#object).
+
+## Input fields
+
+Every declared input column must exist in the source file. Extra source columns cause a warning and are not shown as declared fields.
+
+MLabel converts source cells to their declared types. A value that cannot be read displays a warning. Input `min`, `max`, and other answer constraints do not reject out-of-range source values. Use [display rules](/config/rules/) to draw attention to them.
+
+## Output fields
+
+| Decision                          | Setting    | Example                                    |
+| --------------------------------- | ---------- | ------------------------------------------ |
+| What value should be stored?      | `type`     | An enum stores one configured choice name. |
+| Where does it come from?          | `fill`     | `copy` carries a source ID into output.    |
+| How should a person answer?       | `widget`   | `radio` shows enum options together.       |
+| Is an answer necessary?           | `required` | `false` lets notes remain empty.           |
+| How can someone focus it quickly? | `shortcut` | `mod+n` focuses a notes box.               |
+
+User and session fields are required by default. Copied and timestamp fields are optional by default. Output constraints apply even to optional fields when a value is supplied.
+
+<Shot
+  name="field-invalid"
+  alt="A rating of 9 has an inline validation error because the maximum is 5."
+  caption="An invalid answer keeps that record out of finished output until corrected."
+/>
+
+## Column order
+
+The order of `output.fields` determines output column order. Cards only change screen layout. Check an actual export before distributing the configuration.
+
+[Input field reference](/reference/input-field/) · [Output field reference](/reference/output-field/)

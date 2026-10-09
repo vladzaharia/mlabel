@@ -1,0 +1,63 @@
+---
+title: Display a dictionary as a table
+description: Make named prior annotations readable without turning each reviewer into a separate CSV column.
+sidebar:
+  order: 5
+---
+
+import Shot from "../../../../components/Shot.astro";
+import RecipeFiles from "../../../../components/RecipeFiles.astro";
+
+Make named prior annotations readable without turning each reviewer into a separate CSV column.
+
+## What the labeler sees
+
+<Shot
+  name="recipe-dictionary"
+  alt="A Prior annotations table shows keys alex and sam with Role and Confidence values."
+  caption="Captured from this recipe’s downloadable configuration and sample data."
+/>
+
+<RecipeFiles name="dictionary" />
+
+## Configure it
+
+Use a `map` when the keys vary between records. Here, reviewer names are keys, and each value is an object with `role` and `confidence` members.
+
+The keys default to text. Use an `object` instead when the member names are a fixed part of the schema; use an array of objects when a record contains an ordered list of entries.
+
+The relevant setting is in `input.fields.0`. The download above includes the surrounding configuration.
+
+```jsonc
+{
+  "name": "annotators",
+  "type": "map",
+  "display": {
+    "title": "Prior annotations",
+    "titlePosition": "above",
+  },
+  "values": {
+    "type": "object",
+    "fields": [
+      {
+        "name": "role",
+        "type": "text",
+        "display": "Role",
+      },
+      {
+        "name": "confidence",
+        "type": "number",
+        "display": "Confidence",
+      },
+    ],
+  },
+}
+```
+
+## Try it and check the result
+
+Open the sample and check that **alex** and **sam** appear in the key column. Their role and confidence values should line up in separate columns.
+
+The map is source information, so it is read-only. Its keys identify entries; they are not choices in the answer form. To export the map, declare a matching output map with `fill: { "kind": "copy" }`.
+
+[Browse all illustrated recipes →](/config/cookbook/)

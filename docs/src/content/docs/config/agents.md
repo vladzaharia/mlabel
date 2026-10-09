@@ -1,10 +1,9 @@
 ---
-title: Authoring as an agent
-description: A procedure, a rejection list, and a self-check for models writing MLabel config files.
+title: Configuration authoring checklist
+description: A compact checklist for tools and repository contributors that generate configuration files.
 ---
 
-This page is written for a model writing a config, rather than for a person. If you are a
-person, [Anatomy of a config](/config/) is the friendlier route.
+This checklist is for tools and repository contributors authoring configuration files. For a guided introduction, use [Create your first project](/admin/first-project/). It documents the same public configuration format.
 
 ## Machine-readable sources
 
@@ -15,7 +14,7 @@ person, [Anatomy of a config](/config/) is the friendlier route.
 | `https://mlabel.vlad.gg/llms-full.txt`      | Every page's prose in one request.            |
 
 Fetch the schema and validate against it if you can. It is generated from the same source
-the app validates with, so it cannot disagree.
+the app validates with, so it matches the structural contract. The app also performs cross-field checks that JSON Schema cannot express; run the application validator before handing back a file.
 
 ## Non-negotiables
 
@@ -71,8 +70,7 @@ Do not set `widget` unless you are deviating from the default. Do not set `fill`
 { "name": "id", "type": "text", "fill": { "kind": "copy" } }
 ```
 
-**The type must match the source field's type exactly.** This is the single most common
-mistake. If input `id` is `text`, the output field must be `text` — not `integer`, even if
+**The type must match the source field's type exactly.** Check this for each copied field. If input `id` is `text`, the output field must be `text` — not `integer`, even if
 every value looks like a number.
 
 ### 5. Group into cards
@@ -92,10 +90,9 @@ satisfy once the fields are settled.
 pnpm validate path/to/config.jsonc
 ```
 
-Exit code 0 and `is a valid MLabel config.` means done. Otherwise every problem is listed
-with a line, column and dotted path.
+Exit code 0 confirms configuration validation. Still test representative data and a real export. Errors include a line, column, and field path when available.
 
-:::caution[Re-run until clean — do not stop at the first clean-ish result]
+:::caution[Repeat validation until it succeeds]
 Validation runs in three stages — syntax, then shape, then coherence — and each only runs if
 the previous one passed. A single unknown key is a _shape_ failure, and it hides **every**
 coherence diagnostic behind it. Fixing one error routinely reveals several more.
@@ -105,7 +102,7 @@ Loop: validate, fix everything reported, validate again. Stop only on exit code 
 
 ## What will be rejected
 
-Every message below is exact. [Full catalogue with fixes](/config/errors/).
+These message patterns use placeholder field names. [Full catalogue with fixes](/config/errors/).
 
 | Message                                                                  | Cause                                           |
 | ------------------------------------------------------------------------ | ----------------------------------------------- |
@@ -146,172 +143,9 @@ Every message below is exact. [Full catalogue with fixes](/config/errors/).
 }
 ```
 
-## Complete config using every feature
+## Runnable examples
 
-```jsonc
-{
-  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
-  "version": 2,
-  "ui": { "appTitle": { "field": "id" } },
-  "network": { "updateChecks": true },
-
-  "input": {
-    "adapterId": "csv",
-    "fields": [
-      { "name": "id", "type": "text" },
-      {
-        "name": "prompt",
-        "type": "text",
-        "display": { "title": "Prompt", "titlePosition": "above", "textSize": "lg" },
-      },
-      {
-        "name": "response",
-        "type": "text",
-        "display": { "title": "Response", "titlePosition": "above" },
-      },
-      {
-        "name": "score",
-        "type": "number",
-        "min": 0,
-        "max": 1,
-        "display": { "title": "Model score", "help": "Self-reported confidence." },
-      },
-      { "name": "flagged", "type": "boolean", "display": "Auto-flagged" },
-      { "name": "tags", "type": "array", "items": { "type": "text" }, "display": "Tags" },
-      {
-        "name": "tokens",
-        "type": "map",
-        "values": { "type": "integer" },
-        "display": "Token counts",
-      },
-      {
-        "name": "checks",
-        "type": "array",
-        "display": { "title": "Safety checks", "titlePosition": "above" },
-        "items": {
-          "type": "object",
-          "fields": [
-            { "name": "name", "type": "text", "display": "Check" },
-            { "name": "passed", "type": "boolean", "display": "Passed" },
-          ],
-          "table": {
-            "columns": [
-              { "name": "Check", "use": ["name"] },
-              { "name": "Result", "use": ["passed"] },
-            ],
-          },
-        },
-      },
-    ],
-    "rules": [
-      {
-        "name": "very-confident",
-        "when": { "op": "gt", "field": "score", "value": 0.9 },
-        "appliesTo": ["score"],
-        "style": { "tone": "warning", "note": "Unusually confident — check carefully." },
-      },
-    ],
-    "cards": [
-      {
-        "name": "sample",
-        "display": { "title": "Sample", "description": "The pair under review." },
-        "rows": [
-          { "use": ["prompt"] },
-          { "use": ["response"] },
-          { "perRow": 2, "use": ["id", "score"] },
-        ],
-      },
-      {
-        "name": "signals",
-        "display": "Automated signals",
-        "rows": [
-          { "perRow": 2, "use": ["flagged", "tags"] },
-          { "use": ["tokens"] },
-          { "use": ["checks"] },
-        ],
-      },
-    ],
-  },
-
-  "output": {
-    "adapterId": "csv",
-    "fields": [
-      { "name": "id", "type": "text", "fill": { "kind": "copy" } },
-      { "name": "sourcePrompt", "type": "text", "fill": { "kind": "copy", "from": "prompt" } },
-      {
-        "name": "verdict",
-        "type": "enum",
-        "widget": "radio",
-        "display": "Verdict",
-        "choices": [
-          { "name": "correct", "display": "Correct", "shortcut": "c" },
-          {
-            "name": "incorrect",
-            "display": "Incorrect",
-            "shortcut": "x",
-            "selectedStyle": { "tone": "danger" },
-          },
-        ],
-      },
-      {
-        "name": "issues",
-        "type": "array",
-        "required": false,
-        "display": "Problems",
-        "items": {
-          "type": "enum",
-          "choices": [
-            { "name": "toxic", "shortcut": "t" },
-            { "name": "off-topic", "shortcut": "o" },
-          ],
-        },
-      },
-      {
-        "name": "rating",
-        "type": "integer",
-        "widget": "slider",
-        "min": 1,
-        "max": 5,
-        "step": 1,
-        "display": "Rating",
-      },
-      {
-        "name": "notes",
-        "type": "text",
-        "widget": "textarea",
-        "required": false,
-        "maxLength": 500,
-        "shortcut": "mod+n",
-        "display": { "title": "Notes", "titlePosition": "above" },
-      },
-      {
-        "name": "annotator",
-        "type": "text",
-        "fill": { "kind": "session" },
-        "display": "Your name",
-      },
-      { "name": "labeledAt", "type": "date", "fill": { "kind": "timestamp" } },
-    ],
-    "cards": [
-      {
-        "name": "run",
-        "scope": "session",
-        "display": "About this run",
-        "rows": [{ "use": ["annotator"] }],
-      },
-      {
-        "name": "labels",
-        "display": "Labels",
-        "rows": [
-          { "perRow": 2, "use": ["verdict", "rating"] },
-          { "use": ["issues"] },
-          { "use": ["notes"] },
-        ],
-      },
-    ],
-  },
-}
-```
+Use the [illustrated cookbook](/config/cookbook/) and its downloadable files as complete examples. Prefer a small example matching the user's task over an all-features configuration. The screenshot on each recipe page shows the exact downloaded project.
 
 ## Self-check before handing back
 

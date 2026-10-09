@@ -1,0 +1,54 @@
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  "network": {
+    "updateChecks": false,
+  },
+  "input": {
+    "fields": [
+      {
+        "name": "annotators",
+        "type": "map",
+        "display": {
+          "title": "Prior annotations",
+          "titlePosition": "above",
+        },
+        "values": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "role",
+              "type": "text",
+              "display": "Role",
+            },
+            {
+              "name": "confidence",
+              "type": "number",
+              "display": "Confidence",
+            },
+          ],
+        },
+      },
+    ],
+  },
+  "output": {
+    "fields": [
+      {
+        "name": "verdict",
+        "type": "enum",
+        "widget": "radio",
+        "display": "Review decision",
+        "choices": [
+          {
+            "name": "pass",
+            "display": "Pass",
+          },
+          {
+            "name": "fail",
+            "display": "Fail",
+          },
+        ],
+      },
+    ],
+  },
+}

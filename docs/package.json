@@ -11,7 +11,11 @@
     "check:links": "node scripts/check-links.mjs",
     "preview": "astro preview",
     "screenshots": "tsx scripts/screenshots.ts",
-    "check": "astro check"
+    "check": "astro check",
+    "field-previews": "tsx scripts/field-previews.ts",
+    "cookbook-shots": "tsx scripts/cookbook-screenshots.ts",
+    "tutorial-shots": "tsx scripts/tutorial-screenshots.ts",
+    "check:browser": "node scripts/check-browser.mjs"
   },
   "dependencies": {
     "@astrojs/starlight": "0.41.9",

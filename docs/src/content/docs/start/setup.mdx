@@ -1,84 +1,50 @@
 ---
-title: Set up your config
-description: Where a config comes from, the four ways to load one, and how to make MLabel pick it up automatically.
-sidebar:
-  order: 5
+title: Open your project configuration
+description: Load the file your project supplied and recognize the right assignment.
 ---
 
 import Shot from "../../../components/Shot.astro";
 
-MLabel cannot do anything without a config. It is the file that says what your data looks
-like and what you are being asked to record.
+A configuration (`.jsonc`) tells MLabel which source information to show and which questions to ask. Use the file supplied for your assignment. You do not need a terminal or editor.
 
 ## Getting one
 
-**If someone is running a labeling project for you,** they will give you a `.jsonc` file.
-Save it somewhere you will find it again — next to the data you are labeling is a good
-default.
+Save the configuration and input file in a project folder you can find again. Keep the original filenames unless your project contact asks you to change them.
 
-**If you are setting up the project yourself,** start from the annotated example in the
-repository, [`examples/config.jsonc`](https://github.com/vladzaharia/mlabel/blob/main/examples/config.jsonc),
-and read [Anatomy of a config](/config/). Then check your work without launching the app:
-
-```bash
-pnpm validate path/to/your-config.jsonc
-```
+Creating the project yourself? Use [Create your first project](/admin/first-project/) or a [cookbook example](/config/cookbook/).
 
 ## Loading one
 
+1. Open MLabel.
+2. Select **Select config…** and choose the `.jsonc` file. You can also drop the configuration onto the window.
+3. Select the assigned data file when prompted.
+
 <Shot
   name="start-need-config"
-  alt="MLabel's opening screen, prompting for a config file with a drop zone in the centre."
+  alt="The opening screen offers Select config and a file drop area."
 />
 
-There are four ways, in the order MLabel tries them:
+MLabel may already have loaded a configuration from its startup location or your recent files. Check that it is the project you intend to use. **Settings → Config** shows the active configuration; use **Change…** there when you need another one.
 
-1. **A config next to the executable.** On startup MLabel looks beside its own executable
-   for a file named `config.jsonc`, `mlabel.config.jsonc`, or `mlabel.jsonc`, in that
-   order. If it finds one, it loads it and you never see the config screen. This is how
-   you [ship the app and the config together](/admin/deploying/).
-2. **The most recent config**, if there was no adjacent one. MLabel remembers the last
-   config you opened and reloads it on the next launch.
-3. **Drag and drop.** Drop a `.jsonc` anywhere on the window.
-4. **The picker.** Click **Choose config** and select the file.
-
-:::tip
-Options 1 and 2 mean that in day-to-day use you normally launch MLabel and go straight to
-choosing a data file. The config screen is a first-run experience.
-:::
+Before changing projects, finish or preserve your current work. MLabel keeps one saved session at a time. [Save and resume](/guide/sessions/).
 
 ## If the config is rejected
 
 <Shot
   name="config-invalid"
-  alt="The config error screen, listing each problem with its line, column and dotted path."
+  alt="The configuration error screen lists messages and the locations of invalid settings."
 />
 
-MLabel refuses to load a config it does not fully understand, and lists every problem at
-once rather than stopping at the first. Each one carries a line, a column and the path to
-the offending key.
+Send your administrator the configuration filename and the error text. Do not change field names or answer options just to make the file load; that can change the meaning of the assignment.
 
-The most common causes are a misspelled key (every object is strict — unknown keys are
-errors, not silently ignored) and a missing or wrong `version`. See
-[Every error explained](/config/errors/) for the full catalogue.
+If you maintain the config, use the [configuration error guide](/config/errors/). Fix the reported errors and try again: later validation stages may reveal further issues.
+
+## Automatic loading
+
+MLabel first checks its configured startup locations for a known config filename, then tries the most recent configuration. Administrators can find the exact discovery rules in [Distribute the app and config](/admin/deploying/).
 
 ## Editor support
 
-Point your config at the published JSON Schema and any editor that understands JSON Schema
-will autocomplete keys, offer only the values that are legal in context, and underline
-mistakes as you type:
+Configuration authors can enable autocomplete with a `$schema` URL. This is an authoring step, not something labelers must set up. [Configuration structure and validation →](/config/)
 
-```jsonc
-{
-  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
-  "version": 2,
-  // …
-}
-```
-
-This is worth doing even for a config someone else wrote — it turns "why won't this load"
-into a squiggle under the exact character.
-
-## Next
-
-[Your first labeling run](/start/first-run/) →
+[Continue to your first labeling run →](/start/first-run/)

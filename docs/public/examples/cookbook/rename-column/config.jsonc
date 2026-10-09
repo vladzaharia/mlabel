@@ -1,0 +1,52 @@
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  "network": {
+    "updateChecks": false,
+  },
+  "input": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "display": "Record ID",
+      },
+      {
+        "name": "comment",
+        "type": "text",
+        "display": {
+          "title": "Customer comment",
+          "titlePosition": "above",
+        },
+      },
+    ],
+  },
+  "output": {
+    "fields": [
+      {
+        "name": "sourceId",
+        "type": "text",
+        "fill": {
+          "kind": "copy",
+          "from": "id",
+        },
+      },
+      {
+        "name": "verdict",
+        "type": "enum",
+        "widget": "radio",
+        "display": "Review decision",
+        "choices": [
+          {
+            "name": "pass",
+            "display": "Pass",
+          },
+          {
+            "name": "fail",
+            "display": "Fail",
+          },
+        ],
+      },
+    ],
+  },
+}

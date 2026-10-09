@@ -1,6 +1,6 @@
 ---
 title: Main process
-description: Services in src/main, the invariants each one holds, and the failure modes they were written against.
+description: Find file, session, settings, and update services and preserve their data-handling guarantees.
 sidebar:
   order: 3
 ---
@@ -16,6 +16,7 @@ It is ESM — no `__dirname`; use `import.meta.url`.
 | `coordinator.ts`                         | Load input, save stamped sessions, run exports.                   |
 | `pipeline.ts`                            | Pure: build record views, split records, serialize the export.    |
 | `prepare-pipeline.ts`                    | Pure: split and join logic, validation, duplicate detection.      |
+| `settings-store.ts`                      | Read, write, and reset personal settings.                         |
 | `session-store.ts`                       | Persist and restore the session; recent paths.                    |
 | `write-queue.ts`                         | One ordered pipe for session writes.                              |
 | `atomic-write.ts`                        | Write-to-temp-then-rename, with fsync.                            |
@@ -30,17 +31,19 @@ directory.
 
 ## Invariants worth knowing
 
-### The config is the network gate
+### Configuration and preferences gate update traffic
 
 `loadConfigFile` opens or closes the hard request gate _before_ starting the updater:
 
 ```ts
-const updatesEnabled = result.config.network.updateChecks !== false;
+const configAllows = result.config.network.updateChecks !== false;
+const updatesEnabled = effectiveUpdateChecks(configAllows, getSettings().updateChecks);
 setUpdatesEnabled(updatesEnabled);
+setUpdatesAllowed(updatesEnabled);
 if (updatesEnabled) startUpdates();
 ```
 
-Ordering matters. Before any config loads, nothing is permitted at all.
+Before any config loads, remote update traffic is denied. Settings changes and resets must reapply the effective policy. A preference can disable traffic but cannot grant permission absent from the loaded config.
 
 ### Only an accepted document is committed
 
@@ -118,4 +121,4 @@ stops a config claiming a chord the menu already owns.
   must be kept in sync with the active theme via `nativeTheme`.
 - **`electron-updater` must stay external** — listed in `nodeExternals` and in
   `dependencies` — so it ships in the asar. Bundling it breaks updates.
-- **Updates need a packaged build.** They no-op in dev.
+- **Installing updates needs a packaged build.** Development builds can check and offer a download link.

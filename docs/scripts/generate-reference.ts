@@ -231,6 +231,65 @@ const PAGE_ORDER: [name: string, blurb: string][] = [
 
 const PAGES = new Set(PAGE_ORDER.map(([name]) => name));
 
+// Reader guidance belongs here; the property definitions still come only from the schema.
+const GUIDES: Record<string, [location: string, guide: string, example: string]> = {
+  InputField: ["An entry in `input.fields`", "/config/fields/", "/config/recipes/nested-table/"],
+  OutputField: ["An entry in `output.fields`", "/config/widgets/", "/admin/first-project/"],
+  ValueType: [
+    "A nested `items`, `values`, or `keys` definition",
+    "/config/types/",
+    "/config/recipes/dictionary/",
+  ],
+  NestedField: [
+    "An entry in an object's `fields`",
+    "/config/types/#object",
+    "/config/recipes/nested-table/",
+  ],
+  Fill: ["An output field's `fill`", "/config/fill/", "/config/recipes/audit-trail/"],
+  Choice: [
+    "An entry in an enum's `choices`",
+    "/config/widgets/#one-choice-visible-options",
+    "/config/recipes/three-key/",
+  ],
+  Card: [
+    "An entry in `input.cards` or `output.cards`",
+    "/config/cards/",
+    "/config/recipes/audit-trail/",
+  ],
+  CardRow: ["An entry in a card's `rows`", "/config/cards/#perrow", "/config/cards/"],
+  DisplayRule: ["An entry in `input.rules`", "/config/rules/", "/config/recipes/highlight-input/"],
+  Condition: [
+    "The `when` part of a display rule",
+    "/config/conditions/",
+    "/config/recipes/highlight-input/",
+  ],
+  Style: [
+    "A rule's `style` or a choice's `selectedStyle`",
+    "/config/rules/#tones",
+    "/config/display/#styling-a-selected-choice",
+  ],
+  TextDisplay: [
+    "The `display` of a card, choice, or table column",
+    "/config/display/",
+    "/config/cards/",
+  ],
+  FieldDisplay: [
+    "A field's `display`",
+    "/config/display/",
+    "/config/display/#caption-instruction-and-help",
+  ],
+  TableView: [
+    "An object's `table` setting",
+    "/config/types/#object",
+    "/config/recipes/nested-table/",
+  ],
+  TableColumn: [
+    "An entry in `table.columns`",
+    "/config/recipes/nested-table/",
+    "/config/recipes/nested-table/",
+  ],
+};
+
 function frontmatter(title: string, description: string, order: number): string {
   const escape = (text: string): string => text.replace(/"/g, '\\"');
   return [
@@ -256,6 +315,15 @@ function renderPage(name: string, blurb: string, order: number): string {
 
   const prose = describe(def);
   const out = [frontmatter(name, blurb, order)];
+  const guide = GUIDES[name];
+  if (!guide) throw new Error(`Missing reader guidance for ${name}`);
+  out.push(`**Where this goes:** ${guide[0]}.\n`);
+  out.push(
+    `[Read the practical guide](${guide[1]}) · [See an illustrated example](${guide[2]}).\n`,
+  );
+  out.push(
+    "The tables below list configuration keys. **Required** means the key must be present in the config; it does not mean a labeler must answer the field.\n",
+  );
   if (prose) out.push(`${prose}\n`);
 
   const branches = variants(def);
@@ -293,7 +361,9 @@ function renderPage(name: string, blurb: string, order: number): string {
 function renderRoot(): string {
   const out = [
     frontmatter("The config object", "Every top-level key of an MLabel `.jsonc` config.", 0),
-    "The root of every config file.\n",
+    "Use this reference to look up exact keys and allowed values. To build a project, start with the [step-by-step tutorial](/admin/first-project/), [visual field guide](/config/widgets/), or [illustrated cookbook](/config/cookbook/).\n",
+    "These tables are generated from the published JSON Schema. They describe the configuration structure; MLabel also checks relationships such as copied field types and shortcut conflicts when loading a file.\n",
+    "## Top-level settings\n",
     propertyTable(schema),
   ];
 

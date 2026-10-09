@@ -1,79 +1,71 @@
 ---
-title: Exporting
-description: What lands in the output and remaining files, why a second export is refused, and what round-trips exactly.
-sidebar:
-  order: 5
+title: Export and return files
+description: Save finished labels, understand remaining records, and hand work back to your preparer.
 ---
 
 import Shot from "../../../components/Shot.astro";
 
-Press **Done**, or <kbd>⌘/Ctrl</kbd>+<kbd>Enter</kbd>. You do not have to finish every
-record first.
+Select **Save**, or press **⌘/Ctrl + Enter**, when you are ready to return your work.
+You can export before every record is finished.
 
 <Shot
   name="done"
-  alt="The completion screen showing how many records were exported and how many remain, with a Reveal button for each file."
+  alt="The Done screen lists exported and remaining record counts with buttons to locate each file."
+  caption="Locate the files in Finder or File Explorer, then return them through your project's agreed process."
 />
 
 ## Two files
 
-Both are written next to your input file, named after it.
+Exports are written beside the input file. For an input named `batch-01.csv`:
 
-| File                   | Contains                  | In which schema        |
-| ---------------------- | ------------------------- | ---------------------- |
-| `<name>-output.csv`    | Every **complete** record | Your **output** schema |
-| `<name>-remaining.csv` | Everything else           | The **input** schema   |
+| Filename                 | Contents                                              |
+| ------------------------ | ----------------------------------------------------- |
+| `batch-01-output.csv`    | Complete records, using the configured output columns |
+| `batch-01-remaining.csv` | Unfinished records, using the original input columns  |
 
-A record is complete when every required output field holds a valid value — see
-[Labeling](/guide/labeling/#what-complete-means). Partial and untouched records both go to
-`*-remaining`.
+No remaining file is written when every record is complete. The output contains only
+columns the administrator configured, which may include copied IDs, your session answers,
+and timestamps.
 
-`*-remaining` is written in the _input_ schema precisely so it can be loaded straight back
-into MLabel with the same config. That is what lets you stop early, or hand the rest to
-someone else. If nothing is left over, no remaining file is written at all.
+:::caution[Remaining records are not saved answers]
+The remaining file contains source records. It does **not** include answers you entered on
+partially completed records. A successful export also clears the saved session.
+If you need to keep those unfinished answers, continue labeling or pause and resume the
+same session before exporting.
+:::
 
-Every exported row carries your session answers and, if the config declares one, a
-timestamp — merged in the same way whichever file it lands in.
+## Hand your work back
+
+1. Check the exported and remaining counts on the Done screen.
+2. Select **Show in Finder** (macOS) or **Show in File Explorer** (Windows) to locate each file.
+3. Send both files to your preparer, if both exist. Include the assignment or batch name.
+4. Keep your copies until your preparer confirms receipt.
+
+Someone else can open the remaining file with the same configuration and begin a new pass.
+MLabel does not upload files or notify your preparer automatically.
 
 ## A second export is refused
 
-Exporting again over existing files fails with:
-
-> These files already exist: `data-output.csv`, `data-remaining.csv`.
-
-This is deliberate, and there is no "overwrite?" prompt. Re-exporting is easy to do by
-accident and the previous artifacts may be the only copy of hours of work.
-
-**To export again, move or delete the previous files first.** Then press **Done** again.
-
-## Both files, or neither
-
-If the second write fails — a full disk, a permission problem — the first is removed again.
-An export never leaves a half-finished pair on disk to be mistaken for a complete one.
-Writes are atomic, so an interrupted export cannot leave a truncated file either.
+MLabel refuses to overwrite existing export files. If you need to export again, move the
+previous files to an archive folder, then select **Save** again. Confirm which version your
+preparer should use so both exports are not counted as separate submissions.
 
 ## After exporting
 
-- **Reveal** opens either file in Finder or Explorer.
-- **Keep editing** returns you to labeling with everything still in place.
-- **Label another file** goes back to the file picker.
+**Keep editing** returns to the records with the answers still in memory. A subsequent edit
+starts saving a fresh session. If you quit immediately after export, that in-memory work is
+not a resumable session; the exported files are what remains on disk.
 
-A successful export clears your saved session — see
-[Sessions](/guide/sessions/#exporting-clears-the-session) for exactly what that means.
+**Label another file** returns to the file picker.
+
+## Both files, or neither
+
+If one export write fails, MLabel rolls back the other write. An error leaves the saved
+session intact. Check free disk space and folder permissions, then try again.
 
 ## What round-trips, and what doesn't
 
-`*-remaining` is **value-faithful, not byte-faithful**. Reloading it gives you back exactly
-the same values, in the same column order, in the same dialect — that is guaranteed and
-property-tested.
-
-Incidental formatting is **not** preserved:
-
-- a byte-order mark,
-- whitespace padding in headers,
-- the original quoting style (quotes are applied where needed, not where they were),
-- blank lines,
-- whether the file ended with a newline.
-
-For loading the file back into MLabel, or into anything that parses CSV, this is
-immaterial. If you are diffing against the original file byte-for-byte, expect noise.
+Remaining files preserve source cell values, column order, and the detected CSV dialect.
+Formatting details such as original quotation marks, blank lines, header padding, and a
+byte-order mark may change. Use a CSV reader to compare values rather than expecting
+identical file bytes.

@@ -1,125 +1,98 @@
 ---
-title: Deploying to labelers
-description: Shipping the app and config together, auto-loading a config, and running fully offline.
-sidebar:
-  order: 3
+title: Distribute the app and configuration
+description: Give labelers the right app, project configuration, instructions, and data.
 ---
 
-A labeler needs three things: the app, a config, and their data. The less thinking any of
-that requires, the better your project goes.
-
-## Ship the config beside the executable
-
-MLabel looks next to its own executable on startup for a config named, in order:
-
-1. `config.jsonc`
-2. `mlabel.config.jsonc`
-3. `mlabel.jsonc`
-
-If it finds one, it loads it automatically and the labeler never sees a config screen. They
-open the app and are asked for a data file.
-
-This is the single highest-value deployment step. It removes the "which file do I pick"
-question entirely, and it makes it impossible to accidentally label against last month's
-config.
-
-| Platform          | Where to put it                                       |
-| ----------------- | ----------------------------------------------------- |
-| Windows portable  | The same folder as the `.exe`                         |
-| Windows installer | The install directory, next to `MLabel.exe`           |
-| macOS             | Beside the `.app`, or inside its `Contents/Resources` |
-
-If no adjacent config is found, MLabel falls back to the most recently used one — so from
-the second run onwards it is usually one less step regardless.
+Each labeler needs the application, the correct project configuration, an assigned data
+file, and the labeling instructions. Include a project contact and a clear return process.
 
 ## What to send
 
-A single folder or zip containing:
+A handoff folder can contain:
 
+```text
+review-project-v1/
+  review-v1.jsonc
+  data-part2-of-5.csv
+  instructions.txt
 ```
-mlabel-toxicity-review/
-  MLabel.exe               (or the dmg / installer)
-  config.jsonc             ← auto-loaded
-  data-part2-of-5.csv      ← their slice
-  README.txt               ← three lines: open MLabel, drop the CSV, press Done
-```
 
-Send **one part per labeler**, not the whole file. See
-[Distributing work](/admin/distributing/).
+Send the appropriate [MLabel download](/start/download/) separately or include the installer
+in your delivery package. Tell labelers to install the app, open the named configuration,
+and select their assigned CSV.
 
-Tell them where the output lands: next to the data file, named after it. That is the single
-most common support question.
+The instructions should explain the labels, difficult cases, when to export, and where to
+return output and remaining files. Link to the [labeler guide](/labelers/) for app operation.
 
 ## Choosing a build
 
-| Situation                                 | Ship                                |
-| ----------------------------------------- | ----------------------------------- |
-| Managed Windows machines, admin available | The **installer** — it self-updates |
-| No admin rights, or locked-down machines  | The **portable** exe                |
-| macOS                                     | The **dmg**, always                 |
+| Situation                      | Build                                                |
+| ------------------------------ | ---------------------------------------------------- |
+| Normal Windows installation    | Installer                                            |
+| Windows use without installing | Portable executable                                  |
+| macOS                          | DMG for Apple Silicon or Intel, matching the machine |
 
-Two things to warn people about up front, because both look like something is wrong:
+Windows builds are unsigned and may trigger SmartScreen; follow your organization's
+software-installation policy. On macOS, install from the DMG into Applications. See the
+[Windows](/start/install-windows/) and [macOS](/start/install-macos/) guides.
 
-- **Windows**: builds are unsigned, so SmartScreen shows "Windows protected your PC". They
-  need _More info → Run anyway_. Saying so in advance saves a support round-trip.
-- **macOS**: installing from the dmg matters. A zip unpacked by hand arrives quarantined and
-  cannot auto-update. See [Install on macOS](/start/install-macos/).
+## Ship the config beside the executable
+
+Automatic discovery is optional. MLabel searches the executable directory and its resources
+directory for `config.jsonc`, `mlabel.config.jsonc`, then `mlabel.jsonc`. If no adjacent file
+is found, it tries the most recently used configuration.
+
+On a normal Windows installation, the executable directory is beside `MLabel.exe`.
+On macOS, the executable is **inside** the app bundle; placing a configuration beside the
+`.app` does not make it discoverable. For ordinary macOS distribution, keep the configuration
+outside the signed bundle and have labelers select it explicitly. Avoid modifying the
+installed bundle to distribute project data.
+
+Check the loaded project in **Settings → Config** before labeling, especially when the app
+remembers a previous assignment.
 
 ## Updates
 
-Installed builds check GitHub Releases on startup and apply updates on next restart. For
-most projects that is what you want — labelers get fixes without being asked to do anything.
-
-**Pin the version instead** when a labeling run must not change underneath it. Turn checks
-off in the config and distribute a specific build:
+By default, the configuration permits update checks. Labelers can turn them off in Settings.
+For a fixed-version or offline project, set:
 
 ```jsonc
-{
-  "version": 2,
-  "network": { "updateChecks": false },
-  "input": {
-    /* … */
-  },
-  "output": {
-    /* … */
-  },
-}
+"network": { "updateChecks": false }
 ```
 
-With that set, MLabel makes **no network requests of any kind**. Not "skips the check" — the
-request is refused at the network layer and the updater never starts. This is the setting
-for air-gapped machines, and the one that makes "does this tool phone home" a flat no.
+This blocks update traffic. Distribute a tested application version and handle future
+updates deliberately. A labeler's preference cannot enable traffic the configuration forbids.
 
-The cost is that updating becomes redistribution.
-
-:::caution
-`network` is validated strictly. A misspelled `updateCheck` is a **load error**, not a
-silently ignored key — precisely so a config that reads as offline cannot quietly be online.
-Run `pnpm validate` on the config you actually ship.
-:::
+[Network policy →](/config/network/)
 
 ## Where MLabel writes
 
-Worth knowing before anyone asks whether it is safe to run on a work machine.
+| Files                                          | Location                                                                         |
+| ---------------------------------------------- | -------------------------------------------------------------------------------- |
+| Output and remaining records                   | Beside the input data file                                                       |
+| Split parts                                    | Beside the source file                                                           |
+| Joined file                                    | Destination selected by the preparer                                             |
+| Saved session, settings, recents, window state | App data directory: `~/Library/Application Support/MLabel` or `%APPDATA%\MLabel` |
 
-| What                              | Where                                                       |
-| --------------------------------- | ----------------------------------------------------------- |
-| Labeled output                    | Next to the input file — **nowhere else**                   |
-| Session, recents, window position | `~/Library/Application Support/MLabel` · `%APPDATA%\MLabel` |
+Labelers need write access to the input folder. If using shared storage, agree who can
+modify source files while labeling is in progress.
 
-No temp directories, no user home clutter, no telemetry, no crash reporting.
+## Give labelers a return checklist
 
-If labelers work on a network share, the output lands on the share. That is usually
-convenient, occasionally slow, and worth deciding on deliberately.
+Include these instructions with each assignment:
 
-## A checklist
+1. Use the named configuration and assigned source file.
+2. To pause, close the app and resume the same files later.
+3. To return work, select Save and send the output plus any remaining file.
+4. Include the batch name, finished count, and remaining count in the handoff.
+5. Keep the local copies until the preparer confirms receipt.
 
-- [ ] Config passes `pnpm validate`.
-- [ ] Config piloted on 20 real rows — see [Planning](/admin/planning/#pilot-before-you-commit).
-- [ ] Named `config.jsonc` and placed beside the executable.
-- [ ] `updateChecks` set deliberately, either way.
-- [ ] One data part per labeler.
-- [ ] Labelers told about SmartScreen (Windows) or the dmg (macOS).
-- [ ] Labelers told where output appears and to send back **both** `*-output` and
-      `*-remaining`.
-- [ ] A `session` field capturing who is labeling, so joined output is auditable.
+## Before distributing
+
+- Validate the exact configuration you are sending.
+- Pilot the project and inspect a real export.
+- Give the configuration a clear version identifier and keep an archived copy.
+- Confirm the app version, operating system, and architecture.
+- Set the update policy deliberately.
+- Explain the output location and request both finished and remaining files.
+- Explain that saved sessions are local and remaining files do not carry partial answers.

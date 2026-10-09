@@ -1,0 +1,72 @@
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  "network": {
+    "updateChecks": false,
+  },
+  "input": {
+    "fields": [
+      {
+        "name": "checks",
+        "type": "array",
+        "display": {
+          "title": "Delivery checks",
+          "titlePosition": "above",
+        },
+        "items": {
+          "type": "object",
+          "fields": [
+            {
+              "name": "name",
+              "type": "text",
+              "display": "Check",
+            },
+            {
+              "name": "passed",
+              "type": "boolean",
+              "display": "Passed",
+            },
+            {
+              "name": "confidence",
+              "type": "number",
+              "display": "Confidence",
+            },
+          ],
+          "table": {
+            "columns": [
+              {
+                "name": "Check",
+                "use": ["name"],
+              },
+              {
+                "name": "Result",
+                "use": ["passed", "confidence"],
+                "layout": "inline",
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+  "output": {
+    "fields": [
+      {
+        "name": "verdict",
+        "type": "enum",
+        "widget": "radio",
+        "display": "Review decision",
+        "choices": [
+          {
+            "name": "pass",
+            "display": "Pass",
+          },
+          {
+            "name": "fail",
+            "display": "Fail",
+          },
+        ],
+      },
+    ],
+  },
+}

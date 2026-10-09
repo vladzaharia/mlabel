@@ -1,0 +1,92 @@
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  "network": {
+    "updateChecks": false,
+  },
+  "input": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "display": "Record ID",
+      },
+      {
+        "name": "comment",
+        "type": "text",
+        "display": {
+          "title": "Customer comment",
+          "titlePosition": "above",
+        },
+      },
+      {
+        "name": "score",
+        "type": "number",
+        "display": "Inspection score",
+      },
+      {
+        "name": "threshold",
+        "type": "number",
+        "display": "Required score",
+      },
+    ],
+    "cards": [
+      {
+        "name": "inspection",
+        "display": "Delivery inspection",
+        "rows": [
+          {
+            "use": ["comment"],
+          },
+          {
+            "perRow": 2,
+            "use": ["score", "threshold"],
+          },
+        ],
+      },
+    ],
+    "rules": [
+      {
+        "name": "below-threshold",
+        "when": {
+          "op": "lt",
+          "field": "score",
+          "otherField": "threshold",
+        },
+        "appliesTo": ["score", "threshold"],
+        "appliesToCards": ["inspection"],
+        "style": {
+          "tone": "warning",
+          "note": "Below the required score. Review the delivery evidence.",
+        },
+      },
+    ],
+  },
+  "output": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "text",
+        "fill": {
+          "kind": "copy",
+        },
+      },
+      {
+        "name": "verdict",
+        "type": "enum",
+        "widget": "radio",
+        "display": "Review decision",
+        "choices": [
+          {
+            "name": "pass",
+            "display": "Pass",
+          },
+          {
+            "name": "fail",
+            "display": "Fail",
+          },
+        ],
+      },
+    ],
+  },
+}

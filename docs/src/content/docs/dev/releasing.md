@@ -5,8 +5,11 @@ sidebar:
   order: 8
 ---
 
+Release from the commit you intend to ship, after completing [Before tagging](#before-tagging). Use the intended release number in place of the example:
+
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+git tag -a v0.4.0 -m "MLabel 0.4.0"
+git push origin v0.4.0
 ```
 
 Pushing a `v*` tag starts the release process. If packaging fails, repair the workflow on
@@ -30,7 +33,7 @@ tag pushed
    publish      flip the draft live
 ```
 
-Three properties are worth understanding:
+The pipeline keeps the application commit and uploaded artifacts consistent:
 
 **The bundle is built once.** Both packaging jobs download the same `out/` artifact rather
 than rebuilding. The bundle is platform-agnostic; only packaging is not.
@@ -64,8 +67,7 @@ temporary signing material after packaging.
 
 The certificate secrets are only available to the macOS import step.
 
-Windows ships **unsigned**. Adding `win.signtoolOptions` or Azure Trusted Signing later
-needs no other change.
+Windows ships **unsigned**. Changing Windows signing requires validating the packaging workflow and the resulting installer.
 
 ## Artifacts
 
@@ -95,7 +97,7 @@ in place requires a packaged build.
 
 - [ ] `pnpm lint && pnpm format:check && pnpm typecheck && pnpm test`
 - [ ] `pnpm schema` produces no change (the test catches this, but check early)
-- [ ] `package.json` version bumped, if you keep it in step with tags
+- [ ] `package.json` version and changelog updated to match the intended release
 - [ ] Built locally at least once: `pnpm build:mac` or `pnpm build:win`
 - [ ] Docs rebuilt if `src/core/config/**` changed — see [the docs site](/dev/contributing/)
 

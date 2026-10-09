@@ -1,10 +1,12 @@
 ---
-title: Keyboard shortcuts
+title: Configure project shortcuts
 description: Chord syntax, the single shared namespace, the reserved list, and how to budget shortcuts for a fast form.
 ---
 
-A config can attach chords to fields and to individual choices. Both appear automatically in
-the app's <kbd>?</kbd> dialog, so that list stays truthful without anyone maintaining it.
+A shortcut is a key or key combination, also called a chord. A config can attach shortcuts to fields and to individual choices. Both appear automatically in
+the app's <kbd>?</kbd> dialog, so labelers can find the current bindings there.
+
+[Try a form that uses built-in number keys →](/config/recipes/three-key/)
 
 ## Syntax
 
@@ -121,7 +123,7 @@ three-way rating, digits plus <kbd>Enter</kbd> is the entire interaction.
 Declare explicit chords when:
 
 - **Two choice fields compete for the digits.** Give the secondary one mnemonic letters.
-- **The mnemonic is genuinely better.** <kbd>c</kbd>/<kbd>x</kbd> for correct/incorrect
+- **The letters are easier to remember.** <kbd>c</kbd>/<kbd>x</kbd> for correct/incorrect
   beats <kbd>1</kbd>/<kbd>2</kbd> because it survives someone reordering the choices.
 - **A field is far down a long form.** A field chord jumps straight to it.
 
@@ -134,7 +136,7 @@ Bare chords are suppressed while the labeler is **typing**: in an input, a texta
 dropdown's search field. Otherwise a chord on `c` would make the letter "c" impossible to
 type into the notes box.
 
-Chords with a modifier are **not** suppressed — they stay live everywhere.
+Ctrl, Cmd, and Alt combinations remain eligible while typing. Bare and Shift-only shortcuts are suppressed in text-entry controls. An open dialog owns the keyboard.
 
 Radio groups and sliders are a deliberate middle ground: they consume arrow keys, not
 letters, so bare choice chords keep working while one of them has focus. That is what makes

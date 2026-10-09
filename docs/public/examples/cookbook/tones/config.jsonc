@@ -1,0 +1,141 @@
+{
+  "$schema": "https://mlabel.vlad.gg/mlabel.schema.json",
+  "version": 2,
+  "network": {
+    "updateChecks": false,
+  },
+  "input": {
+    "fields": [
+      {
+        "name": "muted",
+        "type": "text",
+        "display": "Muted",
+      },
+      {
+        "name": "info",
+        "type": "text",
+        "display": "Info",
+      },
+      {
+        "name": "success",
+        "type": "text",
+        "display": "Success",
+      },
+      {
+        "name": "warning",
+        "type": "text",
+        "display": "Warning",
+      },
+      {
+        "name": "danger",
+        "type": "text",
+        "display": "Danger",
+      },
+      {
+        "name": "accent",
+        "type": "text",
+        "display": "Accent",
+      },
+    ],
+    "rules": [
+      {
+        "name": "muted",
+        "when": {
+          "op": "notEmpty",
+          "field": "muted",
+        },
+        "style": {
+          "tone": "muted",
+          "note": "Lower priority.",
+        },
+      },
+      {
+        "name": "info",
+        "when": {
+          "op": "notEmpty",
+          "field": "info",
+        },
+        "style": {
+          "tone": "info",
+          "note": "Context for the review.",
+        },
+      },
+      {
+        "name": "success",
+        "when": {
+          "op": "notEmpty",
+          "field": "success",
+        },
+        "style": {
+          "tone": "success",
+          "note": "Evidence supports this result.",
+        },
+      },
+      {
+        "name": "warning",
+        "when": {
+          "op": "notEmpty",
+          "field": "warning",
+        },
+        "style": {
+          "tone": "warning",
+          "note": "Check this value carefully.",
+        },
+      },
+      {
+        "name": "danger",
+        "when": {
+          "op": "notEmpty",
+          "field": "danger",
+        },
+        "style": {
+          "tone": "danger",
+          "note": "A serious issue needs review.",
+        },
+      },
+      {
+        "name": "accent",
+        "when": {
+          "op": "notEmpty",
+          "field": "accent",
+        },
+        "style": {
+          "tone": "accent",
+          "note": "Pay attention to this detail.",
+        },
+      },
+    ],
+    "cards": [
+      {
+        "name": "tones",
+        "display": "Six display-rule tones",
+        "rows": [
+          {
+            "perRow": 2,
+            "use": ["muted", "info", "success", "warning", "danger", "accent"],
+          },
+        ],
+      },
+    ],
+  },
+  "output": {
+    "fields": [
+      {
+        "name": "verdict",
+        "type": "enum",
+        "widget": "radio",
+        "display": "Review decision",
+        "choices": [
+          {
+            "name": "pass",
+            "display": "Pass",
+          },
+          {
+            "name": "fail",
+            "display": "Fail",
+          },
+        ],
+      },
+    ],
+  },
+}

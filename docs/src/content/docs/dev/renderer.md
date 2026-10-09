@@ -22,8 +22,7 @@ because Prepare shares almost nothing with labeling beyond the loaded config.
 
 ### Autosave is a subscriber
 
-Not a call scattered through actions — one `useStore.subscribe` that bails unless something
-session-relevant actually changed:
+A `useStore.subscribe` saves only when session-relevant state changes:
 
 ```ts
 if (state.labels === prev.labels && state.prefill === prev.prefill && state.index === prev.index …) return;
@@ -48,22 +47,28 @@ The schema then permits it structurally.
 
 ## Keyboard
 
-`useKeyboardShortcuts` is a single window listener. Three ideas carry it:
+`useKeyboardShortcuts` is a single window listener. It dispatches bindings resolved by `ShortcutProvider` from built-in actions, project shortcuts, and personal overrides. `src/core/actions.ts` owns action definitions and guards; DOM interaction stays in the hook.
+
+The important keyboard boundaries are:
 
 **An open modal owns the keyboard.** It bails on `[role="dialog"][data-state="open"]`.
-Without that guard the resume prompt was live-fire — digits wrote labels to the record
-behind it, and ⌘Enter exported _and_ cleared the very session the dialog was asking about.
+This prevents shortcuts from editing or exporting the record behind a dialog.
 
 **`typing` and `textEntry` are different.** `typing` covers anything that consumes
 keystrokes, including sliders and radio groups. `textEntry` is narrower: only where a
 _letter_ means "insert this letter". Bare chords are held back by `textEntry`, which is why
 they keep working while a radio group or slider has focus.
 
-**Modifier chords are matched before the typing guard**, so `mod+`-style accelerators stay
-reachable from inside a text field.
+**Ctrl, Cmd, and Alt bindings may remain active while typing.** Bare and Shift-only choice shortcuts pause in text-entry controls.
 
 `ENTER_IS_TAKEN` lists the elements where Enter already means something — a focused button,
 an open select, a textarea — so advancing the record never double-fires.
+
+## Settings
+
+`settings/SettingsDialog.tsx` organizes the Keys, Version, Config, Session, and policy-dependent Network sections. Settings use the typed IPC methods to persist preferences. Do not let a personal update preference override a project restriction.
+
+The shortcut provider supplies the handler, displayed badges, help dialog, and Settings list from the same effective bindings. Keep new shortcut UI connected to that provider.
 
 ## Accessibility
 

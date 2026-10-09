@@ -1,5 +1,5 @@
 ---
-title: Adapters
+title: CSV and file-format settings
 description: adapterId and adapterConfig, the CSV adapter's options, and what the re-emit contract guarantees.
 ---
 
@@ -21,9 +21,7 @@ tab detection whatever the config says.
 
 ## `adapterConfig`
 
-Opaque options, owned by the adapter. **This is the one object in the config where unknown
-keys are allowed**, because MLabel's core never inspects it and so has no basis for judging
-what belongs there.
+Options specific to the file format. Unknown keys are accepted here, so use only the settings listed below; a typo may be silently ignored.
 
 The CSV adapter's options differ by side:
 
@@ -54,6 +52,8 @@ tell you about itself.
 
 Input line endings are detected from the file, which is why input has no `newline` option.
 Output quoting is applied wherever a value needs it, which is why output has no `quoteChar`.
+
+[Run the illustrated semicolon-separated example →](/config/recipes/semicolon/)
 
 ## What happens on read
 
@@ -93,5 +93,4 @@ Nothing about MLabel's core, its UI, or the config schema knows what CSV is. A n
 means implementing two interfaces and registering them — no changes anywhere else. See
 [Writing an adapter](/dev/adapters/).
 
-Format specifics stay private to the adapter behind an opaque token, which is what keeps
-that promise honest rather than aspirational.
+Source and sink implementation details are covered in the developer guide.
