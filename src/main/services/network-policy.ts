@@ -4,16 +4,27 @@
  * Zero Electron imports so the decisions are unit-testable; the wiring lives in
  * `network-guard.ts`.
  *
- * The only remote traffic this app is ever allowed to make is the GitHub
- * Releases update check for the pinned repo — and only while a loaded config
- * permits it (`network.updateChecks`). Everything else is denied.
+ * This app makes remote requests for exactly two things, each gated by its own
+ * config flag and each confined to its own session:
+ *
+ * - the GitHub Releases update check for the pinned repo (`network.updateChecks`)
+ * - downloading a model from Hugging Face (`network.modelDownload`)
+ *
+ * The scopes do not overlap. The updater session cannot reach Hugging Face and
+ * the model session cannot reach GitHub, so a bug in one cannot borrow the
+ * other's permission. Everything else, in every scope, is denied.
  */
 
-export type NetworkScope = "renderer" | "updater";
+export type NetworkScope = "renderer" | "updater" | "model";
 
 export interface PolicyContext {
   scope: NetworkScope;
   updatesEnabled: boolean;
+  /**
+   * Required rather than optional, deliberately: a security control that
+   * defaults to something when you forget it is a control you will forget.
+   */
+  modelDownloadEnabled: boolean;
   isDev: boolean;
 }
 
@@ -59,6 +70,22 @@ function isDevLoopback(u: URL, isDev: boolean): boolean {
   );
 }
 
+/**
+ * Hosts Hugging Face serves model files from.
+ *
+ * Suffix-matched on `.hf.co` rather than pinned to a list, because HF resolves
+ * a download to one of well over a dozen regional CDN hosts and documents that
+ * the set changes — a pinned list would start failing for users in a region we
+ * did not anticipate, fixable only by shipping a release. The dot is what makes
+ * the suffix safe: without it `evilhf.co` would match.
+ */
+const HF_HOSTS = new Set(["huggingface.co", "hf.co"]);
+
+function isHuggingFace(u: URL): boolean {
+  if (!isCleanHttps(u)) return false;
+  return HF_HOSTS.has(u.hostname) || u.hostname.endsWith(".hf.co");
+}
+
 function isGithubRelease(u: URL): boolean {
   if (!isCleanHttps(u)) return false;
   if (u.hostname === "github.com") return REPO_RELEASES_PATH.test(u.pathname);
@@ -71,7 +98,9 @@ export function isRequestAllowed(url: string, ctx: PolicyContext): boolean {
   if (!u) return false;
   if (LOCAL_SCHEMES.has(u.protocol)) return true;
   if (isDevLoopback(u, ctx.isDev)) return true;
-  return ctx.scope === "updater" && ctx.updatesEnabled && isGithubRelease(u);
+  if (ctx.scope === "updater") return ctx.updatesEnabled && isGithubRelease(u);
+  if (ctx.scope === "model") return ctx.modelDownloadEnabled && isHuggingFace(u);
+  return false;
 }
 
 /** Should the window be allowed to navigate to this URL? */

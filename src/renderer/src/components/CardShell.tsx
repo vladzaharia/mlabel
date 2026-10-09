@@ -28,7 +28,7 @@ export function CardShell({
    * What those rules had to say. Stated once here rather than per field.
    *
    * The decorations rather than their flattened notes, so an authored statement
-   * and its explanation can be read together.
+   * and a model's guess can be told apart at a glance.
    */
   decorations?: readonly Decoration[];
   /**

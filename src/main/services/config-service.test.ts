@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   setUpdatesAllowed: vi.fn(),
   startUpdates: vi.fn(),
   getSettings: vi.fn(() => ({ updateChecks: true })),
+  applyAiPolicy: vi.fn(),
 }));
 
 vi.mock("electron", () => ({
@@ -22,6 +23,9 @@ vi.mock("./updater", () => ({
   setUpdatesAllowed: mocks.setUpdatesAllowed,
 }));
 vi.mock("./settings-store", () => ({ getSettings: mocks.getSettings }));
+// Mocked at the boundary: the real module reaches the inference engine, and
+// through it `utilityProcess`, which has no place in a config-loading test.
+vi.mock("./ai/ai-service", () => ({ applyAiPolicy: mocks.applyAiPolicy }));
 vi.mock("./network-guard", () => ({ setUpdatesEnabled: mocks.setUpdatesEnabled }));
 
 // Imported after the mocks so electron/updater/network-guard resolve to them.

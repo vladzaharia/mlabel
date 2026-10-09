@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AppSettings, ShortcutOverrides } from "@core";
+import type { Analysis, AppSettings, EngineState, ShortcutOverrides } from "@core";
 import {
   evaluateRecord,
   findIncomplete,
@@ -57,6 +57,11 @@ interface AppState {
    */
   shortcutOverrides: ShortcutOverrides;
   /** What the inference engine can do right now. */
+  aiState: EngineState;
+  /** Findings by record index, pushed from main as they land. */
+  analyses: Record<number, Analysis>;
+  /** Which models are on this machine. */
+  downloadedModels: string[];
   systemDark: boolean;
 
   phase: Phase;
@@ -104,6 +109,9 @@ interface AppActions {
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
   /** Throw away the in-progress labels and the saved session with them. */
   clearSessionData: () => Promise<void>;
+  setAiState: (state: EngineState) => void;
+  setAnalysis: (analysis: Analysis) => void;
+  refreshAi: () => Promise<void>;
 
   pickConfig: () => Promise<void>;
   pickInput: () => Promise<void>;
@@ -230,8 +238,13 @@ export const useStore = create<AppStore>((set, get) => ({
     colorTheme: readColorTheme(),
     shortcuts: {},
     updateChecks: true,
+    aiEnabled: false,
+    aiModelId: "qwen3.5-2b",
   },
   shortcutOverrides: {},
+  aiState: { kind: "no-model" },
+  analyses: {},
+  downloadedModels: [],
   systemDark: true,
 
   phase: "boot",
@@ -309,6 +322,26 @@ export const useStore = create<AppStore>((set, get) => ({
     cacheTheme(COLOR_THEME_KEY, theme);
     applyColorTheme(theme);
     void get().updateSettings({ colorTheme: theme });
+  },
+
+  setAiState(state) {
+    set({ aiState: state });
+    // A finished download changes what is on disk, which the settings pane
+    // shows; nothing else would notice.
+    if (state.kind === "ready" || state.kind === "no-model") void get().refreshAi();
+  },
+
+  setAnalysis(analysis) {
+    set({ analyses: { ...get().analyses, [analysis.recordIndex]: analysis } });
+  },
+
+  async refreshAi() {
+    const status = await window.api.getAiStatus();
+    set({
+      aiState: status.state,
+      downloadedModels: status.downloaded,
+      analyses: Object.fromEntries(status.cached.map((a) => [a.recordIndex, a])),
+    });
   },
 
   async updateSettings(patch) {
@@ -694,6 +727,16 @@ export const selectHasIncompleteBefore = (state: AppStore): boolean =>
 
 export const selectCurrentRecord = (state: AppStore): RecordView | undefined =>
   state.records[state.index];
+
+// --- Tell main where the labeler is, so analysis can work ahead of them. ---
+// Separate from the autosave subscriber below because it is not phase-gated:
+// the panel is on screen during labeling, and the queue should be warming up
+// before anyone has answered anything.
+useStore.subscribe((state, prev) => {
+  if (state.index === prev.index && state.records === prev.records) return;
+  if (!state.settings.aiEnabled) return;
+  void window.api.setAiIndex(state.index);
+});
 
 // --- Autosave: write-through on every labeling-relevant state change. ---
 // Using the two-arg subscriber so we can bail out when only unrelated state

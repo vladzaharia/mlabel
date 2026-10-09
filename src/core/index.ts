@@ -18,6 +18,18 @@ export * from "./actions";
 export * from "./navigation";
 export * from "./network-prefs";
 export * from "./config-summary";
+export * from "./ai/availability";
+export * from "./ai/decorate";
+export * from "./ai/models";
+export * from "./ai/prompt";
+export * from "./ai/queue";
+export * from "./ai/question";
+export * from "./ai/answer";
+export * from "./ai/letters";
+export * from "./ai/threshold";
+export * from "./ai/note";
+export * from "./ai/builtins";
+export type { Analysis, AnalysisStatus, EngineState, NoteSeverity } from "./ai/types";
 // Adapter interface types only (no concrete adapters / no papaparse).
 export type {
   AdapterInput,
@@ -44,6 +56,8 @@ export type {
   JoinRequest,
   JoinRunResponse,
   LabelMap,
+  ModelCallEntry,
+  ModelCallStatus,
   NetworkEventKind,
   NetworkLogEntry,
   NetworkOutcome,

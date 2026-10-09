@@ -57,7 +57,7 @@ export function InputFieldView({
         // A rule annotates read-only source data the labeler cannot change, so
         // it gets a left rail and a tint — never the full red border that means
         // "you must fix this", which would send them hunting for a fix.
-        frameFor(tone),
+        frameFor(tone, decorations),
         tone && SEVERITY[tone].textClass,
       )}
     >

@@ -20,6 +20,10 @@ vi.mock("electron", () => ({
   dialog: { showOpenDialog: vi.fn() },
 }));
 
+// Mocked at the boundary: the real module reaches the inference engine and a
+// BrowserWindow, neither of which belongs in a session-resume test.
+vi.mock("./ai/analysis-service", () => ({ setInput: vi.fn(), setIndex: vi.fn() }));
+
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------

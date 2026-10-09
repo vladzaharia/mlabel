@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { app } from "electron";
 import { existsSync } from "node:fs";
 import { isReservedChord, parseChord } from "@core/shortcuts";
-import type { AppSettings, ColorTheme, ThemeMode } from "@core";
+import { DEFAULT_MODEL_ID, MODELS, type AppSettings, type ColorTheme, type ThemeMode } from "@core";
 import { readJsonSafe, writeJsonAtomic } from "./atomic-write";
 import { createWriteQueue } from "./write-queue";
 
@@ -27,6 +27,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   colorTheme: "cobalt",
   shortcuts: {},
   updateChecks: true,
+  // Off by default. A config saying the feature is permitted is not the same as
+  // a labeler asking for a gigabyte of weights.
+  aiEnabled: false,
+  aiModelId: DEFAULT_MODEL_ID,
 };
 
 const THEME_MODES: readonly ThemeMode[] = ["system", "light", "dark"];
@@ -74,6 +78,10 @@ export function sanitizeSettings(saved: unknown): AppSettings {
     shortcuts: sanitizeShortcuts(raw["shortcuts"]),
     // Anything that is not an explicit `false` reads as permitted.
     updateChecks: raw["updateChecks"] !== false,
+    aiEnabled: raw["aiEnabled"] === true,
+    aiModelId: MODELS.some((m) => m.id === raw["aiModelId"])
+      ? (raw["aiModelId"] as string)
+      : DEFAULT_MODEL_ID,
   };
 }
 

@@ -11,7 +11,14 @@ const PLATFORM_NAMES: Record<string, string> = {
   linux: "Linux",
 };
 
-/** Display the platform and build architecture. */
+/**
+ * Platform and architecture together.
+ *
+ * The arch is not a detail here: this app ships inference for arm64 macOS only,
+ * so "macOS" on its own does not tell a labeler whether anomaly detection can
+ * work on their machine. Falls back to the raw `process` values rather than
+ * hiding an unrecognised platform behind a dash.
+ */
 const runningOn = (info: AppInfo | null): string => {
   if (!info) return "…";
   return `${PLATFORM_NAMES[info.platform] ?? info.platform} · ${info.arch}`;

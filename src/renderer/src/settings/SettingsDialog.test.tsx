@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { IpcApi, NetworkLogEntry, RecordView } from "@core";
+import { MODELS, type IpcApi, type NetworkLogEntry, type RecordView } from "@core";
 import { makeIpcApi } from "@test/fixtures/ipc";
 import { buildConfig } from "@test/fixtures/config";
 import { ShortcutProvider } from "../shortcuts/ShortcutProvider";
@@ -63,6 +63,8 @@ beforeEach(() => {
       colorTheme: "cobalt",
       shortcuts: {},
       updateChecks: true,
+      aiEnabled: false,
+      aiModelId: "jevk5-4b",
     },
     updateStatus: null,
   });
@@ -86,6 +88,9 @@ describe("SettingsDialog", () => {
         packaged: true,
         updatesArmed: true,
         updatesAllowedByConfig: true,
+        aiAllowedByConfig: true,
+        modelDownloadAllowedByConfig: true,
+        aiPlatformSupported: true,
       }),
     });
     show();
@@ -112,6 +117,8 @@ describe("SettingsDialog: keys", () => {
       colorTheme: "cobalt" as const,
       shortcuts: {},
       updateChecks: true,
+      aiEnabled: false,
+      aiModelId: "jevk5-4b",
       ...patch,
     }));
     install({ setSettings });
@@ -275,6 +282,8 @@ describe("SettingsDialog: network", () => {
       colorTheme: "cobalt" as const,
       shortcuts: {},
       updateChecks: false,
+      aiEnabled: false,
+      aiModelId: "jevk5-4b",
     }));
     install({ setSettings });
     const user = userEvent.setup();
@@ -295,6 +304,9 @@ describe("SettingsDialog: network", () => {
         packaged: true,
         updatesArmed: false,
         updatesAllowedByConfig: false,
+        aiAllowedByConfig: true,
+        modelDownloadAllowedByConfig: true,
+        aiPlatformSupported: true,
       }),
     });
     show();
@@ -302,5 +314,131 @@ describe("SettingsDialog: network", () => {
       expect(screen.queryByRole("tab", { name: "Network" })).not.toBeInTheDocument(),
     );
     expect(screen.getByRole("tab", { name: "Keys" })).toBeInTheDocument();
+  });
+});
+
+describe("SettingsDialog: anomaly detection", () => {
+  const info = (over: Record<string, unknown> = {}) => ({
+    version: "0.0.0",
+    platform: "darwin",
+    arch: "arm64",
+    packaged: true,
+    updatesArmed: true,
+    updatesAllowedByConfig: true,
+    aiAllowedByConfig: true,
+    modelDownloadAllowedByConfig: true,
+    aiPlatformSupported: true,
+    ...over,
+  });
+
+  afterEach(() => useStore.setState({ downloadedModels: [] }));
+
+  it("offers the section when the config permits it", async () => {
+    install({ getAppInfo: async () => info() });
+    show();
+    await waitFor(() => expect(tab("Anomalies")).toBeInTheDocument());
+  });
+
+  // A capability the config switched off is absent, not greyed out.
+  it("drops the section when the config forbids AI", async () => {
+    install({ getAppInfo: async () => info({ aiAllowedByConfig: false }) });
+    show();
+    await waitFor(() =>
+      expect(screen.queryByRole("tab", { name: "Anomalies" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("drops the section when downloads are forbidden and no model is here", async () => {
+    install({ getAppInfo: async () => info({ modelDownloadAllowedByConfig: false }) });
+    show();
+    await waitFor(() =>
+      expect(screen.queryByRole("tab", { name: "Anomalies" })).not.toBeInTheDocument(),
+    );
+  });
+
+  // The carve-out: a model lives per machine, a config is per project. A project
+  // that forbids fetching must not disable weights already sitting on disk.
+  it("keeps the section when downloads are forbidden but a model is already here", async () => {
+    useStore.setState({ downloadedModels: ["qwen3.5-2b"] });
+    install({ getAppInfo: async () => info({ modelDownloadAllowedByConfig: false }) });
+    show();
+    await waitFor(() => expect(tab("Anomalies")).toBeInTheDocument());
+  });
+
+  it("drops the section on a build with no inference binary", async () => {
+    install({ getAppInfo: async () => info({ aiPlatformSupported: false }) });
+    show();
+    await waitFor(() =>
+      expect(screen.queryByRole("tab", { name: "Anomalies" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("downloads nothing until the labeler turns it on", async () => {
+    install({ getAppInfo: async () => info() });
+    const user = userEvent.setup();
+    show();
+    await waitFor(() => expect(tab("Anomalies")).toBeInTheDocument());
+    await user.click(tab("Anomalies"));
+    // With the switch off there is no model list, so nothing to download.
+    expect(screen.queryByRole("button", { name: /Download/ })).toBeNull();
+    expect(screen.getByRole("switch", { name: "Look for anomalies" })).toBeInTheDocument();
+  });
+
+  it("says plainly that the results need verifying", async () => {
+    install({ getAppInfo: async () => info() });
+    const user = userEvent.setup();
+    show();
+    await waitFor(() => expect(tab("Anomalies")).toBeInTheDocument());
+    await user.click(tab("Anomalies"));
+    await user.click(screen.getByRole("switch", { name: "Look for anomalies" }));
+
+    expect(await screen.findByText(/All results should be reviewed/)).toBeInTheDocument();
+  });
+
+  // Telling someone to verify the results is only actionable if they can see
+  // what was asked, so the log sits in the same section as the instruction.
+  it("lists what the model was asked, beside the warning to verify it", async () => {
+    install({
+      getAppInfo: async () => info(),
+      getModelLog: async () => [
+        {
+          id: 1,
+          at: Date.parse("2026-05-01T12:00:00Z"),
+          recordIndex: 3,
+          modelId: "jevk5-4b",
+          status: "findings" as const,
+          elapsedMs: 1200,
+          prefix: "Instructions here.",
+          suffix: "The row to review:\nemail: a@b.com",
+          raw: '{"reasoning":"x","findings":[]}',
+          answers: [{ id: "anomalous", type: "boolean" as const, p: 0.9, confidence: 0.9 }],
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    show();
+    await waitFor(() => expect(tab("Anomalies")).toBeInTheDocument());
+    await user.click(tab("Anomalies"));
+    await user.click(screen.getByRole("switch", { name: "Look for anomalies" }));
+
+    const row = await screen.findByRole("button", { name: /Record 4/ });
+    await user.click(row);
+    expect(screen.getByText(/email: a@b.com/)).toBeInTheDocument();
+  });
+
+  it("offers the models once it is on", async () => {
+    install({ getAppInfo: async () => info() });
+    const user = userEvent.setup();
+    show();
+    await waitFor(() => expect(tab("Anomalies")).toBeInTheDocument());
+    await user.click(tab("Anomalies"));
+    await user.click(screen.getByRole("switch", { name: "Look for anomalies" }));
+
+    // Derived from the table rather than spelled out, so swapping a model is a
+    // one-line change in `models.ts` instead of a failing test somewhere else.
+    expect(await screen.findByText(MODELS[0]!.name)).toBeInTheDocument();
+    for (const spec of MODELS.slice(1)) {
+      expect(screen.getByText(spec.name)).toBeInTheDocument();
+    }
   });
 });

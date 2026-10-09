@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BUILT_IN_IDS } from "../ai/builtins";
 import { CHORD_KEY_ALIASES, isReservedChord, NAMED_KEYS } from "../shortcuts";
 import {
   Choice,
@@ -44,6 +45,17 @@ const Identifier = z
     /^[A-Za-z0-9_-][A-Za-z0-9_ -]*[A-Za-z0-9_-]$|^[A-Za-z0-9_-]$/,
     "must be a column name: letters, digits, _ or -, with optional inner spaces",
   );
+
+/**
+ * Cap on `ai.context`, in characters.
+ *
+ * It rides in front of every record inside a 4096-token window, so it competes
+ * with the record it is supposed to explain. Roughly 500 tokens leaves the row
+ * and the model's answer plenty of room, and the limit is a load error rather
+ * than a silent truncation — a config author who wrote three pages should find
+ * out at load, not wonder why the model stopped seeing the last column.
+ */
+const MAX_AI_CONTEXT = 2000;
 
 /**
  * A keyboard chord, e.g. `"p"`, `"mod+s"` or `"shift+up"` (mod = Cmd on macOS,
@@ -371,7 +383,7 @@ const LEAF_CONDITIONS = [
     field: TestedField,
     pattern: z.string().min(1).meta({
       description:
-        "JavaScript regular expression, tested against the value's string form. Compiled when the config loads.",
+        "JavaScript regular expression, tested against the value's string form. One that cannot compile is a load error, wherever it sits — including inside an `allOf`, `anyOf` or `not`. Note that JavaScript has no inline flags: `(?i)` is a syntax error rather than a case-insensitive match, so write the cases out or use a character class.",
     }),
   }),
   z.strictObject({
@@ -441,6 +453,139 @@ export const Condition: z.ZodType<Condition> = z
     title: "Condition",
     description:
       "A rule's trigger, evaluated over one record's input values. Never throws: a condition pointed at a missing or wrongly-typed value simply does not fire.",
+  });
+
+/**
+ * Cap on the options in one `choice`.
+ *
+ * Sixteen is where the model's published calibration temperature stops applying;
+ * past it a separate knockout temperature is wanted, and a probability read at
+ * the wrong temperature is *confidently wrong* rather than honestly unsure.
+ * Capping here means that case cannot reach the engine at all.
+ */
+const MAX_OPTIONS = 16;
+/** Cap on the levels in one `score`. */
+const MAX_LEVELS = 10;
+/**
+ * Cap on authored questions.
+ *
+ * Raised from 16 once a real config reached it. The original number assumed each
+ * question cost what a prompt costs, which is how an LLM behaves and not how
+ * this works: the record is encoded once and every question is appended to that
+ * one encode, read, and erased. So a question costs its own few dozen tokens
+ * plus a single forward pass, and the record — a timeline, two neighbour lists —
+ * dominates the total however many are asked.
+ *
+ * It is still a cap, because the per-question cost is small rather than zero and
+ * every one of them is work done ahead of a labeler who may never arrive at that
+ * record. Treat it as the point past which a config should be asked whether it
+ * really wants all of these, not as a performance cliff.
+ */
+const MAX_QUESTIONS = 32;
+/** Long enough to ask something precise, short enough to keep the prompt small. */
+const MAX_ASK = 300;
+
+const ChoiceOption = z
+  .strictObject({
+    name: Identifier.meta({
+      description: "Identifies this option, and is what the answer reports. Unique per question.",
+    }),
+    means: z.string().max(120).optional().meta({
+      description:
+        "What this option means, when the name alone is not enough to tell it from its neighbours. Shown to the model, never to the labeler.",
+    }),
+  })
+  .meta({
+    id: "ChoiceOption",
+    title: "Choice option",
+    description: "One of the answers a `choice` question may be given.",
+  });
+
+/**
+ * What every question carries regardless of its type.
+ *
+ * Spread into each variant rather than wrapped around the union, because a
+ * discriminated union needs the discriminator on the object itself — a wrapper
+ * would hide `type` one level down and the editor would stop narrowing.
+ */
+const QuestionCommon = {
+  id: Identifier.meta({
+    description:
+      "Identifies this question. Answers are matched back to questions by id, so it must be unique and must not be one the app already asks (`anomalous`, `ambiguous`).",
+  }),
+  ask: z.string().min(1).max(MAX_ASK).meta({
+    description:
+      "The question, in your own words, as the model is asked it. Be explicit and unambiguous — it has no context beyond the record and your `ai.context`.",
+  }),
+  note: z.string().min(1).max(80).optional().meta({
+    description:
+      "The short line a labeler reads when this answer is surfaced — a statement of what was found, like a display rule's note: “Domain looks minted for signups.” Keep it under a handful of words. Without it the full question is shown instead, which reads as an interrogation with a number stapled to it rather than a finding. For a `choice` or a `score` it is used as a prefix, so write it as a label: “Mail domain”, “Activated”.",
+  }),
+  field: Identifier.optional().meta({
+    description:
+      "An input field this question is about. The answer appears beside that value. Omit both `field` and `card` to ask about the whole record.",
+  }),
+  card: Identifier.optional().meta({
+    description:
+      "An input card this question is about. The answer appears once on the card rather than against any single value.",
+  }),
+  when: Condition.optional().meta({
+    description:
+      "Only ask when this holds — the same condition language display rules use. A question that cannot apply is never sent to the model, so this is also the lever for keeping analysis fast.",
+  }),
+  showAbove: z.number().gt(0).lt(1).optional().meta({
+    description:
+      "Hide the answer unless the model is at least this sure, between 0 and 1. Defaults to 0.7. Lower it where a cheap false positive is worth catching a rare real one; raise it where a wrong suggestion costs attention you would rather spend elsewhere.",
+  }),
+};
+
+export const AiQuestion = z
+  .discriminatedUnion("type", [
+    z.strictObject({
+      type: z.literal("boolean").meta({
+        description: "A yes/no question. Answered with the probability that it is yes.",
+      }),
+      ...QuestionCommon,
+      whenTrue: z.string().max(160).optional().meta({
+        description: "What a yes would mean, when the question alone leaves it open.",
+      }),
+      whenFalse: z.string().max(160).optional().meta({
+        description: "What a no would mean.",
+      }),
+    }),
+    z.strictObject({
+      type: z.literal("choice").meta({
+        description: "One of a fixed set of options, each with its own probability.",
+      }),
+      ...QuestionCommon,
+      options: z
+        .array(ChoiceOption)
+        .min(2)
+        .max(MAX_OPTIONS)
+        .meta({ description: "The answers this question may be given. Between 2 and 16." }),
+      notable: z.array(Identifier).min(1).optional().meta({
+        description:
+          "Which options are worth telling the labeler about, by name. Omit to surface every one. Most choices have an unremarkable answer — “an ordinary consumer mailbox” — and marking a record with it spends attention to say nothing is wrong. In a labeling tool a reassuring mark anchors as hard as an alarming one, so the quiet answers are usually best left unsaid. Every answer is still recorded in Recent runs.",
+      }),
+    }),
+    z.strictObject({
+      type: z.literal("score").meta({ description: "A position on an ordered scale." }),
+      ...QuestionCommon,
+      levels: z.array(z.string().min(1).max(80)).min(2).max(MAX_LEVELS).meta({
+        description:
+          "The levels, weakest first. The answer is a weighted average of their positions, so 1.2 means mostly the second level with a little of the third — which is why the order matters and why scores can be compared across records.",
+      }),
+      notableFrom: z.number().int().min(0).optional().meta({
+        description:
+          "Only surface the answer once it reaches this level, counting from 0. A scale almost always has a quiet end, and “nothing unusual” is both the commonest answer and the one nobody needs drawn to their attention. Omit to surface every answer.",
+      }),
+    }),
+  ])
+  .meta({
+    id: "AiQuestion",
+    title: "Question",
+    description:
+      "One question put to the on-device model about each record. The possible answers are declared here, before the model runs, so it cannot answer with anything else — there is no prose to interpret and no way to name a column that does not exist. Answers are advisory: they are never written to the output file, and nothing can turn one into a label.",
   });
 
 /**
@@ -595,17 +740,78 @@ export const AppConfig = z
       .meta({ description: "Chrome-level presentation." })
       .optional(),
 
-    /** Update traffic is the only permitted remote traffic. */
+    /**
+     * Network policy. The app is local-first and performs exactly two kinds of
+     * remote request, each with its own switch: the GitHub-Releases update
+     * check, and downloading a model for anomaly detection. Setting both to
+     * `false` forbids all network.
+     */
     network: z
       .strictObject({
         updateChecks: z.boolean().default(true).meta({
           description:
             "Whether to check GitHub Releases for updates. Absent or `true` means checks run; `false` forbids that traffic entirely.",
         }),
+        modelDownload: z.boolean().default(true).meta({
+          description:
+            "Whether the app may download an anomaly-detection model from Hugging Face. Absent or `true` means it may, once a labeler asks for it in Settings — nothing is fetched otherwise. `false` forbids that traffic entirely, and hides the feature unless a model is already on this machine.",
+        }),
       })
-      .default({ updateChecks: true })
+      .default({ updateChecks: true, modelDownload: true })
       .meta({
-        description: "Network policy. Set updateChecks to false to forbid network requests.",
+        description:
+          "Network policy. These are the only remote requests this app ever performs, and both are opt-out. With both `false` the app makes no network calls at all.",
+      }),
+
+    /**
+     * On-device assistance. Off unless a labeler turns it on in Settings; this
+     * flag governs whether they are offered the choice at all.
+     */
+    ai: z
+      .strictObject({
+        anomalyDetection: z.boolean().default(true).meta({
+          description:
+            "Whether labelers may enable on-device anomaly detection for this project. Absent or `true` offers it in Settings; nothing runs or downloads until it is switched on there. `false` removes the feature entirely — no section, no panel, no suggestions. Worth setting for a task where a model's guess sitting beside the answer could bias the labeler.",
+        }),
+        context: z.string().max(MAX_AI_CONTEXT).optional().meta({
+          description:
+            "What this data is, in your own words, given to the model along with each row. Column names and types tell it what the data *is*; only you can tell it what the data *means* — what the file is, which columns relate to which, and what would count as odd here. Without this a small model is guessing at the shape of a row. Keep it to a short paragraph: it is sent with every record, and a long one crowds out the record itself. Never include instructions about what to conclude — describe the data, not the answer.",
+        }),
+        neighbours: z
+          .strictObject({
+            before: z
+              .number()
+              .int()
+              .min(0)
+              .max(5)
+              .default(0)
+              .meta({ description: "How many records before this one to show." }),
+            after: z
+              .number()
+              .int()
+              .min(0)
+              .max(5)
+              .default(0)
+              .meta({ description: "How many records after this one to show." }),
+          })
+          .default({ before: 0, after: 0 })
+          .meta({
+            id: "AiNeighbours",
+            title: "Neighbours",
+            description:
+              "How many nearby records to show the model alongside the one it is judging. An anomaly is relative: on its own a record gives the model nothing to compare against, and two either side is usually enough to make “out of place” mean something. Every extra record costs prompt space on every analysis, so raise this only as far as it actually helps. Their labels are never shown — only their input values.",
+          }),
+        questions: z.array(AiQuestion).max(MAX_QUESTIONS).optional().meta({
+          description:
+            "What to ask about each record, beyond the two the app always asks (whether the record is inconsistent, and whether two careful people could label it differently). Everything specific to your data belongs here: only you know what would count as odd in it. Up to 32. They are cheaper than they look — the record is encoded once and each question appended to that one encode — so the cost of asking another is small beside the record itself, and `when` keeps a question that cannot apply from being asked at all.",
+        }),
+      })
+      .default({ anomalyDetection: true, neighbours: { before: 0, after: 0 } })
+      .meta({
+        id: "AiConfig",
+        title: "AI",
+        description:
+          "On-device assistance. Suggestions are advisory: they are never written to the output file and can never fill in an answer.",
       }),
 
     input: z
@@ -678,6 +884,82 @@ function assertUnique(
     if (seen.has(name))
       issue(ctx, ctx.value, [...path, i, "name"], `Duplicate ${label} "${name}".`);
     seen.add(name);
+  });
+}
+
+/**
+ * Everything about a question that needs the rest of the config to check.
+ *
+ * All three checks here guard the same failure: an answer that cannot be traced
+ * back to the question that produced it. Answers are correlated by `id`, so a
+ * duplicate or a collision with a built-in does not *look* broken at runtime —
+ * the panel simply shows one question's probability under another's heading, and
+ * a labeler has no way to tell. That is worth failing a load over.
+ */
+function validateQuestions(ctx: CheckCtx, cfg: AppConfig, inputNames: ReadonlySet<string>): void {
+  const cardNames = new Set((cfg.input.cards ?? []).map((c) => c.name));
+  const seen = new Set<string>();
+
+  (cfg.ai.questions ?? []).forEach((question, i) => {
+    const at = ["ai", "questions", i];
+
+    if (BUILT_IN_IDS.includes(question.id)) {
+      issue(
+        ctx,
+        ctx.value,
+        [...at, "id"],
+        `"${question.id}" is one of the questions the app always asks. Choose another id.`,
+      );
+    }
+    if (seen.has(question.id)) {
+      issue(ctx, ctx.value, [...at, "id"], `Duplicate question id "${question.id}".`);
+    }
+    seen.add(question.id);
+
+    if (question.field !== undefined && question.card !== undefined) {
+      issue(
+        ctx,
+        ctx.value,
+        at,
+        "A question is about a field or a card, not both. Omit both to ask about the whole record.",
+      );
+    }
+    if (question.field !== undefined && !inputNames.has(question.field)) {
+      issue(ctx, ctx.value, [...at, "field"], `No input field named "${question.field}".`);
+    }
+    if (question.card !== undefined && !cardNames.has(question.card)) {
+      issue(ctx, ctx.value, [...at, "card"], `No input card named "${question.card}".`);
+    }
+
+    // A `notable` naming an option that does not exist silences the question
+    // completely and looks like the model never answered it.
+    if (question.type === "choice" && question.notable !== undefined) {
+      const names = new Set(question.options.map((option) => option.name));
+      question.notable.forEach((name, j) => {
+        if (!names.has(name)) {
+          issue(
+            ctx,
+            ctx.value,
+            [...at, "notable", j],
+            `No option named "${name}" on this question.`,
+          );
+        }
+      });
+    }
+
+    // Likewise a `notableFrom` past the last level.
+    if (
+      question.type === "score" &&
+      question.notableFrom !== undefined &&
+      question.notableFrom > question.levels.length - 1
+    ) {
+      issue(
+        ctx,
+        ctx.value,
+        [...at, "notableFrom"],
+        `This question has ${String(question.levels.length)} levels, so the last index is ${String(question.levels.length - 1)}.`,
+      );
+    }
   });
 }
 
@@ -843,6 +1125,8 @@ function validateConfig(ctx: CheckCtx, cfg: AppConfig): void {
 
   validateCards(ctx, cfg.input.cards, inputNames, ["input", "cards"], "input");
   validateCards(ctx, cfg.output.cards, outputNames, ["output", "cards"], "output");
+
+  validateQuestions(ctx, cfg, inputNames);
 
   // Regexes are compiled here so a bad pattern fails at load, not at render.
   cfg.input.fields.forEach((field, i) => {

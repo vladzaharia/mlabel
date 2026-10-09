@@ -1,7 +1,14 @@
 import { Check, X } from "lucide-react";
 import type { NestedFieldShape, ValueTypeShape } from "@core/config";
 import { DEFAULT_COLUMN_LAYOUT, titleOf } from "@core/config";
-import { hasTimeOfDay, notesOf, toneOf, type CoercedValue, type Decoration } from "@core";
+import {
+  hasModelDecoration,
+  hasTimeOfDay,
+  notesOf,
+  toneOf,
+  type CoercedValue,
+  type Decoration,
+} from "@core";
 import { SEVERITY } from "../components/Severity";
 import { cn } from "../lib/utils";
 import { Table, Td, type TableHead } from "./ValueTable";
@@ -140,6 +147,7 @@ function ArrayView({
         const decorations = itemDecorations?.[i];
         const tone = toneOf(decorations);
         const notes = notesOf(decorations);
+        const fromModel = hasModelDecoration(decorations);
         return (
           <span
             key={i}
@@ -154,10 +162,17 @@ function ArrayView({
                     SEVERITY[tone].textClass,
                   )
                 : "text-muted-foreground",
+              // A guess gets a dashed edge, as everywhere else it appears.
+              fromModel && "border-dashed",
             )}
           >
             <ValueView type={type.items} value={item} />
-            {notes.length > 0 && <span className="sr-only">{notes.join(" ")}</span>}
+            {notes.length > 0 && (
+              <span className="sr-only">
+                {fromModel && "Suggested by the local model: "}
+                {notes.join(" ")}
+              </span>
+            )}
           </span>
         );
       })}

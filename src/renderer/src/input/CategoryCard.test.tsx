@@ -54,6 +54,73 @@ describe("CategoryCard", () => {
   });
 });
 
+const modelNote = (note: string): Decorations => ({
+  ...empty,
+  cards: new Map([
+    [
+      "velocity",
+      [
+        {
+          rule: "model:qwen3.5-2b",
+          source: "model" as const,
+          style: { tone: "warning" as const, note },
+        },
+      ],
+    ],
+  ]),
+});
+
+// A display rule is authored by someone who knows the data; a model finding is a
+// guess. Rendered identically, a labeler cannot tell which is which — and this
+// tool's output becomes somebody's ground truth.
+describe("CategoryCard — model findings are not mistaken for authored rules", () => {
+  const show = (decorations: Decorations) =>
+    render(
+      <CategoryCard
+        card={card}
+        fieldsByName={fieldsByName}
+        values={{ now: 40, usual: 10 }}
+        decorations={decorations}
+        coercionErrors={new Map()}
+      />,
+    );
+
+  it("shows a model note on the card", () => {
+    show(modelNote("These rates look unusual for this hour."));
+    expect(screen.getByText("These rates look unusual for this hour.")).toBeInTheDocument();
+  });
+
+  it("marks it as the model's, for sighted and unsighted readers alike", () => {
+    show(modelNote("Unusual."));
+    // Not colour alone: there is an icon, and a name for assistive tech.
+    expect(screen.getByText(/Suggested by the local model/)).toBeInTheDocument();
+  });
+
+  it("does not mark an authored note", () => {
+    show(withCardNote("The author says so."));
+    expect(screen.queryByText(/Suggested by the local model/)).toBeNull();
+  });
+
+  it("keeps both when a card carries an authored note and a model one", () => {
+    const authored = withCardNote("The author says so.");
+    const both: Decorations = {
+      ...empty,
+      cards: new Map([
+        [
+          "velocity",
+          [
+            ...(authored.cards.get("velocity") ?? []),
+            ...(modelNote("The model says so.").cards.get("velocity") ?? []),
+          ],
+        ],
+      ]),
+    };
+    show(both);
+    expect(screen.getByText("The author says so.")).toBeInTheDocument();
+    expect(screen.getByText("The model says so.")).toBeInTheDocument();
+  });
+});
+
 // The leaf can tint a chip and the rule produces the decorations; this is the
 // wiring in between, which is where it was actually broken — `forEach` over a
 // list of scalars fired, the decorations existed, and nothing reached the

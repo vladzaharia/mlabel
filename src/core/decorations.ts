@@ -17,10 +17,28 @@ import type { CoercedValue } from "./types/values";
  * cannot fix the source data. The renderer styles the two differently.
  */
 
+/** Where a decoration came from. */
+export type DecorationSource = "rule" | "model";
+
 /** What a rule says about one field. */
 export interface Decoration {
   /** The rule that produced it, for debugging and stable keys. */
   rule: string;
+  /**
+   * Defaults to `rule`. A `model` decoration is a guess from a small local
+   * model rather than something a config author wrote, and the renderer draws
+   * it differently so the two are never mistaken for each other.
+   */
+  source?: DecorationSource;
+  /**
+   * How strongly a model decoration leans, 0 to 1. Absent on authored rules.
+   *
+   * Carried separately from the note so the renderer can show it as a quantity
+   * rather than a hue. Three colour bands over a continuous value make 74% and
+   * 75% look like a difference and 75% and 95% look like none, and a number at
+   * the end of a sentence cannot be compared with the one above it.
+   */
+  confidence?: number;
   style: Style;
 }
 
@@ -167,14 +185,29 @@ function decorateItems(
   });
 }
 
-/** The last rule that sets a tone wins. */
+/**
+ * The tone to render: the last rule that set one wins.
+ *
+ * Authored rules outrank the model. A config author knows the data and their
+ * rule fires deterministically; a model finding is a guess, and letting it
+ * recolour a field the author had already styled would overwrite a statement
+ * with a suggestion. The model's note is still shown — only its colour yields.
+ */
 export function toneOf(decorations: readonly Decoration[] | undefined): Style["tone"] {
-  for (let i = (decorations?.length ?? 0) - 1; i >= 0; i--) {
-    const tone = decorations?.[i]?.style.tone;
-    if (tone !== undefined) return tone;
-  }
-  return undefined;
+  if (!decorations) return undefined;
+  const lastToneOf = (from: readonly Decoration[]): Style["tone"] => {
+    for (let i = from.length - 1; i >= 0; i--) {
+      const tone = from[i]?.style.tone;
+      if (tone !== undefined) return tone;
+    }
+    return undefined;
+  };
+  return lastToneOf(decorations.filter((d) => d.source !== "model")) ?? lastToneOf(decorations);
 }
+
+/** Whether anything here came from the model rather than from a config rule. */
+export const hasModelDecoration = (decorations: readonly Decoration[] | undefined): boolean =>
+  (decorations ?? []).some((d) => d.source === "model");
 
 /** Every explanation attached to a field, in rule order. */
 export function notesOf(decorations: readonly Decoration[] | undefined): string[] {

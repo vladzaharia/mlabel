@@ -23,6 +23,10 @@ an **Only changed** toggle.
 The version you are running, the platform and architecture it is running on, the last thing
 the updater said, and a **Check now** button.
 
+The architecture is not a detail: [anomaly detection](/guide/anomalies/) ships for Apple
+Silicon and not for Intel Macs, so `macOS · arm64` and `macOS · x64` are different answers to
+"can this machine run a model".
+
 Development builds check for updates like any other build — the request is the same one, and
 it appears in the network log below. Only _installing_ needs a packaged app, so a dev build
 offers a download link instead.
@@ -54,7 +58,9 @@ input survive, because those were never your answers.
 
 ## Network
 
-This section shows update requests to GitHub and lets you turn update checks off.
+MLabel makes two kinds of network request — checking GitHub for a new version, and fetching
+model weights if you turn on [anomaly detection](/guide/anomalies/) — and this section is
+where you can watch for them, or turn update checks off.
 
 An **empty list is the expected state**, not a missing one. There is no banner saying so:
 the log is the claim, and a reassurance printed above it adds nothing a reader has more

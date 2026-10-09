@@ -63,6 +63,16 @@ export function App(): React.JSX.Element {
   useEffect(() => window.api.onOpenSettings(() => setSettingsOpen(true)), []);
 
   useEffect(() => {
+    const offStatus = window.api.onAiStatus(useStore.getState().setAiState);
+    const offAnalysis = window.api.onAiAnalysis(useStore.getState().setAnalysis);
+    void useStore.getState().refreshAi();
+    return () => {
+      offStatus();
+      offAnalysis();
+    };
+  }, []);
+
+  useEffect(() => {
     void bootstrap();
     const offTheme = window.api.onThemeChange(setSystemDark);
     const offUpdate = window.api.onUpdateStatus(setUpdateStatus);

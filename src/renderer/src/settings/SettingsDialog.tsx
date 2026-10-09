@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Tabs } from "radix-ui";
-import { History, Keyboard, Radio, SlidersHorizontal, ArrowUpCircle } from "lucide-react";
-import type { AppInfo, NetworkLogEntry, SessionData } from "@core";
+import { History, Keyboard, Radio, Sparkles, SlidersHorizontal, ArrowUpCircle } from "lucide-react";
+import type { AppInfo, ModelCallEntry, NetworkLogEntry, SessionData } from "@core";
 import { useStore } from "../store/store";
 import { Dialog, DialogDescription, DialogTitle } from "../components/ui/dialog";
 import { describeUpdateStatus } from "../chrome/update-status-view";
@@ -11,6 +11,7 @@ import { VersionSection } from "./VersionSection";
 import { ConfigSection } from "./ConfigSection";
 import { SessionSection } from "./SessionSection";
 import { NetworkSection } from "./NetworkSection";
+import { AiSection } from "./AiSection";
 
 interface SectionDef {
   id: string;
@@ -33,12 +34,28 @@ const SECTIONS: readonly SectionDef[] = [
   { id: "config", label: "Config", Icon: SlidersHorizontal },
   { id: "session", label: "Session", Icon: History },
   {
+    id: "ai",
+    label: "Anomalies",
+    Icon: Sparkles,
+    // Present when the config permits the feature *and* there is some way for
+    // it to work — a model already here, or permission to fetch one. See
+    // `anomalyUnavailableReason`, which states the rule once.
+    available: (info) =>
+      info === null ||
+      (info.aiPlatformSupported &&
+        info.aiAllowedByConfig &&
+        (info.modelDownloadAllowedByConfig || hasModel())),
+  },
+  {
     id: "network",
     label: "Network",
     Icon: Radio,
     available: (info) => info === null || info.updatesAllowedByConfig,
   },
 ];
+
+/** Read outside the component so `available` can stay a plain predicate. */
+const hasModel = (): boolean => useStore.getState().downloadedModels.length > 0;
 
 /**
  * Everything this copy of MLabel is doing, and what can be changed about it.
@@ -63,6 +80,7 @@ export function SettingsDialog({
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [session, setSession] = useState<SessionData | null>(null);
   const [entries, setEntries] = useState<readonly NetworkLogEntry[]>([]);
+  const [calls, setCalls] = useState<readonly ModelCallEntry[]>([]);
   /**
    * How to call off a recording in progress, or null when there is none.
    *
@@ -82,6 +100,7 @@ export function SettingsDialog({
     void window.api.getAppInfo().then(setInfo);
     void window.api.getSessionInfo().then(setSession);
     void window.api.getNetworkLog().then(setEntries);
+    void window.api.getModelLog().then(setCalls);
   }, [open]);
 
   // Held in the dialog rather than the global store: fifty rows nobody is
@@ -89,6 +108,21 @@ export function SettingsDialog({
   useEffect(() => {
     if (!open) return;
     return window.api.onNetworkLog((entry) => setEntries((prev) => [...prev, entry]));
+  }, [open]);
+
+  // A model call is pushed twice — once as it starts, once as it lands — so the
+  // second push replaces the first rather than appending a duplicate row.
+  useEffect(() => {
+    if (!open) return;
+    return window.api.onModelCall((entry) =>
+      setCalls((prev) => {
+        const at = prev.findIndex((existing) => existing.id === entry.id);
+        if (at === -1) return [...prev, entry];
+        const next = [...prev];
+        next[at] = entry;
+        return next;
+      }),
+    );
   }, [open]);
 
   const onChangeConfig = (): void => {
@@ -184,6 +218,11 @@ export function SettingsDialog({
           <Tabs.Content value="session">
             <SessionSection session={session} />
           </Tabs.Content>
+          {sections.some((s) => s.id === "ai") && (
+            <Tabs.Content value="ai">
+              <AiSection info={info} calls={calls} />
+            </Tabs.Content>
+          )}
           {sections.some((s) => s.id === "network") && (
             <Tabs.Content value="network">
               <NetworkSection info={info} entries={entries} />

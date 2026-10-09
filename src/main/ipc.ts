@@ -36,17 +36,18 @@ import {
 import { getSettings, resetSettings, setSettings } from "./services/settings-store";
 import { setUpdatesEnabled } from "./services/network-guard";
 import { networkLog } from "./services/network-log";
-import { effectiveUpdateChecks } from "@core";
+import { modelLog } from "./services/ai/model-log";
+import { effectiveUpdateChecks, isPlatformSupported } from "@core";
+import {
+  aiStatus,
+  cancelDownload,
+  configAllowsAi,
+  configAllowsDownload,
+  deleteModel,
+  startDownload,
+} from "./services/ai/ai-service";
+import { setIndex as setAiIndex } from "./services/ai/analysis-service";
 import { appState, isRevealable } from "./state";
-
-function applyUpdatePolicy(settings: AppSettings): void {
-  const allowed = effectiveUpdateChecks(
-    appState.config?.network.updateChecks === true,
-    settings.updateChecks,
-  );
-  setUpdatesEnabled(allowed);
-  setUpdatesAllowed(allowed);
-}
 
 /** Register every request-response IPC handler. One handler per IpcApi method. */
 export function registerIpc(): void {
@@ -72,6 +73,9 @@ export function registerIpc(): void {
     packaged: app.isPackaged,
     updatesArmed: isUpdatesArmed(),
     updatesAllowedByConfig: appState.config?.network.updateChecks !== false,
+    aiAllowedByConfig: configAllowsAi(),
+    modelDownloadAllowedByConfig: configAllowsDownload(),
+    aiPlatformSupported: isPlatformSupported(process.platform, process.arch),
   }));
   ipcMain.handle(IPC_INVOKE.getSettings, () => getSettings());
   ipcMain.handle(IPC_INVOKE.setSettings, (_event, patch: Partial<AppSettings>) => {
@@ -79,17 +83,28 @@ export function registerIpc(): void {
     // One write path, so the gate can never drift from what is on disk. The
     // config stays the floor: a preference may narrow it, never widen it.
     if (patch.updateChecks !== undefined) {
-      applyUpdatePolicy(settings);
+      const configAllows = appState.config?.network.updateChecks !== false;
+      const allowed = effectiveUpdateChecks(configAllows, settings.updateChecks);
+      setUpdatesEnabled(allowed);
+      setUpdatesAllowed(allowed);
     }
     return settings;
   });
-  ipcMain.handle(IPC_INVOKE.resetSettings, () => {
-    const settings = resetSettings();
-    applyUpdatePolicy(settings);
-    return settings;
-  });
+  ipcMain.handle(IPC_INVOKE.resetSettings, () => resetSettings());
 
   ipcMain.handle(IPC_INVOKE.getNetworkLog, () => [...networkLog.entries()]);
+  ipcMain.handle(IPC_INVOKE.getModelLog, () => [...modelLog.entries()]);
+
+  ipcMain.handle(IPC_INVOKE.getAiStatus, () => aiStatus());
+  ipcMain.handle(IPC_INVOKE.downloadModel, (_event, modelId: string) => startDownload(modelId));
+  ipcMain.handle(IPC_INVOKE.cancelModelDownload, () => {
+    cancelDownload();
+  });
+  ipcMain.handle(IPC_INVOKE.deleteModel, (_event, modelId: string) => deleteModel(modelId));
+  ipcMain.handle(IPC_INVOKE.setAiIndex, (_event, index: number) => {
+    setAiIndex(index);
+  });
+
   ipcMain.handle(IPC_INVOKE.exportLabels, (_event, request: ExportRequest) =>
     exportLabels(request),
   );

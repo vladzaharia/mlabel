@@ -9,6 +9,7 @@ import { offerRelocateToApplications } from "./services/app-location";
 import { installNetworkGuard } from "./services/network-guard";
 import { flushSettings, initSettings } from "./services/settings-store";
 import { networkLog } from "./services/network-log";
+import { modelLog } from "./services/ai/model-log";
 import { flushSession } from "./services/session-store";
 import { checkForUpdatesManually, onUpdatesArmed } from "./services/updater";
 import {
@@ -154,6 +155,15 @@ async function bootstrap(): Promise<void> {
   networkLog.subscribe((entry) => {
     for (const open of BrowserWindow.getAllWindows()) {
       open.webContents.send(IPC_EVENT.networkLog, entry);
+    }
+  });
+
+  // Same for model runs. These fire twice per record — once when the call
+  // starts and once when it lands — so a row appears as "Running…" rather than
+  // materialising several seconds later already finished.
+  modelLog.subscribe((entry) => {
+    for (const open of BrowserWindow.getAllWindows()) {
+      open.webContents.send(IPC_EVENT.modelCall, entry);
     }
   });
 

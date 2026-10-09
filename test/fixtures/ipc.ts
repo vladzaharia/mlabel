@@ -15,6 +15,8 @@ const TEST_SETTINGS: AppSettings = {
   colorTheme: "cobalt",
   shortcuts: {},
   updateChecks: true,
+  aiEnabled: false,
+  aiModelId: "qwen3.5-2b",
 };
 
 /**
@@ -61,6 +63,9 @@ export function makeIpcApi(overrides: Partial<IpcApi> = {}): IpcApi {
       packaged: false,
       updatesArmed: false,
       updatesAllowedByConfig: true,
+      aiAllowedByConfig: true,
+      modelDownloadAllowedByConfig: true,
+      aiPlatformSupported: true,
     }),
     getSettings: async () => settings,
     setSettings: async (patch: Partial<AppSettings>) => {
@@ -75,7 +80,16 @@ export function makeIpcApi(overrides: Partial<IpcApi> = {}): IpcApi {
 
     getNetworkLog: async () => [],
     onNetworkLog: () => () => {},
+    getModelLog: async () => [],
+    onModelCall: () => () => {},
 
+    getAiStatus: async () => ({ state: { kind: "no-model" as const }, downloaded: [], cached: [] }),
+    downloadModel: async () => {},
+    cancelModelDownload: async () => {},
+    deleteModel: async () => {},
+    setAiIndex: async () => {},
+    onAiStatus: () => () => {},
+    onAiAnalysis: () => () => {},
     exportLabels: async () => ({ ok: true }),
     getRecent: async () => ({}),
 

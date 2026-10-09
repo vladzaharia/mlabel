@@ -138,6 +138,17 @@ describe("ValueView — per-item decorations on a list of scalars", () => {
     expect(plain).not.toMatch(/\bborder-/);
     expect(plain).not.toMatch(/\bbg-muted\b/);
   });
+
+  // A guess must never be mistakable for a rule the config author wrote.
+  it("draws a model's mark differently from an authored one", () => {
+    const fromModel: Decoration[][] = [
+      [{ rule: "ai", source: "model", style: { tone: "warning", note: "Looks odd." } }],
+      [],
+      [],
+    ];
+    render(<ValueView type={list} value={value} itemDecorations={fromModel} />);
+    expect(chipFor("a@acme.com")?.className).toContain("border-dashed");
+  });
 });
 
 describe("ValueView", () => {

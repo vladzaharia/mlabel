@@ -10,6 +10,10 @@ import type {
   SessionData,
 } from "@core";
 import { fingerprintsEqual } from "@core";
+// The analysis service needs the records to work ahead through. It decides for
+// itself whether anything should actually run.
+import { setInput as setAnalysisInput } from "./ai/analysis-service";
+import { getSettings } from "./settings-store";
 import { createDefaultRegistry } from "@core/adapters";
 import { appState, type LoadedInput } from "../state";
 import { removeFile, writeTextAtomic } from "./atomic-write";
@@ -66,6 +70,9 @@ export async function loadInputFromPath(path: string): Promise<InputLoadResponse
 
   const input: LoadedInput = { inputPath: path, document, inputValues, fingerprint };
   appState.setInput(input);
+  // The analysis service needs the records to work ahead through. It decides
+  // for itself whether anything should actually run.
+  setAnalysisInput(config, records, getSettings().aiModelId);
   await setRecent({ config: configPath, input: path });
 
   const resume = await loadSessionFor(configPath, path);

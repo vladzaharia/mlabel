@@ -14,6 +14,7 @@ import { Button } from "../components/ui/button";
 import { Kbd } from "../components/Kbd";
 import { useShortcuts } from "../shortcuts/ShortcutProvider";
 import { WrapRow } from "../components/WrapRow";
+import { AnomalyPanel } from "./AnomalyPanel";
 import { FieldRenderer } from "./FieldRenderer";
 
 /** Fields the labeler answers per record — session answers live on the setup step. */
@@ -81,6 +82,8 @@ export function OutputForm(): React.JSX.Element | null {
           </div>
         ))}
       </div>
+
+      <AnomalyPanel />
 
       {/*
         One Next, pinned so it never scrolls away, at the end of the eye path

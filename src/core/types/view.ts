@@ -2,6 +2,7 @@ import type { CoercedValue } from "./values";
 import type { ValidationIssue } from "../adapters/interfaces";
 import type { AppConfig } from "../config/schema";
 import type { ConfigIssue } from "../config/loader";
+import type { Answer } from "../ai/answer";
 
 /** A label-value map as it crosses IPC: `null` means "not yet provided". */
 export type LabelMap = Record<string, CoercedValue | null>;
@@ -203,23 +204,80 @@ export interface AppSettings {
    * `network.updateChecks` — a setting can never enable network a config forbade.
    */
   updateChecks: boolean;
+  /**
+   * Whether the labeler has switched on anomaly detection. Off by default: the
+   * config only decides whether they are offered the choice.
+   */
+  aiEnabled: boolean;
+  /** Which model they picked. */
+  aiModelId: string;
 }
 
 /** Static facts about the running build, for the settings pane. */
 export interface AppInfo {
   version: string;
   platform: string;
-  /** Architecture of this build. */
+  /**
+   * `process.arch`. Shown beside the platform because on macOS it is the
+   * difference between a build that can run a model and one that cannot —
+   * "darwin" alone does not answer the question a labeler is asking.
+   */
   arch: string;
-  /** Whether this is an installed build. */
+  /** False in development, where the updater deliberately does nothing. */
   packaged: boolean;
   /** Whether the updater was armed at startup. */
   updatesArmed: boolean;
   /** `network.updateChecks` for the loaded config; true when none is loaded. */
   updatesAllowedByConfig: boolean;
+  /** `ai.anomalyDetection` for the loaded config. */
+  aiAllowedByConfig: boolean;
+  /** `network.modelDownload` for the loaded config. */
+  modelDownloadAllowedByConfig: boolean;
+  /** Whether this build ships an inference binary at all. */
+  aiPlatformSupported: boolean;
 }
 
-export type NetworkEventKind = "update-check" | "update-download" | "denied";
+export type ModelCallStatus = "running" | "clean" | "findings" | "failed" | "canceled";
+
+/**
+ * One run of the model over one record, kept so a labeler can see exactly what
+ * was asked and exactly what came back.
+ *
+ * The full prompt is here on purpose. A suggestion a reviewer is told to verify
+ * is only verifiable if they can see what the model was given — and the two
+ * failure modes this feature actually has, a truncated value and a misleading
+ * `ai.context`, are both invisible from the finding alone.
+ *
+ * In memory and capped, like the network log. Records pass through it; it does
+ * not accumulate them.
+ */
+export interface ModelCallEntry {
+  id: number;
+  /** Epoch milliseconds when the call started. */
+  at: number;
+  /** Which row, zero-based. */
+  recordIndex: number;
+  modelId: string;
+  status: ModelCallStatus;
+  /** Wall-clock time of the decode, once it finished. */
+  elapsedMs?: number;
+  /** The instructions and the file's shape — identical for every record. */
+  prefix: string;
+  /** The record under inspection, as the model saw it. */
+  suffix: string;
+  /**
+   * One answer per question asked.
+   *
+   * There is no `raw` counterpart any more: nothing is generated, so there is no
+   * text that could have come back differently from what was parsed. The old
+   * field existed to explain the gap between the two.
+   */
+  answers: Answer[];
+  /** Why it failed, when it did. */
+  error?: string;
+}
+
+export type NetworkEventKind = "update-check" | "update-download" | "model-download" | "denied";
 export type NetworkOutcome = "started" | "success" | "error" | "denied";
 
 /** One network call the app made, or refused to make. */
