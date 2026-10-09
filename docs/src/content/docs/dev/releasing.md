@@ -9,7 +9,10 @@ sidebar:
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
-Pushing a `v*` tag is the entire release process.
+Pushing a `v*` tag starts the release process. If packaging fails, repair the workflow on
+`main`, then run **Actions → Release → Run workflow** with the existing tag. The retry
+checks out that tag in every job, so its application code stays unchanged. Retries refuse
+to replace an already published release.
 
 ## The pipeline
 
@@ -53,17 +56,13 @@ Under **Settings → Secrets and variables → Actions**:
 | `CSC_LINK`          | base64 of the Developer ID Application `.p12` |
 | `CSC_KEY_PASSWORD`  | Password for that `.p12`                      |
 
-:::caution[`CSC_*` must not reach the Windows runner]
-They are gated to the macOS matrix leg:
+The workflow imports the macOS certificate into a temporary keychain and passes its path
+as `CSC_KEYCHAIN`. It uses the keychain password for unlocking and partition access, and
+`CSC_KEY_PASSWORD` only for importing the certificate. This avoids a signing bug in the
+pinned electron-builder version. Signing is required for macOS; the workflow removes the
+temporary signing material after packaging.
 
-```yaml
-CSC_LINK: ${{ matrix.platform == 'mac' && secrets.CSC_LINK || '' }}
-```
-
-The signing cert is an Apple Developer ID identity. Leaked to Windows, electron-builder
-feeds it to SignTool and the job fails. The `APPLE_*` variables are inert there and are
-passed unconditionally.
-:::
+The certificate secrets are only available to the macOS import step.
 
 Windows ships **unsigned**. Adding `win.signtoolOptions` or Azure Trusted Signing later
 needs no other change.
