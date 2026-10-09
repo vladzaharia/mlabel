@@ -49,6 +49,15 @@ import {
 import { setIndex as setAiIndex } from "./services/ai/analysis-service";
 import { appState, isRevealable } from "./state";
 
+function applyUpdatePolicy(settings: AppSettings): void {
+  const allowed = effectiveUpdateChecks(
+    appState.config?.network.updateChecks === true,
+    settings.updateChecks,
+  );
+  setUpdatesEnabled(allowed);
+  setUpdatesAllowed(allowed);
+}
+
 /** Register every request-response IPC handler. One handler per IpcApi method. */
 export function registerIpc(): void {
   ipcMain.handle(IPC_INVOKE.ping, () => "pong" as const);
@@ -83,14 +92,15 @@ export function registerIpc(): void {
     // One write path, so the gate can never drift from what is on disk. The
     // config stays the floor: a preference may narrow it, never widen it.
     if (patch.updateChecks !== undefined) {
-      const configAllows = appState.config?.network.updateChecks !== false;
-      const allowed = effectiveUpdateChecks(configAllows, settings.updateChecks);
-      setUpdatesEnabled(allowed);
-      setUpdatesAllowed(allowed);
+      applyUpdatePolicy(settings);
     }
     return settings;
   });
-  ipcMain.handle(IPC_INVOKE.resetSettings, () => resetSettings());
+  ipcMain.handle(IPC_INVOKE.resetSettings, () => {
+    const settings = resetSettings();
+    applyUpdatePolicy(settings);
+    return settings;
+  });
 
   ipcMain.handle(IPC_INVOKE.getNetworkLog, () => [...networkLog.entries()]);
   ipcMain.handle(IPC_INVOKE.getModelLog, () => [...modelLog.entries()]);

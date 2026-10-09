@@ -89,8 +89,8 @@ the exact asset when it cannot self-update.
 `electron.vite.config.ts` _and_ in `package.json` `dependencies`. Bundling it breaks updates
 silently: the packaged app looks fine and simply never updates again.
 
-Updates require `app.isPackaged`. They no-op in dev, so the only way to test the path is a
-packaged build.
+Development builds can check for updates and offer a download link. Installing an update
+in place requires a packaged build.
 
 ## Before tagging
 
