@@ -16,11 +16,13 @@ vi.mock("electron", () => ({
 
 import { buildMenuTemplate, installAppMenu, updateMenuContext } from "./menu";
 import type { MenuContext, MenuHandlers } from "./menu";
+import { isReservedChord, parseChord } from "@core/shortcuts";
 
 function makeHandlers(): MenuHandlers {
   return {
     onSetMode: vi.fn(),
     onCheckForUpdates: vi.fn(),
+    onOpenSettings: vi.fn(),
   };
 }
 
@@ -165,9 +167,10 @@ describe("buildMenuTemplate — macOS", () => {
 });
 
 describe("buildMenuTemplate — Windows/Linux", () => {
-  it("returns 4 top-level menus (no App menu) on Windows", () => {
+  it("returns 5 top-level menus (a File menu instead of the App menu) on Windows", () => {
     const template = buildMenuTemplate(baseCtx({ isMac: false }), makeHandlers());
-    expect(template).toHaveLength(4);
+    expect(template).toHaveLength(5);
+    expect(template.find((item) => item.label === "File")).toBeDefined();
     expect(template.find((item) => item.label === "Mode")).toBeDefined();
     expect(template.find((item) => item.role === "editMenu")).toBeDefined();
     expect(template.find((item) => item.label === "View")).toBeDefined();
@@ -217,5 +220,96 @@ describe("updateMenuContext", () => {
       : [];
     expect(modeSubmenu.find((i) => i.id === "mode-prepare")!.checked).toBe(true);
     expect(modeSubmenu.find((i) => i.id === "mode-label")!.checked).toBe(false);
+  });
+});
+
+/** Every `accelerator` anywhere in a menu template, however deeply nested. */
+function accelerators(items: unknown): string[] {
+  if (Array.isArray(items)) return items.flatMap(accelerators);
+  if (typeof items !== "object" || items === null) return [];
+  const item = items as { accelerator?: unknown; submenu?: unknown };
+  return [
+    ...(typeof item.accelerator === "string" ? [item.accelerator] : []),
+    ...accelerators(item.submenu),
+  ];
+}
+
+/** Electron spells accelerators its own way; fold them onto chord text. */
+const toChord = (accelerator: string): string =>
+  accelerator
+    .replace(/CmdOrCtrl/gi, "mod")
+    .replace(/Command/gi, "meta")
+    .toLowerCase();
+
+describe("menu accelerators are reserved", () => {
+  // `shortcuts.ts` has always claimed a test asserted this. It did not, which
+  // meant a new menu item could quietly take a chord a config was still free
+  // to bind — and the config would win, breaking the menu item.
+  it("reserves every chord the native menu binds, on every platform", () => {
+    for (const isMac of [true, false]) {
+      const template = buildMenuTemplate(
+        { isMac, isDev: true, configLoaded: true, mode: "label", updatesArmed: true },
+        makeHandlers(),
+      );
+      const found = accelerators(template);
+      expect(found.length).toBeGreaterThan(0);
+      for (const accelerator of found) {
+        const chord = toChord(accelerator);
+        expect(parseChord(chord), `${accelerator} is not parseable as "${chord}"`).not.toBeNull();
+        expect(isReservedChord(chord), `${accelerator} is not in RESERVED_CHORDS`).toBe(true);
+      }
+    }
+  });
+});
+
+/** Every item in a template, flattened out of its submenus. */
+const items = (template: unknown): { id?: unknown; accelerator?: unknown }[] => {
+  if (Array.isArray(template)) return template.flatMap(items);
+  if (typeof template !== "object" || template === null) return [];
+  const item = template as { submenu?: unknown };
+  return [template as { id?: unknown }, ...items(item.submenu)];
+};
+
+const find = (template: unknown, id: string): { accelerator?: unknown } | undefined =>
+  items(template).find((i) => i.id === id);
+
+describe("Settings menu item", () => {
+  it("sits in the App menu on macOS, right after About", () => {
+    const template = buildMenuTemplate(baseCtx({ isMac: true }), makeHandlers());
+    const appSubmenu = template[0]!.submenu as { role?: string; id?: string }[];
+    const about = appSubmenu.findIndex((i) => i.role === "about");
+    const settings = appSubmenu.findIndex((i) => i.id === "settings");
+    expect(settings).toBeGreaterThan(about);
+  });
+
+  // Windows and Linux have no App menu, so without a File menu there is no way
+  // to reach Settings — or, before this, to check for updates at all.
+  it("sits in the File menu on Windows, alongside the update check", () => {
+    const template = buildMenuTemplate(baseCtx({ isMac: false }), makeHandlers());
+    expect(find(template, "settings")).toBeDefined();
+    expect(find(template, "check-for-updates")).toBeDefined();
+  });
+
+  it("uses the platform's conventional accelerator", () => {
+    for (const isMac of [true, false]) {
+      const template = buildMenuTemplate(baseCtx({ isMac }), makeHandlers());
+      expect(find(template, "settings")?.accelerator).toBe("CmdOrCtrl+,");
+    }
+  });
+
+  it("claims that accelerator exactly once", () => {
+    for (const isMac of [true, false]) {
+      const template = buildMenuTemplate(baseCtx({ isMac }), makeHandlers());
+      const claims = items(template).filter((i) => i.accelerator === "CmdOrCtrl+,");
+      expect(claims).toHaveLength(1);
+    }
+  });
+
+  it("calls the handler when chosen", () => {
+    const handlers = makeHandlers();
+    const template = buildMenuTemplate(baseCtx({ isMac: true }), handlers);
+    const appSubmenu = template[0]!.submenu as { id?: string; click?: () => void }[];
+    appSubmenu.find((i) => i.id === "settings")!.click!();
+    expect(handlers.onOpenSettings).toHaveBeenCalledOnce();
   });
 });

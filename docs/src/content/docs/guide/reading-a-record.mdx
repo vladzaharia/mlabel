@@ -72,6 +72,29 @@ rule tells you a value looks suspicious and you disagree, label what you actuall
 Rule notes look different from validation errors on purpose. A validation error is
 something you are expected to fix; a rule note is about the source data, which you cannot.
 
+### Notes on a whole card
+
+A note can belong to a group rather than to one value — "signups this hour are well above
+the usual rate" is about the card, not about any single field in it. Those appear once,
+across the top of the card, with the card's border picking up the tone. It is the same
+information you would otherwise have read five times over.
+
+### Notes on rows of a list
+
+Where a field is a table, individual **rows** can be marked. A row tinted amber with a short
+note is a rule that compared that row against the record around it — a previous signup
+sharing an email domain with this one, say. Unmarked rows are simply rows the rule did not
+match.
+
+## Values that could not be read
+
+A small warning icon beside a field's caption means that cell could not be read as the type
+the config declares. Hover it, or tab to it, for the reason.
+
+It is an icon rather than a block of text because a record can carry a lot of them at once,
+and a wall of warnings buries the data you are here to read. You are not expected to fix
+these — see [Troubleshooting](/guide/troubleshooting/).
+
 ## The window title
 
 The title bar can show a literal name or track a value from the current record — often an

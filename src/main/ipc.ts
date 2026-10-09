@@ -1,6 +1,7 @@
-import { ipcMain, nativeTheme, shell } from "electron";
+import { app, ipcMain, nativeTheme, shell } from "electron";
 import {
   IPC_INVOKE,
+  type AppSettings,
   type ExportRequest,
   type JoinKind,
   type JoinRequest,
@@ -24,10 +25,28 @@ import {
   runJoin,
   runSplit,
 } from "./services/prepare-service";
-import { clearSession, getRecent } from "./services/session-store";
+import { clearSession, getRecent, readSessionRaw } from "./services/session-store";
 import { isAllowedExternalUrl } from "./services/network-policy";
-import { checkForUpdatesManually, installUpdate } from "./services/updater";
+import {
+  checkForUpdatesManually,
+  installUpdate,
+  isUpdatesArmed,
+  setUpdatesAllowed,
+} from "./services/updater";
+import { getSettings, resetSettings, setSettings } from "./services/settings-store";
+import { setUpdatesEnabled } from "./services/network-guard";
+import { networkLog } from "./services/network-log";
+import { effectiveUpdateChecks } from "@core";
 import { appState, isRevealable } from "./state";
+
+function applyUpdatePolicy(settings: AppSettings): void {
+  const allowed = effectiveUpdateChecks(
+    appState.config?.network.updateChecks === true,
+    settings.updateChecks,
+  );
+  setUpdatesEnabled(allowed);
+  setUpdatesAllowed(allowed);
+}
 
 /** Register every request-response IPC handler. One handler per IpcApi method. */
 export function registerIpc(): void {
@@ -44,7 +63,33 @@ export function registerIpc(): void {
 
   ipcMain.handle(IPC_INVOKE.saveSession, (_event, data: SessionData) => saveSessionStamped(data));
   ipcMain.handle(IPC_INVOKE.clearSession, () => clearSession());
+  ipcMain.handle(IPC_INVOKE.getSessionInfo, () => readSessionRaw());
 
+  ipcMain.handle(IPC_INVOKE.getAppInfo, () => ({
+    version: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    packaged: app.isPackaged,
+    updatesArmed: isUpdatesArmed(),
+    updatesAllowedByConfig: appState.config?.network.updateChecks !== false,
+  }));
+  ipcMain.handle(IPC_INVOKE.getSettings, () => getSettings());
+  ipcMain.handle(IPC_INVOKE.setSettings, (_event, patch: Partial<AppSettings>) => {
+    const settings = setSettings(patch);
+    // One write path, so the gate can never drift from what is on disk. The
+    // config stays the floor: a preference may narrow it, never widen it.
+    if (patch.updateChecks !== undefined) {
+      applyUpdatePolicy(settings);
+    }
+    return settings;
+  });
+  ipcMain.handle(IPC_INVOKE.resetSettings, () => {
+    const settings = resetSettings();
+    applyUpdatePolicy(settings);
+    return settings;
+  });
+
+  ipcMain.handle(IPC_INVOKE.getNetworkLog, () => [...networkLog.entries()]);
   ipcMain.handle(IPC_INVOKE.exportLabels, (_event, request: ExportRequest) =>
     exportLabels(request),
   );

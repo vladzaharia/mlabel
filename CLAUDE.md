@@ -120,8 +120,8 @@ built app on macOS, which the Ubuntu Pages runner can't do.
 - pnpm needs `node-linker=hoisted` (in `.npmrc`) for electron-builder.
 - `electron-updater` must stay **external** (listed in `electron.vite.config.ts`
   `nodeExternals`) and in `package.json` `dependencies` so it ships in the asar —
-  bundling it breaks updates. Updates need a packaged build (`app.isPackaged`); they
-  no-op in dev.
+  bundling it breaks updates. Installing updates needs a packaged build (`app.isPackaged`); development builds
+  check and offer a download link.
 - oxfmt is beta and the sole formatter: if it ever blocks a commit, bypass once with
   `--no-verify` and fix — never silently disable the hook.
 - **Babel stays on 7.x** — `babel-plugin-react-compiler@1.0.0` has no Babel 8 support;

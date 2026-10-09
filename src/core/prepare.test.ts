@@ -170,12 +170,27 @@ describe("validateOutputRecord", () => {
   });
 
   it("flags malformed JSON in a composite auto-copied column", () => {
-    const issues = validateOutputRecord(
-      record(0, { ...completeOutputFields, tags: "[not json" }),
-      config,
-      0,
-    );
-    expect(issues.some((i) => i.kind === "coercion" && i.field === "tags")).toBe(true);
+    // A list of *objects* has no tolerant reading — unlike a list of scalars,
+    // which now falls back to splitting a stringy list — so bad JSON is still
+    // an error. Built locally so the shared fixture keeps its scalar `tags`.
+    const composite = buildConfig({
+      input: [
+        "id",
+        {
+          name: "rows",
+          type: {
+            type: "array",
+            items: { type: "object", fields: [{ name: "a", type: "text" }] },
+          },
+        },
+      ],
+      output: [
+        { name: "id", kind: "copied" },
+        { name: "rows", kind: "copied" },
+      ],
+    });
+    const issues = validateOutputRecord(record(0, { id: "1", rows: "[not json" }), composite, 0);
+    expect(issues.some((i) => i.kind === "coercion" && i.field === "rows")).toBe(true);
   });
 });
 

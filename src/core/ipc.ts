@@ -1,4 +1,6 @@
 import type {
+  AppInfo,
+  AppSettings,
   ConfigLoadResponse,
   ExportRequest,
   ExportResponse,
@@ -7,6 +9,7 @@ import type {
   JoinKind,
   JoinRequest,
   JoinRunResponse,
+  NetworkLogEntry,
   PrepareFilePickResponse,
   RecentPaths,
   SessionData,
@@ -30,6 +33,8 @@ import type {
 export type ThemeListener = (isDark: boolean) => void;
 export type UpdateStatusListener = (status: UpdateStatus) => void;
 export type SetModeListener = (mode: "label" | "prepare") => void;
+export type OpenSettingsListener = () => void;
+export type NetworkLogListener = (entry: NetworkLogEntry) => void;
 
 export interface IpcApi {
   /** Liveness check used by the renderer on boot. */
@@ -91,6 +96,26 @@ export interface IpcApi {
   // --- Session (autosave / resume) ---
   saveSession: (data: SessionData) => Promise<void>;
   clearSession: () => Promise<void>;
+  /** The persisted session exactly as it sits on disk, for the settings pane. */
+  getSessionInfo: () => Promise<SessionData | null>;
+
+  // --- Settings ---
+  /** Static facts about this build: version, platform, update arming. */
+  getAppInfo: () => Promise<AppInfo>;
+  getSettings: () => Promise<AppSettings>;
+  /**
+   * Merge a patch and persist it, applying any side effects. Returns what is
+   * now in force, so the renderer mirrors disk without a second round trip.
+   */
+  setSettings: (patch: Partial<AppSettings>) => Promise<AppSettings>;
+  resetSettings: () => Promise<AppSettings>;
+  /** Subscribe to "open Settings" commands pushed from the native menu. */
+  onOpenSettings: (listener: OpenSettingsListener) => () => void;
+
+  // --- Network ---
+  /** Every call recorded this session, oldest first. */
+  getNetworkLog: () => Promise<NetworkLogEntry[]>;
+  onNetworkLog: (listener: NetworkLogListener) => () => void;
 
   // --- Export ---
   exportLabels: (request: ExportRequest) => Promise<ExportResponse>;
@@ -127,6 +152,12 @@ export const IPC_INVOKE = {
   unloadConfig: "config:unload",
   saveSession: "session:save",
   clearSession: "session:clear",
+  getSessionInfo: "session:info",
+  getAppInfo: "app:info",
+  getSettings: "settings:get",
+  setSettings: "settings:set",
+  resetSettings: "settings:reset",
+  getNetworkLog: "network:log",
   exportLabels: "export:run",
   getRecent: "recent:get",
   installUpdate: "update:install",
@@ -148,4 +179,6 @@ export const IPC_EVENT = {
   themeChanged: "theme:changed",
   updateStatus: "update:status",
   setMode: "menu:set-mode",
+  openSettings: "menu:open-settings",
+  networkLog: "network:log-entry",
 } as const;

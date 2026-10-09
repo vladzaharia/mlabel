@@ -18,7 +18,7 @@
       "$ref": "#/$defs/__schema10"
     },
     "output": {
-      "$ref": "#/$defs/__schema92"
+      "$ref": "#/$defs/__schema105"
     }
   },
   "required": ["version", "input", "output"],
@@ -77,7 +77,7 @@
       "default": {
         "updateChecks": true
       },
-      "description": "Network policy. The update check is the only remote request this app ever performs, and it is opt-out.",
+      "description": "Network policy. Set updateChecks to false to forbid network requests.",
       "$ref": "#/$defs/__schema8"
     },
     "__schema8": {
@@ -85,7 +85,7 @@
       "properties": {
         "updateChecks": {
           "default": true,
-          "description": "Whether to check GitHub Releases for updates. `false` forbids every network call the app could make. Absent or `true` means checks run.",
+          "description": "Whether to check GitHub Releases for updates. Absent or `true` means checks run; `false` forbids that traffic entirely.",
           "$ref": "#/$defs/__schema9"
         }
       },
@@ -110,7 +110,7 @@
           "$ref": "#/$defs/__schema64"
         },
         "cards": {
-          "$ref": "#/$defs/__schema85"
+          "$ref": "#/$defs/__schema98"
         }
       },
       "required": ["fields"],
@@ -1731,10 +1731,16 @@
           "$ref": "#/$defs/__schema66"
         },
         "appliesTo": {
-          "$ref": "#/$defs/__schema83"
+          "$ref": "#/$defs/__schema94"
+        },
+        "appliesToCards": {
+          "$ref": "#/$defs/__schema95"
+        },
+        "forEach": {
+          "$ref": "#/$defs/__schema96"
         },
         "style": {
-          "$ref": "#/$defs/__schema84"
+          "$ref": "#/$defs/__schema97"
         }
       },
       "required": ["name", "when", "style"],
@@ -2010,6 +2016,151 @@
       "required": ["op", "field"],
       "additionalProperties": false
     },
+    "__schema83": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "exceedsFactor",
+          "description": "True when the field is more than `factor` times the comparand — a difference in magnitude rather than merely being larger. Defined only over non-negative magnitudes: a negative value, or a comparand of zero or less, does not fire."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "otherField": {
+          "description": "The input field this one is measured against. Required — this operator has no literal form.",
+          "$ref": "#/$defs/__schema6"
+        },
+        "factor": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "The multiple to scale the comparand by. `3` reads as 'three times'. A factor of 1 is legal and degenerates into a plain `gt` / `lt`."
+        }
+      },
+      "required": ["op", "field", "otherField", "factor"],
+      "additionalProperties": false
+    },
+    "__schema84": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "fallsBelowFactor",
+          "description": "True when the field is less than the comparand divided by `factor`. Defined only over non-negative magnitudes."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "otherField": {
+          "description": "The input field this one is measured against. Required — this operator has no literal form.",
+          "$ref": "#/$defs/__schema6"
+        },
+        "factor": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "The multiple to scale the comparand by. `3` reads as 'three times'. A factor of 1 is legal and degenerates into a plain `gt` / `lt`."
+        }
+      },
+      "required": ["op", "field", "otherField", "factor"],
+      "additionalProperties": false
+    },
+    "__schema85": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "sameDomain",
+          "description": "True when both values carry an email domain and the domains match, compared without regard to case. A value with no `@` has no domain, so it never matches."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "otherField": {
+          "description": "The input field this one is measured against. Required — this operator has no literal form.",
+          "$ref": "#/$defs/__schema6"
+        },
+        "ignore": {
+          "description": "Domains that never count as shared, compared without regard to case — the large free providers, typically. Two accounts both at `gmail.com` have nothing in common worth colouring.",
+          "$ref": "#/$defs/__schema86"
+        }
+      },
+      "required": ["op", "field", "otherField"],
+      "additionalProperties": false
+    },
+    "__schema86": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "__schema87": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "sameLocalPart",
+          "description": "True when both values share a local part — the text before the `@`, or the whole value when there is no `@` — compared without regard to case. That fallback is what lets a bare username be tested against a sender address."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "otherField": {
+          "description": "The input field this one is measured against. Required — this operator has no literal form.",
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": ["op", "field", "otherField"],
+      "additionalProperties": false
+    },
+    "__schema88": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "sharesPrefix",
+          "description": "True when both values begin with the same `length` characters, compared without regard to case. For spotting identifiers minted together — a run of handles all starting `Bvd` — where what matters is that two values resemble each other, not what either looks like alone. A value shorter than `length` never matches."
+        },
+        "field": {
+          "$ref": "#/$defs/__schema68"
+        },
+        "otherField": {
+          "description": "The input field this one is measured against. Required — this operator has no literal form.",
+          "$ref": "#/$defs/__schema6"
+        },
+        "length": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "description": "How many leading characters must agree. Low values match by coincidence — 3 or 4 is usually where a shared prefix stops being an accident."
+        }
+      },
+      "required": ["op", "field", "otherField", "length"],
+      "additionalProperties": false
+    },
+    "__schema89": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "allOf",
+          "description": "True when every listed condition holds. Conditions may nest."
+        },
+        "conditions": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema90"
+          },
+          "description": "Every one of these must hold."
+        }
+      },
+      "required": ["op", "conditions"],
+      "additionalProperties": false
+    },
+    "__schema90": {
+      "$ref": "#/$defs/Condition"
+    },
     "Condition": {
       "title": "Condition",
       "description": "A rule's trigger, evaluated over one record's input values. Never throws: a condition pointed at a missing or wrongly-typed value simply does not fire.",
@@ -2072,14 +2223,51 @@
               "type": "string",
               "const": "notEmpty",
               "description": "True when the field holds anything at all."
+            },
+            {
+              "type": "string",
+              "const": "exceedsFactor",
+              "description": "True when the field is more than `factor` times the comparand — a difference in magnitude rather than merely being larger. Defined only over non-negative magnitudes: a negative value, or a comparand of zero or less, does not fire."
+            },
+            {
+              "type": "string",
+              "const": "fallsBelowFactor",
+              "description": "True when the field is less than the comparand divided by `factor`. Defined only over non-negative magnitudes."
+            },
+            {
+              "type": "string",
+              "const": "sameDomain",
+              "description": "True when both values carry an email domain and the domains match, compared without regard to case. A value with no `@` has no domain, so it never matches."
+            },
+            {
+              "type": "string",
+              "const": "sameLocalPart",
+              "description": "True when both values share a local part — the text before the `@`, or the whole value when there is no `@` — compared without regard to case. That fallback is what lets a bare username be tested against a sender address."
+            },
+            {
+              "type": "string",
+              "const": "sharesPrefix",
+              "description": "True when both values begin with the same `length` characters, compared without regard to case. For spotting identifiers minted together — a run of handles all starting `Bvd` — where what matters is that two values resemble each other, not what either looks like alone. A value shorter than `length` never matches."
+            },
+            {
+              "type": "string",
+              "const": "allOf",
+              "description": "True when every listed condition holds. Conditions may nest."
+            },
+            {
+              "type": "string",
+              "const": "anyOf",
+              "description": "True when at least one listed condition holds. Conditions may nest."
+            },
+            {
+              "type": "string",
+              "const": "not",
+              "description": "True when the nested condition does not hold."
             }
           ]
-        },
-        "field": {
-          "$ref": "#/$defs/__schema68"
         }
       },
-      "required": ["op", "field"],
+      "required": ["op"],
       "allOf": [
         {
           "if": {
@@ -2223,22 +2411,177 @@
           "then": {
             "$ref": "#/$defs/__schema82"
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "exceedsFactor"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema83"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "fallsBelowFactor"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema84"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "sameDomain"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema85"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "sameLocalPart"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema87"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "sharesPrefix"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema88"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "allOf"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema89"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "anyOf"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema91"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "not"
+              }
+            },
+            "required": ["op"]
+          },
+          "then": {
+            "$ref": "#/$defs/__schema93"
+          }
         }
       ]
     },
-    "__schema83": {
+    "__schema91": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "anyOf",
+          "description": "True when at least one listed condition holds. Conditions may nest."
+        },
+        "conditions": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema92"
+          },
+          "description": "At least one of these must hold."
+        }
+      },
+      "required": ["op", "conditions"],
+      "additionalProperties": false
+    },
+    "__schema92": {
+      "$ref": "#/$defs/Condition"
+    },
+    "__schema93": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "not",
+          "description": "True when the nested condition does not hold."
+        },
+        "condition": {
+          "description": "The condition to negate.",
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": ["op", "condition"],
+      "additionalProperties": false
+    },
+    "__schema94": {
       "minItems": 1,
       "type": "array",
       "items": {
         "$ref": "#/$defs/__schema6"
       },
-      "description": "Fields to style when the rule fires. Defaults to the field the condition tests, which is what you want for a single-field rule and never what you want when comparing two."
+      "description": "Fields to style when the rule fires. Defaults to the field the condition tests, which is what you want for a single-field rule and never what you want when comparing two. The default is skipped entirely when `appliesToCards` is given."
     },
-    "__schema84": {
+    "__schema95": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema6"
+      },
+      "description": "Input cards to annotate when the rule fires. A card-level note states once what would otherwise repeat on every field in the group. This is a separate key from `appliesTo` because card names and field names live in separate namespaces — a card may legitimately share a name with a field, and one list could not tell them apart."
+    },
+    "__schema96": {
+      "description": "Evaluate this rule once per element of the named input field, which must be an `array`, and style the elements it holds for. Inside the loop, an element of an `array` of `object` is addressed by its own field names, which shadow a record column of the same name; an element of a list of scalars is addressed by the list's own name. Either way every other record column stays readable, so `otherField` compares an element against the record around it. Cannot be combined with `appliesTo` or `appliesToCards` — the target is always the matching element.",
+      "$ref": "#/$defs/__schema6"
+    },
+    "__schema97": {
       "description": "How the matched fields are styled.",
       "$ref": "#/$defs/Style"
     },
-    "__schema85": {
+    "__schema98": {
       "type": "array",
       "items": {
         "$ref": "#/$defs/Card"
@@ -2249,7 +2592,7 @@
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/__schema86"
+          "$ref": "#/$defs/__schema99"
         },
         "display": {
           "anyOf": [
@@ -2258,15 +2601,15 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema87"
+              "$ref": "#/$defs/__schema100"
             }
           ]
         },
         "scope": {
-          "$ref": "#/$defs/__schema88"
+          "$ref": "#/$defs/__schema101"
         },
         "rows": {
-          "$ref": "#/$defs/__schema89"
+          "$ref": "#/$defs/__schema102"
         }
       },
       "required": ["name", "rows"],
@@ -2274,19 +2617,19 @@
       "title": "Card",
       "description": "A card grouping fields under a heading. The same shape drives read-only input cards and interactive output cards. Omit `cards` entirely for one implicit card holding every field, one per row."
     },
-    "__schema86": {
+    "__schema99": {
       "description": "Identifies the card; must be unique per side.",
       "$ref": "#/$defs/__schema6"
     },
-    "__schema87": {
+    "__schema100": {
       "$ref": "#/$defs/TextDisplay"
     },
-    "__schema88": {
+    "__schema101": {
       "type": "string",
       "enum": ["record", "session"],
       "description": "`session` cards render on the setup step rather than once per record. Defaults to `record`."
     },
-    "__schema89": {
+    "__schema102": {
       "minItems": 1,
       "type": "array",
       "items": {
@@ -2298,23 +2641,23 @@
       "type": "object",
       "properties": {
         "perRow": {
-          "$ref": "#/$defs/__schema90"
+          "$ref": "#/$defs/__schema103"
         },
         "use": {
-          "$ref": "#/$defs/__schema91"
+          "$ref": "#/$defs/__schema104"
         }
       },
       "required": ["use"],
       "additionalProperties": false,
       "title": "Card row"
     },
-    "__schema90": {
+    "__schema103": {
       "type": "integer",
       "exclusiveMinimum": 0,
       "maximum": 9007199254740991,
       "description": "Columns to fit before wrapping. Defaults to the number of fields in the row."
     },
-    "__schema91": {
+    "__schema104": {
       "minItems": 1,
       "type": "array",
       "items": {
@@ -2322,7 +2665,7 @@
       },
       "description": "Field names to render in this row, in order."
     },
-    "__schema92": {
+    "__schema105": {
       "type": "object",
       "properties": {
         "adapterId": {
@@ -2332,17 +2675,17 @@
           "$ref": "#/$defs/__schema13"
         },
         "fields": {
-          "$ref": "#/$defs/__schema93"
+          "$ref": "#/$defs/__schema106"
         },
         "cards": {
-          "$ref": "#/$defs/__schema111"
+          "$ref": "#/$defs/__schema124"
         }
       },
       "required": ["fields"],
       "additionalProperties": false,
       "description": "What the labeler captures, or the app fills in."
     },
-    "__schema93": {
+    "__schema106": {
       "minItems": 1,
       "type": "array",
       "items": {
@@ -2415,18 +2758,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema95"
+              "$ref": "#/$defs/__schema108"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema96"
+          "$ref": "#/$defs/__schema109"
         },
         "required": {
-          "$ref": "#/$defs/__schema101"
+          "$ref": "#/$defs/__schema114"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema102"
+          "$ref": "#/$defs/__schema115"
         }
       },
       "required": ["type", "name"],
@@ -2441,7 +2784,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema94"
+            "$ref": "#/$defs/__schema107"
           }
         },
         {
@@ -2454,7 +2797,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema103"
+            "$ref": "#/$defs/__schema116"
           }
         },
         {
@@ -2467,7 +2810,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema104"
+            "$ref": "#/$defs/__schema117"
           }
         },
         {
@@ -2480,7 +2823,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema105"
+            "$ref": "#/$defs/__schema118"
           }
         },
         {
@@ -2493,7 +2836,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema106"
+            "$ref": "#/$defs/__schema119"
           }
         },
         {
@@ -2506,7 +2849,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema107"
+            "$ref": "#/$defs/__schema120"
           }
         },
         {
@@ -2519,7 +2862,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema108"
+            "$ref": "#/$defs/__schema121"
           }
         },
         {
@@ -2532,7 +2875,7 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema109"
+            "$ref": "#/$defs/__schema122"
           }
         },
         {
@@ -2545,12 +2888,12 @@
             "required": ["type"]
           },
           "then": {
-            "$ref": "#/$defs/__schema110"
+            "$ref": "#/$defs/__schema123"
           }
         }
       ]
     },
-    "__schema94": {
+    "__schema107": {
       "type": "object",
       "properties": {
         "name": {
@@ -2563,18 +2906,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema95"
+              "$ref": "#/$defs/__schema108"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema96"
+          "$ref": "#/$defs/__schema109"
         },
         "required": {
-          "$ref": "#/$defs/__schema101"
+          "$ref": "#/$defs/__schema114"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema102"
+          "$ref": "#/$defs/__schema115"
         },
         "widget": {
           "type": "string",
@@ -2606,14 +2949,14 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema95": {
+    "__schema108": {
       "$ref": "#/$defs/FieldDisplay"
     },
-    "__schema96": {
+    "__schema109": {
       "description": "Where this field's value comes from. Defaults to `{ \"kind\": \"user\" }`.",
       "$ref": "#/$defs/Fill"
     },
-    "__schema97": {
+    "__schema110": {
       "type": "object",
       "properties": {
         "kind": {
@@ -2625,7 +2968,7 @@
       "required": ["kind"],
       "additionalProperties": false
     },
-    "__schema98": {
+    "__schema111": {
       "type": "object",
       "properties": {
         "kind": {
@@ -2641,7 +2984,7 @@
       "required": ["kind"],
       "additionalProperties": false
     },
-    "__schema99": {
+    "__schema112": {
       "type": "object",
       "properties": {
         "kind": {
@@ -2653,7 +2996,7 @@
       "required": ["kind"],
       "additionalProperties": false
     },
-    "__schema100": {
+    "__schema113": {
       "type": "object",
       "properties": {
         "kind": {
@@ -2708,7 +3051,7 @@
             "required": ["kind"]
           },
           "then": {
-            "$ref": "#/$defs/__schema97"
+            "$ref": "#/$defs/__schema110"
           }
         },
         {
@@ -2721,7 +3064,7 @@
             "required": ["kind"]
           },
           "then": {
-            "$ref": "#/$defs/__schema98"
+            "$ref": "#/$defs/__schema111"
           }
         },
         {
@@ -2734,7 +3077,7 @@
             "required": ["kind"]
           },
           "then": {
-            "$ref": "#/$defs/__schema99"
+            "$ref": "#/$defs/__schema112"
           }
         },
         {
@@ -2747,21 +3090,21 @@
             "required": ["kind"]
           },
           "then": {
-            "$ref": "#/$defs/__schema100"
+            "$ref": "#/$defs/__schema113"
           }
         }
       ]
     },
-    "__schema101": {
+    "__schema114": {
       "type": "boolean",
       "description": "Whether a record counts as complete without this field. Defaults by fill: something a person is asked for is required, something the app derives is not."
     },
-    "__schema102": {
+    "__schema115": {
       "type": "string",
-      "pattern": "^(?:(?:mod|ctrl|alt|shift|meta)\\+)*[A-Za-z0-9]$",
+      "pattern": "^(?:(?:mod|ctrl|control|alt|opt|option|shift|meta|cmd|command)\\+)*(?:[A-Za-z0-9]|space|enter|escape|tab|left|right|up|down|home|end|backspace|delete|esc|spacebar|return|arrowleft|arrowright|arrowup|arrowdown|del)$",
       "description": "Chord that moves focus to this field's widget, e.g. `\"mod+1\"`. Unique across the whole config, and not one of the chords the app or OS reserves."
     },
-    "__schema103": {
+    "__schema116": {
       "type": "object",
       "properties": {
         "name": {
@@ -2774,18 +3117,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema95"
+              "$ref": "#/$defs/__schema108"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema96"
+          "$ref": "#/$defs/__schema109"
         },
         "required": {
-          "$ref": "#/$defs/__schema101"
+          "$ref": "#/$defs/__schema114"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema102"
+          "$ref": "#/$defs/__schema115"
         },
         "widget": {
           "type": "string",
@@ -2814,7 +3157,7 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema104": {
+    "__schema117": {
       "type": "object",
       "properties": {
         "name": {
@@ -2827,18 +3170,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema95"
+              "$ref": "#/$defs/__schema108"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema96"
+          "$ref": "#/$defs/__schema109"
         },
         "required": {
-          "$ref": "#/$defs/__schema101"
+          "$ref": "#/$defs/__schema114"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema102"
+          "$ref": "#/$defs/__schema115"
         },
         "widget": {
           "type": "string",
@@ -2867,7 +3210,7 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema105": {
+    "__schema118": {
       "type": "object",
       "properties": {
         "name": {
@@ -2880,18 +3223,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema95"
+              "$ref": "#/$defs/__schema108"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema96"
+          "$ref": "#/$defs/__schema109"
         },
         "required": {
-          "$ref": "#/$defs/__schema101"
+          "$ref": "#/$defs/__schema114"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema102"
+          "$ref": "#/$defs/__schema115"
         },
         "widget": {
           "type": "string",
@@ -2907,7 +3250,7 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema106": {
+    "__schema119": {
       "type": "object",
       "properties": {
         "name": {
@@ -2920,18 +3263,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema95"
+              "$ref": "#/$defs/__schema108"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema96"
+          "$ref": "#/$defs/__schema109"
         },
         "required": {
-          "$ref": "#/$defs/__schema101"
+          "$ref": "#/$defs/__schema114"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema102"
+          "$ref": "#/$defs/__schema115"
         },
         "widget": {
           "type": "string",
@@ -2947,7 +3290,7 @@
       "required": ["name", "type"],
       "additionalProperties": false
     },
-    "__schema107": {
+    "__schema120": {
       "type": "object",
       "properties": {
         "name": {
@@ -2960,18 +3303,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema95"
+              "$ref": "#/$defs/__schema108"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema96"
+          "$ref": "#/$defs/__schema109"
         },
         "required": {
-          "$ref": "#/$defs/__schema101"
+          "$ref": "#/$defs/__schema114"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema102"
+          "$ref": "#/$defs/__schema115"
         },
         "widget": {
           "type": "string",
@@ -2995,7 +3338,7 @@
       "required": ["name", "type", "choices"],
       "additionalProperties": false
     },
-    "__schema108": {
+    "__schema121": {
       "type": "object",
       "properties": {
         "name": {
@@ -3008,18 +3351,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema95"
+              "$ref": "#/$defs/__schema108"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema96"
+          "$ref": "#/$defs/__schema109"
         },
         "required": {
-          "$ref": "#/$defs/__schema101"
+          "$ref": "#/$defs/__schema114"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema102"
+          "$ref": "#/$defs/__schema115"
         },
         "type": {
           "type": "string",
@@ -3041,7 +3384,7 @@
       "required": ["name", "type", "fields"],
       "additionalProperties": false
     },
-    "__schema109": {
+    "__schema122": {
       "type": "object",
       "properties": {
         "name": {
@@ -3054,18 +3397,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema95"
+              "$ref": "#/$defs/__schema108"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema96"
+          "$ref": "#/$defs/__schema109"
         },
         "required": {
-          "$ref": "#/$defs/__schema101"
+          "$ref": "#/$defs/__schema114"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema102"
+          "$ref": "#/$defs/__schema115"
         },
         "widget": {
           "type": "string",
@@ -3085,7 +3428,7 @@
       "required": ["name", "type", "items"],
       "additionalProperties": false
     },
-    "__schema110": {
+    "__schema123": {
       "type": "object",
       "properties": {
         "name": {
@@ -3098,18 +3441,18 @@
               "description": "Shorthand for `{ \"title\": … }`, which is how most display blocks are written."
             },
             {
-              "$ref": "#/$defs/__schema95"
+              "$ref": "#/$defs/__schema108"
             }
           ]
         },
         "fill": {
-          "$ref": "#/$defs/__schema96"
+          "$ref": "#/$defs/__schema109"
         },
         "required": {
-          "$ref": "#/$defs/__schema101"
+          "$ref": "#/$defs/__schema114"
         },
         "shortcut": {
-          "$ref": "#/$defs/__schema102"
+          "$ref": "#/$defs/__schema115"
         },
         "type": {
           "type": "string",
@@ -3128,7 +3471,7 @@
       "required": ["name", "type", "values"],
       "additionalProperties": false
     },
-    "__schema111": {
+    "__schema124": {
       "type": "array",
       "items": {
         "$ref": "#/$defs/Card"

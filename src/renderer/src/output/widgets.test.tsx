@@ -7,6 +7,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import type { OutputField } from "@core/config";
 import { buildConfig } from "@test/fixtures/config";
 import { CheckboxWidget } from "./widgets";
+import { ShortcutProvider } from "../shortcuts/ShortcutProvider";
+import { useStore } from "../store/store";
 import { FieldRenderer } from "./FieldRenderer";
 
 /** Built through the loader so every OutputField carries the schema defaults. */
@@ -287,7 +289,27 @@ describe("choice shortcut hints", () => {
   const verdict = (): OutputField => withShortcuts.get("verdict")!;
 
   it("renders a key cap on the choice that declared one", () => {
-    render(<FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />);
+    useStore.setState({
+      config: buildConfig({
+        output: [
+          {
+            name: "verdict",
+            kind: "choice",
+            displayName: "Verdict",
+            choices: [
+              { value: "good", label: "Good", shortcut: "g" },
+              { value: "bad", label: "Bad" },
+            ],
+          },
+        ],
+      }),
+      shortcutOverrides: {},
+    });
+    render(
+      <ShortcutProvider>
+        <FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />
+      </ShortcutProvider>,
+    );
     const caps = document.querySelectorAll("kbd");
     expect(caps).toHaveLength(1);
     expect(caps[0]?.textContent).toBe("G");
@@ -296,7 +318,27 @@ describe("choice shortcut hints", () => {
   // Inside the control it reads as part of the caption ("Correct C") rather
   // than as a key you can press.
   it("puts the key cap outside the option control, not inside it", () => {
-    render(<FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />);
+    useStore.setState({
+      config: buildConfig({
+        output: [
+          {
+            name: "verdict",
+            kind: "choice",
+            displayName: "Verdict",
+            choices: [
+              { value: "good", label: "Good", shortcut: "g" },
+              { value: "bad", label: "Bad" },
+            ],
+          },
+        ],
+      }),
+      shortcutOverrides: {},
+    });
+    render(
+      <ShortcutProvider>
+        <FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />
+      </ShortcutProvider>,
+    );
     const cap = document.querySelector("kbd");
     expect(cap).not.toBeNull();
     expect(cap?.closest('[role="radio"]')).toBeNull();
@@ -305,17 +347,77 @@ describe("choice shortcut hints", () => {
   // Otherwise the radio announces as "Good G", and every existing name-based
   // query in this file would be querying a different string than the label.
   it("keeps the key cap out of the accessible name", () => {
-    render(<FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />);
+    useStore.setState({
+      config: buildConfig({
+        output: [
+          {
+            name: "verdict",
+            kind: "choice",
+            displayName: "Verdict",
+            choices: [
+              { value: "good", label: "Good", shortcut: "g" },
+              { value: "bad", label: "Bad" },
+            ],
+          },
+        ],
+      }),
+      shortcutOverrides: {},
+    });
+    render(
+      <ShortcutProvider>
+        <FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />
+      </ShortcutProvider>,
+    );
     expect(screen.getByRole("radio", { name: "Good" })).toBeInTheDocument();
   });
 
   it("exposes the chord to assistive tech via aria-keyshortcuts", () => {
-    render(<FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />);
+    useStore.setState({
+      config: buildConfig({
+        output: [
+          {
+            name: "verdict",
+            kind: "choice",
+            displayName: "Verdict",
+            choices: [
+              { value: "good", label: "Good", shortcut: "g" },
+              { value: "bad", label: "Bad" },
+            ],
+          },
+        ],
+      }),
+      shortcutOverrides: {},
+    });
+    render(
+      <ShortcutProvider>
+        <FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />
+      </ShortcutProvider>,
+    );
     expect(screen.getByRole("radio", { name: "Good" })).toHaveAttribute("aria-keyshortcuts", "G");
   });
 
   it("adds nothing to a choice with no shortcut", () => {
-    render(<FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />);
+    useStore.setState({
+      config: buildConfig({
+        output: [
+          {
+            name: "verdict",
+            kind: "choice",
+            displayName: "Verdict",
+            choices: [
+              { value: "good", label: "Good", shortcut: "g" },
+              { value: "bad", label: "Bad" },
+            ],
+          },
+        ],
+      }),
+      shortcutOverrides: {},
+    });
+    render(
+      <ShortcutProvider>
+        <FieldRenderer field={verdict()} value={null} onChange={vi.fn()} />
+      </ShortcutProvider>,
+    );
     expect(screen.getByRole("radio", { name: "Bad" })).not.toHaveAttribute("aria-keyshortcuts");
   });
 });

@@ -11,6 +11,8 @@ import { ChevronRight } from "lucide-react";
 import { evaluateRecord, resolveLabelValues } from "@core";
 import { useStore, selectCurrentRecord } from "../store/store";
 import { Button } from "../components/ui/button";
+import { Kbd } from "../components/Kbd";
+import { useShortcuts } from "../shortcuts/ShortcutProvider";
 import { WrapRow } from "../components/WrapRow";
 import { FieldRenderer } from "./FieldRenderer";
 
@@ -19,6 +21,8 @@ const isRecordField = (field: OutputField): boolean =>
   isUserFilled(field) && field.fill?.kind !== "session";
 
 export function OutputForm(): React.JSX.Element | null {
+  const { chordFor, ariaFor } = useShortcuts();
+  const advanceChord = chordFor("record.advance");
   const config = useStore((s) => s.config);
   const index = useStore((s) => s.index);
   const record = useStore(selectCurrentRecord);
@@ -92,13 +96,21 @@ export function OutputForm(): React.JSX.Element | null {
               ? "1 required field left"
               : `${String(missing)} required fields left`}
         </span>
-        <kbd
-          aria-hidden="true"
-          className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+        {advanceChord && (
+          <Kbd
+            aria-hidden="true"
+            className="px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+          >
+            {advanceChord}
+          </Kbd>
+        )}
+        <Button
+          size="sm"
+          onClick={next}
+          disabled={isLast}
+          aria-label="Next record"
+          aria-keyshortcuts={ariaFor("record.advance")}
         >
-          ⏎
-        </kbd>
-        <Button size="sm" onClick={next} disabled={isLast} aria-label="Next record">
           Next
           <ChevronRight size={15} aria-hidden="true" />
         </Button>

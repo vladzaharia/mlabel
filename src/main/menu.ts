@@ -4,6 +4,7 @@ import type { MenuItemConstructorOptions } from "electron";
 export interface MenuHandlers {
   onSetMode: (mode: "label" | "prepare") => void;
   onCheckForUpdates: () => void;
+  onOpenSettings: () => void;
 }
 
 export interface MenuContext {
@@ -69,18 +70,27 @@ export function buildMenuTemplate(
 
   const windowMenu: MenuItemConstructorOptions = { role: "windowMenu" };
 
+  const settingsItem: MenuItemConstructorOptions = {
+    id: "settings",
+    label: "Settings…",
+    accelerator: "CmdOrCtrl+,",
+    click: () => handlers.onOpenSettings(),
+  };
+  const checkForUpdatesItem: MenuItemConstructorOptions = {
+    id: "check-for-updates",
+    label: "Check for Updates…",
+    enabled: updatesArmed,
+    click: () => handlers.onCheckForUpdates(),
+  };
+
   if (isMac) {
     const appMenu: MenuItemConstructorOptions = {
       role: "appMenu",
       submenu: [
         { role: "about" },
         { type: "separator" },
-        {
-          id: "check-for-updates",
-          label: "Check for Updates…",
-          enabled: updatesArmed,
-          click: () => handlers.onCheckForUpdates(),
-        },
+        settingsItem,
+        checkForUpdatesItem,
         { type: "separator" },
         { role: "hide" },
         { role: "hideOthers" },
@@ -92,8 +102,14 @@ export function buildMenuTemplate(
     return [appMenu, modeMenu, editMenu, viewMenu, windowMenu];
   }
 
-  // Windows / Linux: no App menu. Mode accelerators are the sole entry point.
-  return [modeMenu, editMenu, viewMenu, windowMenu];
+  // Windows / Linux have no App menu, so Settings and the update check need a
+  // home of their own. This also closes a real gap: until now there was no way
+  // at all to trigger an update check on those platforms.
+  const fileMenu: MenuItemConstructorOptions = {
+    label: "File",
+    submenu: [settingsItem, checkForUpdatesItem, { type: "separator" }, { role: "quit" }],
+  };
+  return [fileMenu, modeMenu, editMenu, viewMenu, windowMenu];
 }
 
 // ---------------------------------------------------------------------------

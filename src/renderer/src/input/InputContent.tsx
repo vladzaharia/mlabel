@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { InputField } from "@core/config";
 import { resolveCards } from "@core/config";
 import { evaluateDecorations } from "@core";
+import { announce } from "../a11y/announcer";
 import { useStore, selectCurrentRecord } from "../store/store";
 import { CategoryCard } from "./CategoryCard";
 
@@ -10,12 +11,28 @@ export function InputContent(): React.JSX.Element {
   const record = useStore(selectCurrentRecord);
   const index = useStore((s) => s.index);
   const scroller = useRef<HTMLDivElement | null>(null);
+  const unreadable = record?.coercionErrors.length ?? 0;
 
   // Arriving mid-document on every Next costs an orienting scroll and a moment
   // of "where am I" — hundreds of times over a file.
   useEffect(() => {
     scroller.current?.scrollTo({ top: 0 });
   }, [index]);
+
+  // Collapsing each problem to an icon costs a sighted labeler nothing — the
+  // icons are still there to see — but it does remove the block of text a screen
+  // reader would otherwise have read out on the way past. Summarised once per
+  // record rather than once per field: the per-field detail is on the badge, and
+  // announcing a dozen of them on every Next is noise, not information.
+  useEffect(() => {
+    if (unreadable > 0) {
+      announce(
+        unreadable === 1
+          ? "1 value on this record could not be read."
+          : `${unreadable} values on this record could not be read.`,
+      );
+    }
+  }, [index, unreadable]);
 
   const fieldsByName = new Map<string, InputField>(
     (config?.input.fields ?? []).map((field) => [field.name, field]),

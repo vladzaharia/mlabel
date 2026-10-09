@@ -170,4 +170,68 @@ export type UpdateStatus =
   | { kind: "downloading"; version: string; percent: number }
   | { kind: "downloaded"; version: string }
   | { kind: "available-external"; version: string; url: string }
-  | { kind: "error"; message?: string };
+  | { kind: "error"; message?: string }
+  // A state the UI could never express before: with updates turned off there
+  // was simply nothing on screen, which reads the same as nothing having
+  // happened yet.
+  | { kind: "disabled" };
+
+/** How the app picks between light and dark. */
+export type ThemeMode = "system" | "light" | "dark";
+
+/** The named colour schemes. */
+export type ColorTheme = "cobalt" | "parchment" | "fjord" | "vespers";
+
+/**
+ * Everything the app remembers about how a labeler likes to work.
+ *
+ * Distinct from a session, which is about one file's worth of labels. This
+ * outlives every file and is not tied to a config.
+ */
+export interface AppSettings {
+  version: number;
+  themeMode: ThemeMode;
+  colorTheme: ColorTheme;
+  /**
+   * Chord overrides, keyed by binding. An empty array means *deliberately
+   * unbound*, which is a different thing from an absent key meaning *use the
+   * default*.
+   */
+  shortcuts: Record<string, string[]>;
+  /**
+   * Whether the labeler wants update checks. Only ever *narrows* the config's
+   * `network.updateChecks` — a setting can never enable network a config forbade.
+   */
+  updateChecks: boolean;
+}
+
+/** Static facts about the running build, for the settings pane. */
+export interface AppInfo {
+  version: string;
+  platform: string;
+  /** Architecture of this build. */
+  arch: string;
+  /** Whether this is an installed build. */
+  packaged: boolean;
+  /** Whether the updater was armed at startup. */
+  updatesArmed: boolean;
+  /** `network.updateChecks` for the loaded config; true when none is loaded. */
+  updatesAllowedByConfig: boolean;
+}
+
+export type NetworkEventKind = "update-check" | "update-download" | "denied";
+export type NetworkOutcome = "started" | "success" | "error" | "denied";
+
+/** One network call the app made, or refused to make. */
+export interface NetworkLogEntry {
+  id: number;
+  /** Epoch milliseconds. */
+  at: number;
+  kind: NetworkEventKind;
+  /** Plain-language description, e.g. "Check for updates". */
+  label: string;
+  /** Host contacted; empty for events that name no URL. */
+  host: string;
+  outcome: NetworkOutcome;
+  detail?: string;
+}

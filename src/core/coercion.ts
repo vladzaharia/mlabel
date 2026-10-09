@@ -1,4 +1,5 @@
-import type { ValueTypeShape } from "./config/value-type";
+import { isScalarKind, type ValueTypeShape } from "./config/value-type";
+import { parseDateish, splitList } from "./tolerant";
 import type { CoercedValue } from "./types/values";
 
 export interface CoercionError {
@@ -73,8 +74,12 @@ export function coerceValue(
     }
 
     case "date": {
-      const d = raw instanceof Date ? raw : new Date(String(raw).trim());
-      if (Number.isNaN(d.getTime())) return fail(path, `Expected a date, got "${String(raw)}".`);
+      if (raw instanceof Date) {
+        if (Number.isNaN(raw.getTime())) return fail(path, `Expected a date, got "Invalid Date".`);
+        return ok(raw);
+      }
+      const d = parseDateish(String(raw));
+      if (d === undefined) return fail(path, `Expected a date, got "${String(raw)}".`);
       return ok(d);
     }
 
@@ -108,10 +113,20 @@ export function coerceValue(
     }
 
     case "array": {
+      // A list of scalars gets a second reading: sources routinely write one as
+      // `a, b, c` rather than as JSON. Strict JSON always wins, so a cell that
+      // parses today keeps parsing the same way — the fallback can only rescue
+      // cells that were previously a hard error.
+      const tolerant = typeof raw === "string" && isScalarKind(type.items.type);
       const parsed = parseStructural(raw, path);
-      if (!parsed.ok) return parsed.result;
-      const data = parsed.value;
-      if (!Array.isArray(data)) return fail(path, `Expected an array, got ${describe(data)}.`);
+
+      let data: unknown[];
+      if (parsed.ok && Array.isArray(parsed.value)) data = parsed.value;
+      else if (tolerant) data = splitList(raw as string);
+      else if (!parsed.ok) return parsed.result;
+      // Valid JSON that simply was not a list — a bare `5`, or a quoted word.
+      else return fail(path, `Expected an array, got ${describe(parsed.value)}.`);
+
       const out: CoercedValue[] = [];
       const errors: CoercionError[] = [];
       data.forEach((item, i) => {

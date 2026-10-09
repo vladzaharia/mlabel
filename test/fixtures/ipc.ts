@@ -6,13 +6,27 @@
  * seven. Building it once here means `tsc` points at one file instead.
  */
 
-import type { IpcApi } from "@core";
+import type { AppSettings, IpcApi } from "@core";
+
+/** The defaults, restated here so the fixture does not import Electron glue. */
+const TEST_SETTINGS: AppSettings = {
+  version: 1,
+  themeMode: "system",
+  colorTheme: "cobalt",
+  shortcuts: {},
+  updateChecks: true,
+};
 
 /**
  * Every method, stubbed to the most inert plausible response: nothing succeeds,
  * nothing throws, no listener ever fires. Override only what a test cares about.
  */
 export function makeIpcApi(overrides: Partial<IpcApi> = {}): IpcApi {
+  // Settings are stateful even in the stub: the real handler merges a patch and
+  // returns what is now in force, and the renderer reconciles from that. A stub
+  // returning a constant would silently undo every change it was handed.
+  let settings: AppSettings = { ...TEST_SETTINGS };
+
   const base = {
     ping: async () => "pong" as const,
 
@@ -38,6 +52,30 @@ export function makeIpcApi(overrides: Partial<IpcApi> = {}): IpcApi {
 
     saveSession: async () => {},
     clearSession: async () => {},
+    getSessionInfo: async () => null,
+
+    getAppInfo: async () => ({
+      version: "0.0.0-test",
+      platform: "test",
+      arch: "test",
+      packaged: false,
+      updatesArmed: false,
+      updatesAllowedByConfig: true,
+    }),
+    getSettings: async () => settings,
+    setSettings: async (patch: Partial<AppSettings>) => {
+      settings = { ...settings, ...patch };
+      return settings;
+    },
+    resetSettings: async () => {
+      settings = { ...TEST_SETTINGS };
+      return settings;
+    },
+    onOpenSettings: () => () => {},
+
+    getNetworkLog: async () => [],
+    onNetworkLog: () => () => {},
+
     exportLabels: async () => ({ ok: true }),
     getRecent: async () => ({}),
 

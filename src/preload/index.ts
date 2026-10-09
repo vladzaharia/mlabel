@@ -3,12 +3,16 @@ import {
   IPC_EVENT,
   IPC_INVOKE,
   type IpcApi,
+  type NetworkLogListener,
+  type OpenSettingsListener,
   type SetModeListener,
   type ThemeListener,
   type UpdateStatusListener,
 } from "@core/ipc";
 import type {
+  AppSettings,
   ExportRequest,
+  NetworkLogEntry,
   JoinKind,
   JoinRequest,
   SessionData,
@@ -56,6 +60,25 @@ const api = {
 
   saveSession: (data: SessionData) => ipcRenderer.invoke(IPC_INVOKE.saveSession, data),
   clearSession: () => ipcRenderer.invoke(IPC_INVOKE.clearSession),
+  getSessionInfo: () => ipcRenderer.invoke(IPC_INVOKE.getSessionInfo),
+
+  getAppInfo: () => ipcRenderer.invoke(IPC_INVOKE.getAppInfo),
+  getSettings: () => ipcRenderer.invoke(IPC_INVOKE.getSettings),
+  setSettings: (patch: Partial<AppSettings>) => ipcRenderer.invoke(IPC_INVOKE.setSettings, patch),
+  resetSettings: () => ipcRenderer.invoke(IPC_INVOKE.resetSettings),
+  onOpenSettings: (listener: OpenSettingsListener) => {
+    const handler = (): void => listener();
+    ipcRenderer.on(IPC_EVENT.openSettings, handler);
+    return () => ipcRenderer.removeListener(IPC_EVENT.openSettings, handler);
+  },
+
+  getNetworkLog: () => ipcRenderer.invoke(IPC_INVOKE.getNetworkLog),
+  onNetworkLog: (listener: NetworkLogListener) => {
+    const handler = (_event: Electron.IpcRendererEvent, entry: NetworkLogEntry): void =>
+      listener(entry);
+    ipcRenderer.on(IPC_EVENT.networkLog, handler);
+    return () => ipcRenderer.removeListener(IPC_EVENT.networkLog, handler);
+  },
 
   exportLabels: (request: ExportRequest) => ipcRenderer.invoke(IPC_INVOKE.exportLabels, request),
 

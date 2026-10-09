@@ -1,4 +1,7 @@
-import type { UpdateStatus } from "@core";
+import type { NetworkLogEntry, UpdateStatus } from "@core";
+
+/** What the mapper reports; the caller supplies the host and the timestamp. */
+export type NetworkEvent = Omit<NetworkLogEntry, "id" | "at" | "host">;
 
 /**
  * The slice of electron-updater's `autoUpdater` this module touches. Kept as a
@@ -41,20 +44,52 @@ export function wireUpdater(
     external: boolean;
     assetUrl: (version: string) => string;
     send: (status: UpdateStatus) => void;
+    /**
+     * Optional sink for the network log. Kept as a callback so this mapper
+     * stays pure and testable against a bare EventEmitter — the caller supplies
+     * somewhere for the entries to go.
+     */
+    onEvent?: (event: NetworkEvent) => void;
   },
 ): void {
-  const { external, assetUrl, send } = opts;
+  const { external, assetUrl, send, onEvent } = opts;
+  const note = (event: NetworkEvent): void => onEvent?.(event);
   updater.autoDownload = !external;
   updater.autoInstallOnAppQuit = !external;
 
   let version = "";
 
-  updater.on("checking-for-update", () => send({ kind: "checking" }));
-  updater.on("update-not-available", () => send({ kind: "up-to-date" }));
-  updater.on("error", (err) => send({ kind: "error", message: messageOf(err) }));
+  updater.on("checking-for-update", () => {
+    note({ kind: "update-check", label: "Check for updates", outcome: "started" });
+    send({ kind: "checking" });
+  });
+  updater.on("update-not-available", () => {
+    note({
+      kind: "update-check",
+      label: "Check for updates",
+      outcome: "success",
+      detail: "Up to date",
+    });
+    send({ kind: "up-to-date" });
+  });
+  updater.on("error", (err) => {
+    note({
+      kind: "update-check",
+      label: "Check for updates",
+      outcome: "error",
+      detail: messageOf(err),
+    });
+    send({ kind: "error", message: messageOf(err) });
+  });
 
   updater.on("update-available", (info) => {
     version = versionOf(info);
+    note({
+      kind: "update-check",
+      label: "Check for updates",
+      outcome: "success",
+      detail: `${version} available`,
+    });
     if (external) {
       send({ kind: "available-external", version, url: assetUrl(version) });
     } else {
@@ -68,6 +103,7 @@ export function wireUpdater(
   });
 
   updater.on("update-downloaded", (info) => {
+    note({ kind: "update-download", label: "Download update", outcome: "success" });
     send({ kind: "downloaded", version: versionOf(info) || version });
   });
 }

@@ -12,17 +12,26 @@ the app's <kbd>?</kbd> dialog, so that list stays truthful without anyone mainta
 [modifier+]…key
 ```
 
-Modifiers: `mod`, `ctrl`, `alt`, `shift`, `meta`. The key is a single letter or digit.
+Modifiers: `mod`, `ctrl`, `alt`, `shift`, `meta`. `cmd` and `opt` work too, for anyone
+reading them off a Mac keycap — they mean `meta` and `alt`.
 
 `mod` is **⌘ on macOS and Ctrl everywhere else** — write `mod` and both platforms are
 correct.
+
+The key is a single letter or digit, or one of the named keys:
+
+`space` `enter` `escape` `tab` `left` `right` `up` `down` `home` `end` `backspace` `delete`
 
 ```jsonc
 "shortcut": "p"           // bare letter
 "shortcut": "3"           // digit
 "shortcut": "mod+s"       // ⌘S / Ctrl+S
 "shortcut": "mod+shift+k" // ⌘⇧K / Ctrl+Shift+K
+"shortcut": "mod+up"      // a named key
 ```
+
+Punctuation is deliberately not offered. The app owns `?` and `mod+,`, and leaving
+punctuation out of the config grammar means no config can claim them.
 
 ## Two places to attach one
 
@@ -31,6 +40,12 @@ correct.
 ```jsonc
 { "name": "notes", "type": "text", "widget": "textarea", "shortcut": "mod+n" }
 ```
+
+Worth it for a field a labeler has to type into, which is otherwise several Tabs away. A
+field with choices rarely needs one: the choice chords below reach the answer without
+focusing anything. Fields that do not declare a `shortcut` are not listed in Settings as
+unbound focus actions — a row per field for something Tab already does buries the chords
+that matter.
 
 **On a choice** — selects it directly, without focusing anything first:
 
@@ -65,21 +80,28 @@ resolve it.
 
 A config may not claim a chord the app or the OS already owns:
 
-| Chord                                   | Owned by                               |
-| --------------------------------------- | -------------------------------------- |
-| `mod+z` `mod+x` `mod+c` `mod+v` `mod+a` | Undo / Cut / Copy / Paste / Select All |
-| `mod+q` `mod+w` `mod+m` `mod+h`         | Quit / Close / Minimise / Hide         |
-| `mod+r`                                 | Reload                                 |
-| `mod+enter`                             | Save & export                          |
-| `mod+shift+l`                           | Switch to Label mode                   |
-| `mod+shift+p`                           | Switch to Prepare mode                 |
+| Chord                                     | Owned by                               |
+| ----------------------------------------- | -------------------------------------- |
+| `mod+z` `mod+x` `mod+c` `mod+v` `mod+a`   | Undo / Cut / Copy / Paste / Select All |
+| `mod+q` `mod+w` `mod+m` `mod+h`           | Quit / Close / Minimise / Hide         |
+| `mod+r`                                   | Reload                                 |
+| `mod+enter`                               | Save & export                          |
+| `mod+shift+l`                             | Switch to Label mode                   |
+| `mod+shift+p`                             | Switch to Prepare mode                 |
+| `mod+,`                                   | Settings                               |
+| `enter` `space`                           | Next record                            |
+| `left` `right` `shift+left` `shift+right` | Moving through records                 |
 
 Claiming one is a config error rather than a silent override. The renderer calls
 `preventDefault` on a match, so `mod+v` in a config would stop Paste working in the notes
 box with nothing on screen to explain why.
 
 A bare letter that merely _appears inside_ a reserved chord is fine — `"c"` is unrelated to
-`mod+c`.
+`mod+c`. Adding a modifier makes a different chord, so `shift+left` being reserved does not
+reserve `mod+shift+left`.
+
+Reserved-ness is about the keystroke rather than the spelling. `cmd+v` and `ctrl+v` are each
+Paste on one platform, so reserving `mod+v` covers both.
 
 ## Derived fields cannot take one
 
